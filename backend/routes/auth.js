@@ -287,12 +287,16 @@ router.post("/verify-otp", auth, async (req, res) => {
   }
 });
 
-router.post("/start-data-send", auth, async (req, res) => {
+router.post("/send-data/:userId", auth, async (req, res) => {
   try {
+    const { userId } = req.params;
     const { duration } = req.body;
-    const user = await User.findById(req.user._id);
 
-    console.log(user.Email);
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     await startDataSending(user._id.toString(), user.Email, duration);
     res.status(200).json({
       success: true,
@@ -306,9 +310,11 @@ router.post("/start-data-send", auth, async (req, res) => {
   }
 });
 
-router.post("/stop-data-send", auth, async (req, res) => {
+router.post("/stop-data/:userId", auth, async (req, res) => {
   try {
-    const stopped = stopDataSending(req.user._id.toString());
+    const { userId } = req.params;
+
+    const stopped = stopDataSending(userId);
     res.status(200).json({
       success: stopped,
       message: stopped ? "Data sending stopped" : "No active sending found",

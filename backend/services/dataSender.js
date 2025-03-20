@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { formatDataToHTML, sgMail } = require("./emailService");
 const generatePDF = require("./generatePDF");
+const sendEmail = require("./sendEmail");
 
 const activeJobs = new Map();
 
@@ -43,31 +44,54 @@ const sendData = async (userEmail, duration) => {
   if (data.length > 0) {
     try {
       const pdfBuffer = await generatePDF(data);
-      console.log(pdfBuffer);
-      const msg = {
-        to: userEmail,
-        from: process.env.SENDGRID_FROM_EMAIL,
-        subject: `Sensor Data Report - Last ${duration}`,
-        text: `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
-          data.length
-        }`,
-        // html: formatDataToHTML(data),
-        attachments: [
-          {
-            // content: Buffer.from(JSON.stringify(data, null, 2)).toString(
-            //   "base64"
-            // ),
-            // filename: "sensor_data.json",
-            content: pdfBuffer.toString("base64"),
-            filename: "sensor_data.pdf",
-            type: "application/pdf",
-            disposition: "attachment",
-          },
-        ],
-      };
-      await sgMail.send(msg);
+      const htmlContent = formatDataToHTML(data);
+      const emailText = `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
+        data.length
+      }`;
+      // console.log(pdfBuffer);
+
+      if (process.env.USE_SENDGRID === "true") {
+        const msg = {
+          to: userEmail,
+          from: process.env.SENDGRID_FROM_EMAIL,
+          subject: `Sensor Data Report - Last ${duration}`,
+          text: `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
+            data.length
+          }`,
+          // html: formatDataToHTML(data),
+          attachments: [
+            {
+              // content: Buffer.from(JSON.stringify(data, null, 2)).toString(
+              //   "base64"
+              // ),
+              // filename: "sensor_data.json",
+              content: pdfBuffer.toString("base64"),
+              filename: "sensor_data.pdf",
+              type: "application/pdf",
+              disposition: "attachment",
+            },
+          ],
+        };
+        await sgMail.send(msg);
+      } else {
+        // Use Nodemailer
+        const mailOptions = {
+          to: userEmail,
+          subject: `Sensor Data Report - Last ${duration}`,
+          text: emailText,
+          html: htmlContent,
+          attachments: [
+            {
+              filename: "sensor_data.pdf",
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            },
+          ],
+        };
+        await sendEmail(mailOptions);
+      }
     } catch (error) {
-      console.error("Error generating or sending PDF:", error);
+      console.error("Error sending email:", error);
       throw error;
     }
   }

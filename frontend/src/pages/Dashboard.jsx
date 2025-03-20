@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../utils/AxiosInstance";
-import AdminDashboardTable from "../components/AdminDashboardTable";
+import Table from "../components/Table";
+import Modal from "../components/Modal";
 
 const Dashboard = () => {
   const { user, token, logout } = useAuth();
   const [allUserData, setAllUserData] = useState([]);
   const [activeTab, setActiveTab] = useState("user-data");
-  const [isDataSending, setIsDataSending] = useState(false);
-  const [currentInterval, setCurrentInterval] = useState(null);
+  const [isDataSending, setIsDataSending] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedDuration, setSelectedDuration] = useState("1h");
   const navigate = useNavigate();
   const isAdmin = user?.Role === "admin";
 
@@ -17,7 +20,9 @@ const Dashboard = () => {
     const fetchData = async () => {
       if (isAdmin) {
         try {
-          const response = await AxiosInstance.get("/users");
+          const response = await AxiosInstance.get("/users", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           console.log(response.data);
           setAllUserData(response.data);
         } catch (error) {
@@ -39,27 +44,47 @@ const Dashboard = () => {
     }
   };
 
-  const handleDataSend = async (duration) => {
-    try {
-      if (isDataSending && currentInterval === duration) {
-        const response = await AxiosInstance.post("/stop-data-send");
+  const handleSendEmailClick = (user) => {
+    setSelectedUser(user);
+    setShowModal(true);
+  };
 
-        if (response.data.success) {
-          setIsDataSending(false);
-          setCurrentInterval(null);
-        }
-      } else {
-        const response = await AxiosInstance.post("/start-data-send", {
-          duration,
-        });
+  const handleDurationChange = (event) => {
+    setSelectedDuration(event.target.value);
+  };
 
-        if (response.data.success) {
-          setIsDataSending(true);
-          setCurrentInterval(duration);
-        }
+  const handleSendEmail = async () => {
+    if (selectedUser) {
+      try {
+        await AxiosInstance.post(
+          `/send-data/${selectedUser._id}`,
+          { duration: selectedDuration },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setIsDataSending((prev) => ({
+          ...prev,
+          [selectedUser._id]: true,
+        }));
+        setShowModal(false);
+      } catch (error) {
+        console.error("Error sending email:", error);
       }
+    }
+  };
+
+  const handleStopEmail = async (userId) => {
+    try {
+      await AxiosInstance.post(
+        `/stop-data/${userId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsDataSending((prev) => ({
+        ...prev,
+        [userId]: false,
+      }));
     } catch (error) {
-      console.error("Failed to toggle data sending:", error);
+      console.error("Error stopping email:", error);
     }
   };
 
@@ -87,152 +112,51 @@ const Dashboard = () => {
             <li className="me-2">
               <button
                 onClick={() => setActiveTab("user-data")}
-                href="#"
                 className={`inline-block p-4 rounded-t-lg ${
                   activeTab === "user-data"
                     ? "bg-white text-blue-600 border-b-2 border-blue-600"
                     : "hover:text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                user-data
-              </button>
-            </li>
-            <li className="me-2">
-              <button
-                onClick={() => setActiveTab("mail-send")}
-                href="#"
-                className={`inline-block p-4 rounded-t-lg ${
-                  activeTab === "mail-send"
-                    ? "bg-white text-blue-600 border-b-2 border-blue-600"
-                    : "hover:text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                mail-send
+                User Data
               </button>
             </li>
           </ul>
         )}
         <div className="bg-white shadow rounded-lg p-6">
-          {activeTab === "user-data" ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {isAdmin && (
-                      <>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          User Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Email
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          Role
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          PhoneNumber
-                        </th>
-                      </>
-                    )}
-
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Activity Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Timestamp
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      IP Address
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Location
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {isAdmin ? (
-                    allUserData.map((userData) =>
-                      userData.activities.map((activity, activityIndex) =>
-                        AdminDashboardTable(activity, activityIndex, userData)
-                      )
-                    )
-                  ) : user?.activities?.length > 0 ? (
-                    user.activities.map((activity, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              activity.type === "login"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {activity.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                          {activity.ipAddress}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                          {`${activity.location.city || "Unknown"}, ${
-                            activity.location.country || "Unknown"
-                          }`}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-6 py-4 text-center text-gray-500"
-                      >
-                        No activities to display
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Periodic Data Sender
-              </h2>
-              <div className="flex flex-wrap gap-4">
-                {[
-                  { key: "1h", label: "Last Hour" },
-                  { key: "1d", label: "Last Day" },
-                  { key: "1w", label: "Last Week" },
-                  { key: "1m", label: "Last Month" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => handleDataSend(key)}
-                    className={`px-4 py-2 rounded-md ${
-                      isDataSending && currentInterval === key
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-blue-600 hover:bg-blue-700"
-                    } text-white`}
-                    disabled={isDataSending && currentInterval !== key}
-                  >
-                    {isDataSending && currentInterval === key
-                      ? "Stop Sending"
-                      : `Send ${label}`}
-                  </button>
-                ))}
-              </div>
-              {isDataSending && (
-                <div className="mt-4 p-4 bg-green-100 text-green-700 rounded-md">
-                  Currently sending {currentInterval} data to your email...
-                </div>
-              )}
-            </div>
+          {activeTab === "user-data" && (
+            <Table
+              allUserData={allUserData}
+              isDataSending={isDataSending}
+              handleSendEmailClick={handleSendEmailClick}
+              handleStopEmail={handleStopEmail}
+            />
           )}
         </div>
       </div>
+      {showModal && (
+        <Modal onClose={() => setShowModal(false)}>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Select Duration
+          </h2>
+          <select
+            value={selectedDuration}
+            onChange={handleDurationChange}
+            className="mt-2 mb-4 p-2 border border-gray-300 rounded-md"
+          >
+            <option value="1h">Last 1 Hour</option>
+            <option value="1d">Last 1 Day</option>
+            <option value="1w">Last 1 Week</option>
+            <option value="1m">Last 1 Month</option>
+          </select>
+          <button
+            onClick={handleSendEmail}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Send
+          </button>
+        </Modal>
+      )}
     </div>
   );
 };
