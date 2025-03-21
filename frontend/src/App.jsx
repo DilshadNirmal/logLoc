@@ -13,8 +13,7 @@ import OTPVerification from "./pages/OTPVerification";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-
-  console.log("PrivateRoute check:", { user, loading });
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -25,12 +24,14 @@ const PrivateRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check cookie consent only after authentication
-  const hasCookieConsent = localStorage.getItem("cookieConsent") === "true";
-  if (!hasCookieConsent && window.location.pathname !== "/cookie-consent") {
+  if (!user.phoneVerified && location.pathname !== "/otp") {
+    return <Navigate to="/otp" replace />;
+  }
+
+  if (!user.cookieConsent && location.pathname !== "/cookie-consent") {
     return <Navigate to="/cookie-consent" replace />;
   }
 

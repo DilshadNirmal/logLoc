@@ -24,7 +24,9 @@ const Login = () => {
 
       const response = await AxiosInstance.post("/login", loginData);
       login(response.data.user, response.data.accessToken);
-      if (response.data.hasCookieConsent) {
+      if (!response.data.user.phoneVerified) {
+        navigate("/otp");
+      } else if (response.data.hasCookieConsent) {
         localStorage.setItem("cookieConsent", "true");
         navigate("/dashboard");
       } else {

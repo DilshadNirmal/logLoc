@@ -17,17 +17,23 @@ export const AuthProvider = ({ children }) => {
       const storedToken = localStorage.getItem("token");
       if (storedToken) {
         try {
-          // Add an endpoint to verify token and get user data
           const response = await AxiosInstance.get("/me");
           setUser(response.data);
           setToken(storedToken);
 
-          // Redirect to intended path
-          if (
+          // Check verification status and redirect accordingly
+          if (!response.data.phoneVerified && location.pathname !== "/otp") {
+            navigate("/otp");
+          } else if (
+            !response.data.cookieConsent &&
+            location.pathname !== "/cookie-consent"
+          ) {
+            navigate("/cookie-consent");
+          } else if (
             location.pathname === "/login" ||
             location.pathname === "/register"
           ) {
-            navigate(location.state?.from || "/dashboard");
+            navigate("/dashboard");
           }
         } catch (error) {
           localStorage.removeItem("token");

@@ -102,7 +102,10 @@ router.post("/login", async (req, res) => {
     }
 
     res.send({
-      user,
+      user: {
+        ...user.toObject(),
+        phoneVerified: user.phoneVerified || false,
+      },
       accessToken,
       refreshToken,
       hasCookieConsent: user.cookieConsent,
@@ -277,6 +280,10 @@ router.post("/verify-otp", auth, async (req, res) => {
     res.json({
       success: true,
       message: "Phone number verified successfully",
+      user: {
+        ...user.toObject(),
+        phoneVerified: true,
+      },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
