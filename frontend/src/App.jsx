@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CookieConsent from "./pages/CookieConsent";
+import OTPVerification from "./pages/OTPVerification";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/otp" element={<OTPVerification />} />
           <Route
             path="/cookie-consent"
             element={

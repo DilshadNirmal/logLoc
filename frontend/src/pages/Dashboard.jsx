@@ -139,22 +139,24 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-gray-900">
             Select Duration
           </h2>
-          <select
-            value={selectedDuration}
-            onChange={handleDurationChange}
-            className="mt-2 mb-4 p-2 border border-gray-300 rounded-md"
-          >
-            <option value="1h">Last 1 Hour</option>
-            <option value="1d">Last 1 Day</option>
-            <option value="1w">Last 1 Week</option>
-            <option value="1m">Last 1 Month</option>
-          </select>
-          <button
-            onClick={handleSendEmail}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Send
-          </button>
+          <div className="flex items-center justify-evenly gap-4">
+            <select
+              value={selectedDuration}
+              onChange={handleDurationChange}
+              className="mt-2 mb-4 p-2 border border-gray-300 rounded-md"
+            >
+              <option value="1h">Last 1 Hour</option>
+              <option value="1d">Last 1 Day</option>
+              <option value="1w">Last 1 Week</option>
+              <option value="1m">Last 1 Month</option>
+            </select>
+            <button
+              onClick={handleSendEmail}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Send
+            </button>
+          </div>
         </Modal>
       )}
     </div>

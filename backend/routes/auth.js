@@ -225,7 +225,7 @@ router.post("/send-otp", auth, async (req, res) => {
   try {
     const { phoneNumber } = req.body;
 
-    if (!/^\+[1-9]\d{1, 14}$/.test(phoneNumber)) {
+    if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
       return res.status(400).json({
         success: false,
         message:
