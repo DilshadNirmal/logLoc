@@ -334,4 +334,49 @@ router.post("/stop-data/:userId", auth, async (req, res) => {
   }
 });
 
+router.get("/verify-token", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.send({ user });
+  } catch (error) {
+    res.status(401).send({ error: "Please Authenticate" });
+  }
+});
+
+router.post("/refresh-token", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token is required" });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded._id);
+
+    if (!user) {
+      return res
+        .status(401)
+        .json({ message: "User not found || Invalid Token" });
+    }
+
+    const accessToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    await storeAccessToken(user._id, accessToken);
+
+    res.send({
+      accessToken,
+      user,
+    });
+  } catch (error) {
+    res.status(401).send({ error: "Please Authenticate" });
+  }
+});
+
 module.exports = router;

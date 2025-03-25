@@ -1,12 +1,63 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
+export const { Provider: AuthProvider, Consumer: AuthConsumer } = AuthContext;
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export const AuthProviderWrapper = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      if (accessToken && refreshToken) {
+        try {
+          const response = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/verify-token`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+          console.log(response);
+          setUser(response.data.user);
+        } catch (error) {
+          try {
+            const refreshResponse = await axios.post(
+              `${import.meta.env.VITE_BACKEND_URL}/refresh-token`,
+              { refreshToken }
+            );
+            localStorage.setItem(
+              "accessToken",
+              refreshResponse.data.accessToken
+            );
+            setUser(refreshResponse.data.user);
+          } catch (refreshError) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            setUser(null);
+          }
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    initializeAuth();
+  }, []);
 
   const getUserLocation = () => {
     return new Promise((resolve, reject) => {
@@ -108,6 +159,42 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          const refreshToken = localStorage.getItem("refreshToken");
+
+          try {
+            const response = await axios.post(
+              `${import.meta.env.VITE_BACKEND_URL}/refresh-token`,
+              { refreshToken }
+            );
+            localStorage.setItem("accessToken", response.data.accessToken);
+            axios.defaults.headers.common[
+              "Authorization"
+            ] = `Bearer ${response.data.accessToken}`;
+            return axios(originalRequest);
+          } catch (refreshError) {
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            setUser(null);
+            return Promise.reject(refreshError);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{ user, loading, error, login, logout, verifyOTP }}
@@ -116,5 +203,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);
