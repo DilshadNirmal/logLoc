@@ -16,6 +16,7 @@ const {
   startDataSending,
   stopDataSending,
 } = require("../services/dataSender.js");
+const VoltageData = require("../models/VoltageData.js");
 
 const router = express.Router();
 
@@ -376,6 +377,78 @@ router.post("/refresh-token", async (req, res) => {
     });
   } catch (error) {
     res.status(401).send({ error: "Please Authenticate" });
+  }
+});
+
+router.get("/store-voltage", async (req, res) => {
+  try {
+    const {
+      v1,
+      v2,
+      v3,
+      v4,
+      v5,
+      v6,
+      v7,
+      v8,
+      v9,
+      v10,
+      v11,
+      v12,
+      v13,
+      v14,
+      v15,
+      v16,
+      v17,
+      v18,
+      v19,
+      v20,
+      batteryStatus,
+      signalStrength,
+    } = req.query;
+
+    const voltageData = new VoltageData({
+      voltages: {
+        v1: parseFloat(v1),
+        v2: parseFloat(v2),
+        v3: parseFloat(v3),
+        v4: parseFloat(v4),
+        v5: parseFloat(v5),
+        v6: parseFloat(v6),
+        v7: parseFloat(v7),
+        v8: parseFloat(v8),
+        v9: parseFloat(v9),
+        v10: parseFloat(v10),
+        v11: parseFloat(v11),
+        v12: parseFloat(v12),
+        v13: parseFloat(v13),
+        v14: parseFloat(v14),
+        v15: parseFloat(v15),
+        v16: parseFloat(v16),
+        v17: parseFloat(v17),
+        v18: parseFloat(v18),
+        v19: parseFloat(v19),
+        v20: parseFloat(v20),
+      },
+      batteryStatus: parseInt(batteryStatus),
+      signalStrength: parseInt(signalStrength),
+      timestamp: new Date(),
+    });
+
+    await voltageData.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Voltage data stored successfully",
+      // data: voltageData
+    });
+  } catch (error) {
+    console.error("Error storing voltage data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to store voltage data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 

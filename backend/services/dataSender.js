@@ -44,7 +44,22 @@ const sendData = async (userEmail, duration) => {
   if (data.length > 0) {
     try {
       const pdfBuffer = await generatePDF(data);
-      const htmlContent = formatDataToHTML(data);
+      // Determine number of records to show in HTML based on duration
+      const recordLimits = {
+        "1h": 6,
+        "1d": 24,
+        "1w": 7,
+        "1m": 30,
+      };
+
+      // Get evenly distributed samples from the data
+      const limit = recordLimits[duration];
+      const step = Math.max(1, Math.floor(data.length / limit));
+      const sampledData = data
+        .filter((_, index) => index % step === 0)
+        .slice(0, limit);
+
+      const htmlContent = formatDataToHTML(sampledData); // Send limited data to HTML
       const emailText = `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
         data.length
       }`;
@@ -58,7 +73,7 @@ const sendData = async (userEmail, duration) => {
           text: `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
             data.length
           }`,
-          // html: formatDataToHTML(data),
+          html: formatDataToHTML(data),
           attachments: [
             {
               // content: Buffer.from(JSON.stringify(data, null, 2)).toString(

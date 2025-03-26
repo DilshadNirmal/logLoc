@@ -8,19 +8,37 @@ const generatePDF = (data) => {
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => resolve(Buffer.concat(chunks)));
 
-      // Add title
-      doc.fontSize(16).text("Sensor Data Report", { align: "center" });
-      doc.moveDown();
+      // Add logo
+      const imagePath = path.join(__dirname, "../assets/xyma.png");
+      doc.image(imagePath, 50, 45, { width: 150 });
 
-      // Add timestamp range
+      // Add title
+      doc.moveDown(4);
+      doc.fontSize(20).text("Sensor Data Report", { align: "center" });
+      doc.moveDown(2);
+
+      // Add date range information with better formatting
+      const startDate = new Date(data[0].timestamp).toLocaleDateString();
+      const endDate = new Date(
+        data[data.length - 1].timestamp
+      ).toLocaleDateString();
+
       doc
         .fontSize(12)
         .text(
-          `Time Period: ${data[0].timestamp.toLocaleString()} to ${data[
-            data.length - 1
-          ].timestamp.toLocaleString()}`
+          `This report contains sensor data collected from ${startDate} to ${endDate}.`,
+          {
+            align: "left",
+            width: 500,
+          }
         );
-      doc.moveDown();
+      doc.moveDown(2);
+
+      // Table settings
+      const tableTop = 250;
+      const rowHeight = 30;
+      const colWidth = 90;
+      const textPadding = 5;
 
       // Create table headers
       const headers = [
@@ -31,35 +49,59 @@ const generatePDF = (data) => {
         "Device ID",
         "Location",
       ];
-      const rowSpacing = 20;
-      let yPosition = 150;
 
-      // Draw headers
-      doc.fontSize(10);
+      // Draw table header with borders
+      doc.lineWidth(1);
       headers.forEach((header, i) => {
-        doc.text(header, 50 + i * 90, yPosition);
+        const x = 50 + i * colWidth;
+        // Draw cell border
+        doc.rect(x, tableTop, colWidth, rowHeight).stroke();
+        // Add header text
+        doc
+          .fontSize(10)
+          .text(header, x + textPadding, tableTop + textPadding, {
+            width: colWidth - textPadding * 2,
+          });
       });
 
-      yPosition += rowSpacing;
-
       // Draw data rows
+      let yPosition = tableTop + rowHeight;
+
       data.forEach((record) => {
         if (yPosition > 700) {
-          // Check if we need a new page
           doc.addPage();
           yPosition = 50;
+
+          // Redraw headers on new page
+          headers.forEach((header, i) => {
+            const x = 50 + i * colWidth;
+            doc.rect(x, yPosition, colWidth, rowHeight).stroke();
+            doc.text(header, x + textPadding, yPosition + textPadding, {
+              width: colWidth - textPadding * 2,
+            });
+          });
+          yPosition += rowHeight;
         }
 
-        doc.text(record.timestamp.toLocaleString(), 50, yPosition, {
-          width: 85,
-        });
-        doc.text(`${record.temperature.toFixed(1)}°C`, 140, yPosition);
-        doc.text(`${record.humidity.toFixed(1)}%`, 230, yPosition);
-        doc.text(`${record.pressure.toFixed(1)}`, 320, yPosition);
-        doc.text(record.device_id, 410, yPosition);
-        doc.text(record.location, 500, yPosition);
+        // Draw row cells with borders
+        const rowData = [
+          record.timestamp.toLocaleString(),
+          `${record.temperature.toFixed(1)}°C`,
+          `${record.humidity.toFixed(1)}%`,
+          record.pressure.toFixed(1),
+          record.device_id,
+          record.location,
+        ];
 
-        yPosition += rowSpacing;
+        rowData.forEach((text, i) => {
+          const x = 50 + i * colWidth;
+          doc.rect(x, yPosition, colWidth, rowHeight).stroke();
+          doc.text(text, x + textPadding, yPosition + textPadding, {
+            width: colWidth - textPadding * 2,
+          });
+        });
+
+        yPosition += rowHeight;
       });
 
       doc.end();
