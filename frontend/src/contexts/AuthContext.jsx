@@ -1,19 +1,17 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const { Provider: AuthProvider, Consumer: AuthConsumer } = AuthContext;
-
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-};
+}
 
-export const AuthProviderWrapper = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,6 +52,9 @@ export const AuthProviderWrapper = ({ children }) => {
         } finally {
           setLoading(false);
         }
+      } else {
+        setUser(null);
+        setLoading(false); // Set loading to false when there's no acces
       }
     };
     initializeAuth();
@@ -202,4 +203,4 @@ export const AuthProviderWrapper = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}

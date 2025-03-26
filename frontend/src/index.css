@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+@theme {
+  --color-navy-50: oklch(0.98 0.005 250.123); /* #F2F6F8 */
+  --color-navy-100: oklch(0.92 0.01 251.456); /* #E2EAF0 */
+  --color-navy-200: oklch(0.85 0.015 252.789); /* #C5D5E0 */
+  --color-navy-300: oklch(0.75 0.025 253.987); /* #9BB5C7 */
+  --color-navy-400: oklch(0.65 0.035 255.123); /* #6F8FA8 */
+  --color-navy-500: oklch(0.55 0.042 256.234); /* #465C70 */
+  --color-navy-600: oklch(
+    0.45 0.04 257.345
+  ); /* #293B4A */ /* Your base color */
+  --color-navy-700: oklch(0.35 0.038 258.456); /* #1C2A36 */
+  --color-navy-800: oklch(0.25 0.035 259.567); /* #111B24 */
+  --color-navy-900: oklch(0.15 0.03 260.678); /* #080D12 */
+  --color-navy-950: oklch(0.1 0.025 261.789); /* #040709 */
+}
+
+body {
+  background-color: var(--color-navy-300);
+  color: var(--color-navy-600);
+}
