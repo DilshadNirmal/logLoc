@@ -1,22 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy-50: oklch(0.98 0.005 250.123); /* #F2F6F8 */
-  --color-navy-100: oklch(0.92 0.01 251.456); /* #E2EAF0 */
-  --color-navy-200: oklch(0.85 0.015 252.789); /* #C5D5E0 */
-  --color-navy-300: oklch(0.75 0.025 253.987); /* #9BB5C7 */
-  --color-navy-400: oklch(0.65 0.035 255.123); /* #6F8FA8 */
-  --color-navy-500: oklch(0.55 0.042 256.234); /* #465C70 */
-  --color-navy-600: oklch(
-    0.45 0.04 257.345
-  ); /* #293B4A */ /* Your base color */
-  --color-navy-700: oklch(0.35 0.038 258.456); /* #1C2A36 */
-  --color-navy-800: oklch(0.25 0.035 259.567); /* #111B24 */
-  --color-navy-900: oklch(0.15 0.03 260.678); /* #080D12 */
-  --color-navy-950: oklch(0.1 0.025 261.789); /* #040709 */
+  --color-text: oklch(93% 0.01 255.4); /* #e9ebed */
+  --color-background: oklch(8% 0.005 255.4); /* #0d0e10 */
+  --color-primary: oklch(67% 0.15 255.4); /* #409fff */
+  --color-secondary: oklch(22% 0.05 255.4); /* #133044 */
+}
+
+@font-face {
+  font-family: "Helvetica";
+  src: url(./assets/fonts/helvetica/Helvetica.ttf) format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Helvetica";
+  src: url(./assets/fonts/helvetica/Helvetica-Bold.ttf) format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url(./assets/fonts/poppins/Poppins-Regular.ttf) format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--color-navy-300);
+  font-family: "Poppins", sans-serif;
+  background-color: var(--color-navy-50);
   color: var(--color-navy-600);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.font-helvetica {
+  font-family: "Helvetica", sans-serif;
 }

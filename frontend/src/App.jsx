@@ -8,8 +8,16 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./pages/Login";
 import VerifyOtp from "./pages/VerifyOtp";
-import Dashboard from "./pages/Dashboard";
 import CookieConsent from "./pages/CookieConsent";
+import Navbar from "./components/Navbar";
+import LogList from "./pages/LogList";
+import Dashboard from "./pages/Dashboard";
+import Analytics from "./pages/Analytics";
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import EmailConfig from "./pages/EmailConfig";
+import UserList from "./pages/UserList";
+import ChangePassword from "./pages/ChangePassword";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -40,31 +48,96 @@ const PublicRoute = ({ children }) => {
   return user ? <Navigate to="/" replace /> : children;
 };
 
+const AppContent = () => {
+  const { user } = useAuth();
+
+  return (
+    <Router>
+      {user && <Navbar />}
+      <Routes>
+        {/* public routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/cookie-consent" element={<CookieConsent />} />
+        {/* Protected Routes */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <PrivateRoute>
+              <Analytics />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <PrivateRoute>
+              <Reports />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <Settings />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/change-password" element={<ChangePassword />} />
+
+        {/* Super Admin & Admin Routes */}
+        <Route
+          path="/user-list"
+          element={
+            <PrivateRoute>
+              <UserList />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/email-config"
+          element={
+            <PrivateRoute>
+              <EmailConfig />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Super Admin Only Routes */}
+        <Route
+          path="/log-list"
+          element={
+            <PrivateRoute>
+              <LogList />
+            </PrivateRoute>
+          }
+        />
+      </Routes>
+    </Router>
+  );
+};
+
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            }
-          />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route path="/cookie-consent" element={<CookieConsent />} />
-        </Routes>
-      </Router>
+      <AppContent />
     </AuthProvider>
   );
 }
