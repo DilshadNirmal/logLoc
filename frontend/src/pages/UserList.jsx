@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axiosInstance from "../lib/axios";
 import Modal from "../components/Modal";
+import Table from "../components/Table";
 
 const UserList = () => {
   const { user } = useAuth();
@@ -151,69 +152,41 @@ const UserList = () => {
         )}
 
         <div className="bg-secondary/10 shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-secondary">
-            <thead className="bg-secondary">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
-                  Username
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary">
-              {users.map((user) => (
-                <tr key={user._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
-                    {user.UserName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
-                    {user.Email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
-                    {user.Role}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
-                    {user.phoneNumber}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
-                    {isSuperAdmin && (
-                      <>
-                        <button
-                          onClick={() => handleEditClick(user)}
-                          className="text-primary hover:text-primary/80 mr-4"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="text-red-500 hover:text-red-600 mr-4"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+          <Table
+            data={users}
+            columns={[
+              { key: "UserName", header: "Username" },
+              { key: "Email", header: "Email" },
+              { key: "Role", header: "Role" },
+              { key: "phoneNumber", header: "Phone" },
+            ]}
+            actions={(user) => (
+              <>
+                {isSuperAdmin && (
+                  <>
                     <button
-                      onClick={() => handlePasswordChange(user._id)}
-                      className="text-primary hover:text-primary/80"
+                      onClick={() => handleEditClick(user)}
+                      className="text-primary hover:text-primary/80 mr-4"
                     >
-                      Change Password
+                      Edit
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <button
+                      onClick={() => handleDeleteUser(user._id)}
+                      className="text-red-500 hover:text-red-600 mr-4"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => handlePasswordChange(user._id)}
+                  className="text-primary hover:text-primary/80"
+                >
+                  Change Password
+                </button>
+              </>
+            )}
+          />
         </div>
 
         {/* Edit User Modal */}

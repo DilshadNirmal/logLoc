@@ -9,7 +9,7 @@ const Modal = ({ children, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-text/75 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-text/65 flex items-center justify-center z-50"
       onClick={handleBackdropClick}
     >
       <div className="bg-background rounded-lg shadow-lg p-6 max-w-sm w-full relative">
