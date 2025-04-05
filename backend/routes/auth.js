@@ -383,7 +383,7 @@ router.post("/refresh-token", async (req, res) => {
   }
 });
 
-router.get("/store-voltage", async (req, res) => {
+router.get("/store-voltage-1-20", async (req, res) => {
   try {
     const {
       v1,
@@ -442,14 +442,85 @@ router.get("/store-voltage", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Voltage data stored successfully",
+      message: "Voltage data 1-20 stored successfully",
       // data: voltageData
     });
   } catch (error) {
-    console.error("Error storing voltage data:", error);
+    console.error("Error storing voltage data 1-20:", error);
     res.status(500).json({
       success: false,
       message: "Failed to store voltage data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.get("/store-voltage-21-40", async (req, res) => {
+  try {
+    const {
+      v21,
+      v22,
+      v23,
+      v24,
+      v25,
+      v26,
+      v27,
+      v28,
+      v29,
+      v30,
+      v31,
+      v32,
+      v33,
+      v34,
+      v35,
+      v36,
+      v37,
+      v38,
+      v39,
+      v40,
+      batteryStatus,
+      signalStrength,
+    } = req.query;
+
+    const voltageData = new VoltageData({
+      voltages: {
+        v21: parseFloat(v21),
+        v22: parseFloat(v22),
+        v23: parseFloat(v23),
+        v24: parseFloat(v24),
+        v25: parseFloat(v25),
+        v26: parseFloat(v26),
+        v27: parseFloat(v27),
+        v28: parseFloat(v28),
+        v29: parseFloat(v29),
+        v30: parseFloat(v30),
+        v31: parseFloat(v31),
+        v32: parseFloat(v32),
+        v33: parseFloat(v33),
+        v34: parseFloat(v34),
+        v35: parseFloat(v35),
+        v36: parseFloat(v36),
+        v37: parseFloat(v37),
+        v38: parseFloat(v38),
+        v39: parseFloat(v39),
+        v40: parseFloat(v40),
+      },
+      batteryStatus: parseInt(batteryStatus),
+      signalStrength: parseInt(signalStrength),
+      timestamp: new Date(),
+    });
+
+    await voltageData.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Voltage data 21-40 stored successfully",
+    });
+  } catch (error) {
+    console.error("Error storing voltage data 21-40:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to store voltage data 21-40",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }

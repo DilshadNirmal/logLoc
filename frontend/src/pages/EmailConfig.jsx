@@ -41,7 +41,6 @@ const EmailConfig = () => {
               <h2 className="text-2xl font-bold text-text">
                 Sensor Configuration
               </h2>
-
               {/* Sensor Selector */}
               <div className="mb-4">
                 <label className="block text-text/70 mb-2">Select Sensor</label>
@@ -57,10 +56,55 @@ const EmailConfig = () => {
                   ))}
                 </select>
               </div>
-
               {/* Voltmeter Display */}
-              <div className="relative w-full h-80 bg-text/10 rounded-full overflow-hidden">
-                <div className="absolute w-2 h-full bg-primary/20 left-1/2 -translate-x-1/2" />
+              <div className="relative w-96 h-96 mx-auto bg-gray-800 rounded-lg p-4 shadow-lg border-4 border-gray-700">
+                {/* Meter Face */}
+                <div className="relative w-full h-3/4 bg-amber-100 rounded-t-full overflow-hidden">
+                  {/* Scale */}
+                  <div className="absolute w-full h-full">
+                    <div
+                      className="absolute bottom-0 left-1/2 w-1 h-3/4 bg-black/10 -translate-x-1/2 origin-bottom"
+                      style={{
+                        transform: `rotate(${
+                          -45 + (thresholds.high / 500) * 90
+                        }deg)`,
+                        transition: "transform 0.3s ease-out",
+                      }}
+                    >
+                      <div className="w-1 h-full bg-red-500" />
+                    </div>
+                  </div>
+
+                  {/* Scale Numbers */}
+                  <div className="absolute top-4 left-0 w-full flex justify-between px-8">
+                    <span className="text-black/70">0</span>
+                    <span className="text-black/70">250</span>
+                    <span className="text-black/70">500</span>
+                  </div>
+
+                  {/* Center Point */}
+                  <div className="absolute bottom-0 left-1/2 w-4 h-4 bg-gray-800 rounded-full -translate-x-1/2 translate-y-1/2" />
+
+                  {/* AL Display */}
+                  <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 text-2xl font-bold text-cyan-500">
+                    AL
+                  </div>
+                </div>
+
+                {/* Control Panel */}
+                <div className="h-1/4 bg-gray-700 rounded-b-lg p-4 flex justify-between items-center">
+                  {/* Control Buttons */}
+                  <div className="flex space-x-6">
+                    <button className="w-8 h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 focus:ring-2 ring-white" />
+                    <div className="w-8 h-8 rounded-full bg-green-500" />
+                    <button className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-400 focus:ring-2 ring-white" />
+                  </div>
+
+                  {/* Value Display */}
+                  <div className="text-white font-mono">{thresholds.high}V</div>
+                </div>
+
+                {/* Hidden Range Input */}
                 <input
                   type="range"
                   min="0"
@@ -69,22 +113,9 @@ const EmailConfig = () => {
                   onChange={(e) =>
                     handleThresholdChange("high", e.target.value)
                   }
-                  className="absolute w-3/4 top-1/4 left-1/2 -translate-x-1/2 -rotate-45"
+                  className="absolute w-full h-full opacity-0 cursor-pointer"
                 />
-                <input
-                  type="range"
-                  min="0"
-                  max="500"
-                  value={thresholds.low}
-                  onChange={(e) => handleThresholdChange("low", e.target.value)}
-                  className="absolute w-3/4 bottom-1/4 left-1/2 -translate-x-1/2 rotate-45"
-                />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-text">
-                  <span className="mr-4">Low: {thresholds.low}V</span>
-                  <span>High: {thresholds.high}V</span>
-                </div>
               </div>
-
               {/* Manual Input */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
