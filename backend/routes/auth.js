@@ -18,6 +18,9 @@ const {
 } = require("../services/dataSender.js");
 const VoltageData = require("../models/VoltageData.js");
 const VoltageThreshold = require("../models/VoltageThreshold.js");
+const AlertConfig = require("../models/AlertConfig.js");
+const { checkAndSendAlert } = require("../services/alertSender.js");
+const GlobalEmailConfig = require("../models/GlobalEmailConfigSchema.js");
 
 const router = express.Router();
 
@@ -384,6 +387,110 @@ router.post("/refresh-token", async (req, res) => {
   }
 });
 
+router.post("/alert-config", auth, async (req, res) => {
+  try {
+    const { sensorId, high, low, emails, alertDelay } = req.body;
+
+    const config = await AlertConfig.findOneAndUpdate(
+      { sensorId },
+      { high, low, alertDelay },
+      { upsert: true, new: true }
+    );
+
+    // Save global email configuration
+    await GlobalEmailConfig.findOneAndUpdate(
+      { _id: "global" },
+      { emails },
+      { upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Configuration saved successfully",
+      config,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to save alert configuration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.get("/alert-config", auth, async (req, res) => {
+  try {
+    const configs = await VoltageThreshold.find({});
+    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
+
+    const response = configs.map((config) => ({
+      ...config.toObject(),
+      emails: globalConfig?.emails || [],
+    }));
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/global-email-config", auth, async (req, res) => {
+  try {
+    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
+    res.json(globalConfig?.emails || []);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch global email configuration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.post("/global-email-config", auth, async (req, res) => {
+  try {
+    const { emails } = req.body;
+
+    if (!Array.isArray(emails)) {
+      return res.status(400).json({
+        success: false,
+        message: "Emails must be an array",
+      });
+    }
+
+    const config = await GlobalEmailConfig.findOneAndUpdate(
+      { _id: "global" },
+      { emails },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Global email configuration saved successfully",
+      config,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to save global email configuration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.get("/voltage-history", auth, async (req, res) => {
+  try {
+    const history = await VoltageData.find().sort({ timestamp: -1 }).limit(50);
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch voltage history",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
 router.get("/store-voltage-1-20", async (req, res) => {
   try {
     const voltages = {};
@@ -391,6 +498,12 @@ router.get("/store-voltage-1-20", async (req, res) => {
       const value = parseFloat(req.query[`v${i}`]);
       if (isNaN(value)) {
         throw new Error(`Invalid or missing value for voltage v${i}`);
+      }
+
+      try {
+        await checkAndSendAlert(i, value);
+      } catch (alertError) {
+        console.error(`Error checking alerts for sensor ${i}:`, alertError);
       }
       voltages[`v${i}`] = value;
     }
@@ -427,6 +540,13 @@ router.get("/store-voltage-21-40", async (req, res) => {
       const value = parseFloat(req.query[`v${i}`]);
       if (isNaN(value)) {
         throw new Error(`Invalid or missing value for voltage v${i}`);
+      }
+
+      try {
+        await checkAndSendAlert(i, value);
+      } catch (alertError) {
+        console.error(`Error checking alerts for sensor ${i}:`, alertError);
+        // Continue processing other sensors even if alert fails
       }
       voltages[`v${i}`] = value;
     }

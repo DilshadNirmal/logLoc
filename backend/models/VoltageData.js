@@ -2,9 +2,12 @@ const mongoose = require("mongoose");
 
 const voltageValidator = {
   validator: function (v) {
-    return !isNaN(v) && typeof v === "number" && isFinite(v);
+    return (
+      !isNaN(v) && typeof v === "number" && isFinite(v) && v >= 0 && v <= 10
+    );
   },
-  message: (props) => `${props.value} is not a valid voltage reading`,
+  message: (props) =>
+    `${props.value} is not a valid voltage reading. Must be between 0 and 10 mV`,
 };
 
 // Create a voltage schema with all required fields
@@ -37,7 +40,7 @@ const VoltageDataSchema = new mongoose.Schema({
     required: true,
     min: 0,
     max: 100,
-    validate: voltageValidator,
+    // validate: voltageValidator,
   },
   signalStrength: {
     type: Number,

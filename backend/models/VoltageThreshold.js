@@ -11,12 +11,16 @@ const VoltageThresholdSchema = new mongoose.Schema({
   high: {
     type: Number,
     required: true,
-    default: 450,
+    default: 7,
+    min: 0,
+    max: 10,
   },
   low: {
     type: Number,
     required: true,
-    default: 100,
+    default: 3,
+    min: 0,
+    max: 10,
   },
 });
 

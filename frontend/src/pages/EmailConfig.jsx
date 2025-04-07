@@ -1,7 +1,29 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axiosInstance from "../lib/axios";
-import Gauge from "../components/Gauge";
+import {
+  Chart as ChartJs,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
+
+ChartJs.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const EmailConfig = () => {
   const { user } = useAuth();
@@ -14,6 +36,7 @@ const EmailConfig = () => {
   const [thresholds, setThresholds] = useState({});
   const [alertDelay, setAlertDelay] = useState("5");
   const [currentValue, setCurrentValue] = useState(0);
+  const [voltageHistory, setVoltageHistory] = useState([]);
 
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail)) {
@@ -28,38 +51,153 @@ const EmailConfig = () => {
 
   const fetchThresholds = async () => {
     try {
-      const response = await axiosInstance.get("/api/thresholds");
+      const response = await axiosInstance.get("/alert-config");
+      const configs = response.data;
+
+      // transforming data to match our state structure
+      const thresholdData = {};
+      configs.forEach((config) => {
+        thresholdData[config.sensorId] = {
+          high: config.high,
+          low: config.low,
+        };
+      });
+
+      setThresholds(thresholdData);
+
+      if (configs.length > 0) {
+        setEmails(configs[0].emails || []);
+        setAlertDelay(configs[0].alertDelay.toString() || "5");
+      }
     } catch (error) {
       console.error("Error fetching thresholds:", error);
     }
   };
 
+  const fetchVoltageHistroy = async () => {
+    try {
+      const response = await axiosInstance.get("/voltage-history");
+      setVoltageHistory(response.data);
+
+      // Update current value based on selected sensor
+      const sensorId =
+        selectedSensor.group === "A"
+          ? selectedSensor.number
+          : selectedSensor.number + 20;
+      const voltageKey = `v${sensorId}`;
+      if (
+        response.data.Voltages &&
+        response.data.Voltages[voltageKey] !== undefined
+      ) {
+        setCurrentValue(response.data.Voltages[voltageKey]);
+      }
+    } catch (error) {
+      console.error("Error fetching voltage history:", error);
+    }
+  };
+
   useEffect(() => {
     fetchThresholds();
-  }, []);
+    fetchVoltageHistroy();
+
+    const interval = setInterval(fetchVoltageHistroy, 5000);
+    return () => clearInterval(interval);
+  }, [selectedSensor]);
 
   const handleThresholdChange = (type, value) => {
+    const sensorId =
+      selectedSensor.group === "A"
+        ? selectedSensor.number
+        : selectedSensor.number + 20;
+
     setThresholds((prev) => ({
       ...prev,
-      [type]: parseInt(value) || 0,
+      [sensorId]: {
+        ...prev[sensorId],
+        [type]: value === "" ? "" : parseFloat(parseFloat(value).toFixed(2)),
+      },
     }));
   };
 
-  const handleSaveThresholds = async () => {
+  const handleSaveConfiguration = async () => {
     try {
       const sensorId =
         selectedSensor.group === "A"
           ? selectedSensor.number
           : selectedSensor.number + 20;
 
-      const response = await axiosInstance.post("/thresholds", {
+      // Ensure we have valid threshold values
+      const highThreshold = thresholds[sensorId]?.high ?? 7;
+      const lowThreshold = thresholds[sensorId]?.low ?? 3;
+
+      // Make sure we have at least one email
+      if (emails.length === 0) {
+        alert("Please add at least one email address");
+        return;
+      }
+
+      const configData = {
         sensorId,
-        high: thresholds[sensorId]?.high || 450,
-        low: thresholds[sensorId]?.low || 100,
+        high: highThreshold,
+        low: lowThreshold,
+        emails: emails,
+        alertDelay: parseInt(alertDelay),
+      };
+
+      await axiosInstance.post("/alert-config", {
+        sensorId,
+        high: thresholds[sensorId]?.high || 7,
+        low: thresholds[sensorId]?.low || 3,
+        emails,
+        alertDelay: parseInt(alertDelay),
       });
+
+      await axiosInstance.post("/global-email-config", {
+        emails,
+      });
+
+      // Show success message using your existing notification system
+      alert("Configuration saved successfully");
+      fetchThresholds();
     } catch (error) {
       console.error("Error saving thresholds:", error);
+      alert("Error saving configuration. Please try again.");
     }
+  };
+
+  const gaugeData = {
+    labels: ["Low", "Normal", "High"],
+    datasets: [
+      {
+        data: [
+          thresholds[
+            selectedSensor.group === "A"
+              ? selectedSensor.number
+              : selectedSensor.number + 20
+          ]?.low || 3,
+          (thresholds[
+            selectedSensor.group === "A"
+              ? selectedSensor.number
+              : selectedSensor.number + 20
+          ]?.high || 7) -
+            (thresholds[
+              selectedSensor.group === "A"
+                ? selectedSensor.number
+                : selectedSensor.number + 20
+            ]?.low || 3),
+          10 -
+            (thresholds[
+              selectedSensor.group === "A"
+                ? selectedSensor.number
+                : selectedSensor.number + 20
+            ]?.high || 7),
+        ],
+        backgroundColor: ["#133044", "#409fff", "#e9ebed"],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: -90,
+      },
+    ],
   };
 
   return (
@@ -74,75 +212,123 @@ const EmailConfig = () => {
               </h2>
 
               {/* Sensor Groups Container */}
-              <div className="grid grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-lg">
-                {/* Group A */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-text">
-                    Group A (1-20)
-                  </h3>
-                  <select
-                    value={
-                      selectedSensor.group === "A" ? selectedSensor.number : ""
-                    }
-                    onChange={(e) =>
-                      setSelectedSensor({
-                        group: "A",
-                        number: Number(e.target.value),
-                      })
-                    }
-                    className="w-full p-2 border border-secondary rounded bg-background text-text"
-                  >
-                    {[...Array(20)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        Sensor {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="bg-secondary/20 p-2 rounded-lg">
-                    <Gauge
-                      value={currentValue}
-                      lowThreshold={
-                        thresholds[selectedSensor.number]?.low || 100
+              <div className=" bg-secondary/5 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Group A Selector */}
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-wide text-text mb-2">
+                      Group A (1-20)
+                    </h3>
+                    <select
+                      value={
+                        selectedSensor.group === "A"
+                          ? selectedSensor.number
+                          : ""
                       }
-                      highThreshold={
-                        thresholds[selectedSensor.number]?.high || 450
+                      onChange={(e) =>
+                        setSelectedSensor({
+                          group: "A",
+                          number: Number(e.target.value),
+                        })
                       }
-                    />
+                      className={`w-full p-2 border ${
+                        selectedSensor.group === "A"
+                          ? "border-primary bg-primary/10"
+                          : "border-secondary bg-background"
+                      } rounded text-text transition-colors duration-200`}
+                    >
+                      {[...Array(20)].map((_, i) => (
+                        <option
+                          key={i + 1}
+                          value={i + 1}
+                          className="text-text/75 bg-background"
+                        >
+                          Sensor {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Group B */}
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-wide mb-2 text-text">
+                      Group B (21-40)
+                    </h3>
+                    <select
+                      value={
+                        selectedSensor.group === "B"
+                          ? selectedSensor.number
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setSelectedSensor({
+                          group: "B",
+                          number: Number(e.target.value),
+                        })
+                      }
+                      className={`w-full p-2 border ${
+                        selectedSensor.group === "B"
+                          ? "border-primary bg-primary/10"
+                          : "border-secondary bg-background"
+                      } rounded text-text transition-colors duration-200`}
+                    >
+                      {[...Array(20)].map((_, i) => (
+                        <option
+                          key={i + 1}
+                          value={i + 1}
+                          className="text-text/75 bg-background"
+                        >
+                          Sensor {i + 21}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                {/* Group B */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-text">
-                    Group B (21-40)
-                  </h3>
-                  <select
-                    value={
-                      selectedSensor.group === "B" ? selectedSensor.number : ""
-                    }
-                    onChange={(e) =>
-                      setSelectedSensor({
-                        group: "B",
-                        number: Number(e.target.value),
-                      })
-                    }
-                    className="w-full p-2 border border-secondary rounded bg-background text-text"
-                  >
-                    {[...Array(20)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        Sensor {i + 21}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="bg-secondary/20 p-2 rounded-lg">
-                    <Gauge
-                      value={currentValue}
-                      lowThreshold={
-                        thresholds[selectedSensor.number + 20]?.low || 100
-                      }
-                      highThreshold={
-                        thresholds[selectedSensor.number + 20]?.high || 450
-                      }
+
+                {/* single Gauge chart */}
+                <div className="bg-secondary/50 p-4 rounded-lg mt-6">
+                  <div className="text-center mb-4">
+                    <span className="text-2xl font-semibold tracking-wider text-text">
+                      Current: {currentValue}mV
+                    </span>
+                  </div>
+                  <div className="h-64 relative">
+                    <Doughnut
+                      data={gaugeData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        circumference: 180,
+                        rotation: -90,
+                        cutout: "75%",
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                          tooltip: {
+                            enabled: false,
+                          },
+                        },
+                      }}
                     />
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[-25%] text-center">
+                      <div className="text-lg font-medium text-text/70">
+                        Threshold
+                      </div>
+                      <div className="text-xl font-bold text-text">
+                        {thresholds[
+                          selectedSensor.group === "A"
+                            ? selectedSensor.number
+                            : selectedSensor.number + 20
+                        ]?.low || 3}
+                        &nbsp;-&nbsp;
+                        {thresholds[
+                          selectedSensor.group === "A"
+                            ? selectedSensor.number
+                            : selectedSensor.number + 20
+                        ]?.high || 7}
+                        &nbsp;mV
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -155,7 +341,16 @@ const EmailConfig = () => {
                   </label>
                   <input
                     type="number"
-                    value={thresholds[selectedSensor.number]?.low || 100}
+                    min="0"
+                    max="10"
+                    step="0.01"
+                    value={
+                      thresholds[
+                        selectedSensor.group === "A"
+                          ? selectedSensor.number
+                          : selectedSensor.number + 20
+                      ]?.low ?? 3
+                    }
                     onChange={(e) =>
                       handleThresholdChange("low", e.target.value)
                     }
@@ -168,7 +363,16 @@ const EmailConfig = () => {
                   </label>
                   <input
                     type="number"
-                    value={thresholds[selectedSensor.number]?.high || 450}
+                    min="0"
+                    max="10"
+                    step="0.01"
+                    value={
+                      thresholds[
+                        selectedSensor.group === "A"
+                          ? selectedSensor.number
+                          : selectedSensor.number + 20
+                      ]?.high ?? 7
+                    }
                     onChange={(e) =>
                       handleThresholdChange("high", e.target.value)
                     }
@@ -180,7 +384,7 @@ const EmailConfig = () => {
               {/* Save Button */}
               <div className="flex justify-end">
                 <button
-                  onClick={handleSaveThresholds}
+                  onClick={handleSaveConfiguration}
                   className="px-6 py-2 bg-primary text-text rounded hover:bg-primary/80"
                 >
                   Save Configuration
@@ -200,6 +404,15 @@ const EmailConfig = () => {
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      newEmail &&
+                      !emails.includes(newEmail)
+                    ) {
+                      handleAddEmail();
+                    }
+                  }}
                   placeholder="Add email address"
                   className="flex-1 p-2 border border-secondary rounded bg-background text-text"
                 />
