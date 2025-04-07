@@ -17,6 +17,7 @@ const {
   stopDataSending,
 } = require("../services/dataSender.js");
 const VoltageData = require("../models/VoltageData.js");
+const VoltageThreshold = require("../models/VoltageThreshold.js");
 
 const router = express.Router();
 
@@ -385,56 +386,20 @@ router.post("/refresh-token", async (req, res) => {
 
 router.get("/store-voltage-1-20", async (req, res) => {
   try {
-    const {
-      v1,
-      v2,
-      v3,
-      v4,
-      v5,
-      v6,
-      v7,
-      v8,
-      v9,
-      v10,
-      v11,
-      v12,
-      v13,
-      v14,
-      v15,
-      v16,
-      v17,
-      v18,
-      v19,
-      v20,
-      batteryStatus,
-      signalStrength,
-    } = req.query;
+    const voltages = {};
+    for (let i = 1; i <= 20; i++) {
+      const value = parseFloat(req.query[`v${i}`]);
+      if (isNaN(value)) {
+        throw new Error(`Invalid or missing value for voltage v${i}`);
+      }
+      voltages[`v${i}`] = value;
+    }
 
     const voltageData = new VoltageData({
-      voltages: {
-        v1: parseFloat(v1),
-        v2: parseFloat(v2),
-        v3: parseFloat(v3),
-        v4: parseFloat(v4),
-        v5: parseFloat(v5),
-        v6: parseFloat(v6),
-        v7: parseFloat(v7),
-        v8: parseFloat(v8),
-        v9: parseFloat(v9),
-        v10: parseFloat(v10),
-        v11: parseFloat(v11),
-        v12: parseFloat(v12),
-        v13: parseFloat(v13),
-        v14: parseFloat(v14),
-        v15: parseFloat(v15),
-        v16: parseFloat(v16),
-        v17: parseFloat(v17),
-        v18: parseFloat(v18),
-        v19: parseFloat(v19),
-        v20: parseFloat(v20),
-      },
-      batteryStatus: parseInt(batteryStatus),
-      signalStrength: parseInt(signalStrength),
+      voltages,
+      sensorGroup: "1-20",
+      batteryStatus: parseInt(req.query.batteryStatus),
+      signalStrength: parseInt(req.query.signalStrength),
       timestamp: new Date(),
     });
 
@@ -457,56 +422,22 @@ router.get("/store-voltage-1-20", async (req, res) => {
 
 router.get("/store-voltage-21-40", async (req, res) => {
   try {
-    const {
-      v21,
-      v22,
-      v23,
-      v24,
-      v25,
-      v26,
-      v27,
-      v28,
-      v29,
-      v30,
-      v31,
-      v32,
-      v33,
-      v34,
-      v35,
-      v36,
-      v37,
-      v38,
-      v39,
-      v40,
-      batteryStatus,
-      signalStrength,
-    } = req.query;
+    const voltages = {};
+    for (let i = 21; i <= 40; i++) {
+      const value = parseFloat(req.query[`v${i}`]);
+      if (isNaN(value)) {
+        throw new Error(`Invalid or missing value for voltage v${i}`);
+      }
+      voltages[`v${i}`] = value;
+    }
+
+    console.log("Voltages:", voltages);
 
     const voltageData = new VoltageData({
-      voltages: {
-        v21: parseFloat(v21),
-        v22: parseFloat(v22),
-        v23: parseFloat(v23),
-        v24: parseFloat(v24),
-        v25: parseFloat(v25),
-        v26: parseFloat(v26),
-        v27: parseFloat(v27),
-        v28: parseFloat(v28),
-        v29: parseFloat(v29),
-        v30: parseFloat(v30),
-        v31: parseFloat(v31),
-        v32: parseFloat(v32),
-        v33: parseFloat(v33),
-        v34: parseFloat(v34),
-        v35: parseFloat(v35),
-        v36: parseFloat(v36),
-        v37: parseFloat(v37),
-        v38: parseFloat(v38),
-        v39: parseFloat(v39),
-        v40: parseFloat(v40),
-      },
-      batteryStatus: parseInt(batteryStatus),
-      signalStrength: parseInt(signalStrength),
+      voltages,
+      sensorGroup: "21-40", // Assuming you have a sensorGroup field in your VoltageData model to differentiate between the two sensor groups, and you're passing this value in the request para
+      batteryStatus: parseInt(req.query.batteryStatus),
+      signalStrength: parseInt(req.query.signalStrength),
       timestamp: new Date(),
     });
 
@@ -617,6 +548,51 @@ router.delete("/users/:userId", auth, async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/thresholds", auth, async (req, res) => {
+  try {
+    const { sensorId, high, low } = req.body;
+
+    const threshold = await VoltageThreshold.findOneAndUpdate(
+      { sensorId },
+      { high, low },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Threshold updated successfully",
+      threshold,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update threshold",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.get("/thresholds", auth, async (req, res) => {
+  try {
+    const thresholds = await VoltageThreshold.find();
+    const thresholdMap = thresholds.reduce((acc, threshold) => {
+      acc[threshold.sensorId] = {
+        high: threshold.high,
+        low: threshold.low,
+      };
+      return acc;
+    }, {});
+
+    res.json(thresholdMap);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch thresholds",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 

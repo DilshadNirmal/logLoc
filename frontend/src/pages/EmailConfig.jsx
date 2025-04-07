@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axiosInstance from "../lib/axios";
+import Gauge from "../components/Gauge";
 
 const EmailConfig = () => {
   const { user } = useAuth();
   const [emails, setEmails] = useState([]);
   const [newEmail, setNewEmail] = useState("");
-  const [selectedSensor, setSelectedSensor] = useState(1);
-  const [thresholds, setThresholds] = useState({
-    high: 450,
-    low: 100,
+  const [selectedSensor, setSelectedSensor] = useState({
+    group: "A",
+    number: 1,
   });
+  const [thresholds, setThresholds] = useState({});
   const [alertDelay, setAlertDelay] = useState("5");
+  const [currentValue, setCurrentValue] = useState(0);
 
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail)) {
@@ -24,6 +26,18 @@ const EmailConfig = () => {
     setEmails(emails.filter((email) => email !== emailToRemove));
   };
 
+  const fetchThresholds = async () => {
+    try {
+      const response = await axiosInstance.get("/api/thresholds");
+    } catch (error) {
+      console.error("Error fetching thresholds:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchThresholds();
+  }, []);
+
   const handleThresholdChange = (type, value) => {
     setThresholds((prev) => ({
       ...prev,
@@ -31,119 +45,146 @@ const EmailConfig = () => {
     }));
   };
 
+  const handleSaveThresholds = async () => {
+    try {
+      const sensorId =
+        selectedSensor.group === "A"
+          ? selectedSensor.number
+          : selectedSensor.number + 20;
+
+      const response = await axiosInstance.post("/thresholds", {
+        sensorId,
+        high: thresholds[sensorId]?.high || 450,
+        low: thresholds[sensorId]?.low || 100,
+      });
+    } catch (error) {
+      console.error("Error saving thresholds:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pt-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-secondary/10 rounded-lg p-6">
           <div className="grid grid-cols-2 gap-8">
-            {/* Left Column - Sensor Controls */}
+            {/* Sensor Configuration Column */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-text">
                 Sensor Configuration
               </h2>
-              {/* Sensor Selector */}
-              <div className="mb-4">
-                <label className="block text-text/70 mb-2">Select Sensor</label>
-                <select
-                  value={selectedSensor}
-                  onChange={(e) => setSelectedSensor(Number(e.target.value))}
-                  className="w-full p-2 border border-secondary rounded bg-background text-text"
-                >
-                  {[...Array(40)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      Sensor {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {/* Voltmeter Display */}
-              <div className="relative w-96 h-96 mx-auto bg-gray-800 rounded-lg p-4 shadow-lg border-4 border-gray-700">
-                {/* Meter Face */}
-                <div className="relative w-full h-3/4 bg-amber-100 rounded-t-full overflow-hidden">
-                  {/* Scale */}
-                  <div className="absolute w-full h-full">
-                    <div
-                      className="absolute bottom-0 left-1/2 w-1 h-3/4 bg-black/10 -translate-x-1/2 origin-bottom"
-                      style={{
-                        transform: `rotate(${
-                          -45 + (thresholds.high / 500) * 90
-                        }deg)`,
-                        transition: "transform 0.3s ease-out",
-                      }}
-                    >
-                      <div className="w-1 h-full bg-red-500" />
-                    </div>
-                  </div>
 
-                  {/* Scale Numbers */}
-                  <div className="absolute top-4 left-0 w-full flex justify-between px-8">
-                    <span className="text-black/70">0</span>
-                    <span className="text-black/70">250</span>
-                    <span className="text-black/70">500</span>
-                  </div>
-
-                  {/* Center Point */}
-                  <div className="absolute bottom-0 left-1/2 w-4 h-4 bg-gray-800 rounded-full -translate-x-1/2 translate-y-1/2" />
-
-                  {/* AL Display */}
-                  <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 text-2xl font-bold text-cyan-500">
-                    AL
-                  </div>
-                </div>
-
-                {/* Control Panel */}
-                <div className="h-1/4 bg-gray-700 rounded-b-lg p-4 flex justify-between items-center">
-                  {/* Control Buttons */}
-                  <div className="flex space-x-6">
-                    <button className="w-8 h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 focus:ring-2 ring-white" />
-                    <div className="w-8 h-8 rounded-full bg-green-500" />
-                    <button className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-400 focus:ring-2 ring-white" />
-                  </div>
-
-                  {/* Value Display */}
-                  <div className="text-white font-mono">{thresholds.high}V</div>
-                </div>
-
-                {/* Hidden Range Input */}
-                <input
-                  type="range"
-                  min="0"
-                  max="500"
-                  value={thresholds.high}
-                  onChange={(e) =>
-                    handleThresholdChange("high", e.target.value)
-                  }
-                  className="absolute w-full h-full opacity-0 cursor-pointer"
-                />
-              </div>
-              {/* Manual Input */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-text/70 mb-2">
-                    High Threshold
-                  </label>
-                  <input
-                    type="number"
-                    value={thresholds.high}
+              {/* Sensor Groups Container */}
+              <div className="grid grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-lg">
+                {/* Group A */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-text">
+                    Group A (1-20)
+                  </h3>
+                  <select
+                    value={
+                      selectedSensor.group === "A" ? selectedSensor.number : ""
+                    }
                     onChange={(e) =>
-                      handleThresholdChange("high", e.target.value)
+                      setSelectedSensor({
+                        group: "A",
+                        number: Number(e.target.value),
+                      })
                     }
                     className="w-full p-2 border border-secondary rounded bg-background text-text"
-                  />
+                  >
+                    {[...Array(20)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        Sensor {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="bg-secondary/20 p-2 rounded-lg">
+                    <Gauge
+                      value={currentValue}
+                      lowThreshold={
+                        thresholds[selectedSensor.number]?.low || 100
+                      }
+                      highThreshold={
+                        thresholds[selectedSensor.number]?.high || 450
+                      }
+                    />
+                  </div>
                 </div>
+                {/* Group B */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-text">
+                    Group B (21-40)
+                  </h3>
+                  <select
+                    value={
+                      selectedSensor.group === "B" ? selectedSensor.number : ""
+                    }
+                    onChange={(e) =>
+                      setSelectedSensor({
+                        group: "B",
+                        number: Number(e.target.value),
+                      })
+                    }
+                    className="w-full p-2 border border-secondary rounded bg-background text-text"
+                  >
+                    {[...Array(20)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        Sensor {i + 21}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="bg-secondary/20 p-2 rounded-lg">
+                    <Gauge
+                      value={currentValue}
+                      lowThreshold={
+                        thresholds[selectedSensor.number + 20]?.low || 100
+                      }
+                      highThreshold={
+                        thresholds[selectedSensor.number + 20]?.high || 450
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Threshold Controls */}
+              <div className="grid grid-cols-2 gap-4 bg-secondary/5 p-4 rounded-lg">
                 <div>
                   <label className="block text-text/70 mb-2">
                     Low Threshold
                   </label>
                   <input
                     type="number"
-                    value={thresholds.low}
+                    value={thresholds[selectedSensor.number]?.low || 100}
                     onChange={(e) =>
                       handleThresholdChange("low", e.target.value)
                     }
                     className="w-full p-2 border border-secondary rounded bg-background text-text"
                   />
                 </div>
+                <div>
+                  <label className="block text-text/70 mb-2">
+                    High Threshold
+                  </label>
+                  <input
+                    type="number"
+                    value={thresholds[selectedSensor.number]?.high || 450}
+                    onChange={(e) =>
+                      handleThresholdChange("high", e.target.value)
+                    }
+                    className="w-full p-2 border border-secondary rounded bg-background text-text"
+                  />
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveThresholds}
+                  className="px-6 py-2 bg-primary text-text rounded hover:bg-primary/80"
+                >
+                  Save Configuration
+                </button>
               </div>
             </div>
 
@@ -207,13 +248,6 @@ const EmailConfig = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="mt-8 flex justify-end">
-            <button className="px-6 py-2 bg-primary text-text rounded hover:bg-primary/80">
-              Save Configuration
-            </button>
           </div>
         </div>
       </div>

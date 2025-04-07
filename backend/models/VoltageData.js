@@ -1,49 +1,60 @@
 const mongoose = require("mongoose");
 
+const voltageValidator = {
+  validator: function (v) {
+    return !isNaN(v) && typeof v === "number" && isFinite(v);
+  },
+  message: (props) => `${props.value} is not a valid voltage reading`,
+};
+
+// Create a voltage schema with all required fields
+const voltagesSchema = {
+  type: Map,
+  of: {
+    type: Number,
+    validate: voltageValidator,
+  },
+  required: true,
+  default: {},
+};
+
 const VoltageDataSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now,
     required: true,
+    index: true,
   },
-  voltages: {
-    v1: { type: Number, required: true },
-    v2: { type: Number, required: true },
-    v3: { type: Number, required: true },
-    v4: { type: Number, required: true },
-    v5: { type: Number, required: true },
-    v6: { type: Number, required: true },
-    v7: { type: Number, required: true },
-    v8: { type: Number, required: true },
-    v9: { type: Number, required: true },
-    v10: { type: Number, required: true },
-    v11: { type: Number, required: true },
-    v12: { type: Number, required: true },
-    v13: { type: Number, required: true },
-    v14: { type: Number, required: true },
-    v15: { type: Number, required: true },
-    v16: { type: Number, required: true },
-    v17: { type: Number, required: true },
-    v18: { type: Number, required: true },
-    v19: { type: Number, required: true },
-    v20: { type: Number, required: true },
+  sensorGroup: {
+    type: String,
+    required: true,
+    enum: ["1-20", "21-40"],
+    index: true, // Add index for quick filtering
   },
+  voltages: voltagesSchema,
   batteryStatus: {
     type: Number,
     required: true,
     min: 0,
     max: 100,
+    validate: voltageValidator,
   },
   signalStrength: {
     type: Number,
     required: true,
-    min: 0,
-    max: 100,
+    min: -120,
+    max: -50,
+    validate: {
+      validator: function (v) {
+        return !isNaN(v) && v >= -120 && v <= -50;
+      },
+      message: (props) =>
+        `${props.value} is not a valid signal strength! Must be between -120 and -50 dBm.`,
+    },
   },
-  //   device_id: {
-  //     type: String,
-  //     required: true,
-  //   },
 });
+
+// compound index for timestamp and sensorGroup
+VoltageDataSchema.index({ timestamp: 1, sensorGroup: 1 });
 
 module.exports = mongoose.model("VoltageData", VoltageDataSchema);
