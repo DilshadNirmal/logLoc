@@ -96,9 +96,21 @@ const EmailConfig = () => {
     }
   };
 
+  const fetchGlobalEmailConfig = async () => {
+    try {
+      const response = await axiosInstance.get("/global-email-config");
+      if (response.data && Array.isArray(response.data)) {
+        setEmails(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching global email config:", error);
+    }
+  };
+
   useEffect(() => {
     fetchThresholds();
     fetchVoltageHistroy();
+    fetchGlobalEmailConfig();
 
     const interval = setInterval(fetchVoltageHistroy, 5000);
     return () => clearInterval(interval);
