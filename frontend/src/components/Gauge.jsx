@@ -1,95 +1,66 @@
-import * as React from "react";
-import {
-  CircularGaugeComponent,
-  AxesDirective,
-  AxisDirective,
-  Inject,
-  Annotations,
-  AnnotationsDirective,
-  AnnotationDirective,
-  PointersDirective,
-  PointerDirective,
-  RangesDirective,
-  RangeDirective,
-} from "@syncfusion/ej2-react-circulargauge";
+import { Doughnut } from "react-chartjs-2";
 
-const Gauge = ({ value, lowThreshold, highThreshold }) => {
+const Gauge = ({
+  value,
+  lowThreshold = 3,
+  highThreshold = 7,
+  showLabel = true,
+  size = "normal",
+}) => {
+  const gaugeColors = {
+    low: "#133044", // Blue
+    normal: "#409fff", // Primary
+    high: "#e9ebed", // Text
+  };
+
+  const gaugeData = {
+    labels: ["Low", "Normal", "High"],
+    datasets: [
+      {
+        data: [lowThreshold, highThreshold - lowThreshold, 10 - highThreshold],
+        backgroundColor: ["#0d0e10", "#409fff", "#e9ebed"],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: -90,
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    circumference: 180,
+    rotation: -90,
+    cutout: "75%",
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        enabled: false,
+      },
+    },
+    layout: {
+      padding: size === "small" ? 10 : 20,
+    },
+  };
+
   return (
-    <CircularGaugeComponent
-      // id="voltage-gauge"
-      background="transparent"
-      animationDuration={2000}
+    <div
+      className={`relative w-full ${
+        size === "small" ? "h-24" : "h-full"
+      } flex items-center justify-center`}
     >
-      <Inject services={[Annotations]} />
-      <AxesDirective>
-        <AxisDirective
-          startAngle={230}
-          endAngle={130}
-          radius="90%"
-          minimum={0}
-          maximum={500}
-          majorTicks={{ width: 0, interval: 50 }}
-          lineStyle={{ width: 0 }}
-          minorTicks={{ width: 0 }}
-          labelStyle={{
-            offset: 50,
-            position: "Inside",
-            autoAngle: true,
-            font: { fontFamily: "inherit" },
-          }}
-        >
-          <AnnotationsDirective>
-            <AnnotationDirective
-              content={`<div style="font-size:18px;color:#9DD55A">${value}V</div>`}
-              angle={180}
-              radius="20%"
-              zIndex="1"
-            />
-          </AnnotationsDirective>
-          <PointersDirective>
-            <PointerDirective
-              radius="45%"
-              value={value}
-              pointerWidth={7}
-              color="#F7B194"
-              cap={{
-                radius: 10,
-                color: "white",
-                border: { width: 4, color: "#F7B194" },
-              }}
-              animation={{ enable: true }}
-              needleTail={{ length: "25%", color: "#F7B194" }}
-            />
-          </PointersDirective>
-          <RangesDirective>
-            <RangeDirective
-              start={0}
-              end={lowThreshold}
-              radius="90%"
-              color="#58ABD5"
-              startWidth={35}
-              endWidth={35}
-            />
-            <RangeDirective
-              start={lowThreshold}
-              end={highThreshold}
-              radius="90%"
-              color="#9DD55A"
-              startWidth={35}
-              endWidth={35}
-            />
-            <RangeDirective
-              start={highThreshold}
-              end={500}
-              radius="90%"
-              color="#F48C6F"
-              startWidth={35}
-              endWidth={35}
-            />
-          </RangesDirective>
-        </AxisDirective>
-      </AxesDirective>
-    </CircularGaugeComponent>
+      <Doughnut data={gaugeData} options={options} />
+      {showLabel && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[20%] text-center">
+          <span className="text-2xl font-semibold text-text">
+            {value?.toFixed(2) || "--"}
+          </span>
+          <span className="block text-sm text-text/70">mV</span>
+        </div>
+      )}
+    </div>
   );
 };
 

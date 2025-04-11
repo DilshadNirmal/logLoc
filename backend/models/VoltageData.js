@@ -28,6 +28,12 @@ const VoltageDataSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
+  deviceId: {
+    type: String,
+    required: true,
+    match: /^XY\d{3}-[A-Z]$/, // Validates format like XY001-A
+    index: true,
+  },
   sensorGroup: {
     type: String,
     required: true,

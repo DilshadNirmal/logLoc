@@ -493,6 +493,13 @@ router.get("/voltage-history", auth, async (req, res) => {
 
 router.get("/store-voltage-1-20", async (req, res) => {
   try {
+    const { deviceId } = req.query;
+    if (!deviceId || !/^XY\d{3}-[A-Z]$/.test(deviceId)) {
+      throw new Error(
+        'Invalid or missing deviceId. Format should be "XY001-A"'
+      );
+    }
+
     const voltages = {};
     for (let i = 1; i <= 20; i++) {
       const value = parseFloat(req.query[`v${i}`]);
@@ -510,6 +517,7 @@ router.get("/store-voltage-1-20", async (req, res) => {
 
     const voltageData = new VoltageData({
       voltages,
+      deviceId,
       sensorGroup: "1-20",
       batteryStatus: parseInt(req.query.batteryStatus),
       signalStrength: parseInt(req.query.signalStrength),
@@ -535,6 +543,13 @@ router.get("/store-voltage-1-20", async (req, res) => {
 
 router.get("/store-voltage-21-40", async (req, res) => {
   try {
+    const { deviceId } = req.query;
+    if (!deviceId || !/^XY\d{3}-[A-Z]$/.test(deviceId)) {
+      throw new Error(
+        'Invalid or missing deviceId. Format should be "XY001-A"'
+      );
+    }
+
     const voltages = {};
     for (let i = 21; i <= 40; i++) {
       const value = parseFloat(req.query[`v${i}`]);
@@ -555,6 +570,7 @@ router.get("/store-voltage-21-40", async (req, res) => {
 
     const voltageData = new VoltageData({
       voltages,
+      deviceId,
       sensorGroup: "21-40", // Assuming you have a sensorGroup field in your VoltageData model to differentiate between the two sensor groups, and you're passing this value in the request para
       batteryStatus: parseInt(req.query.batteryStatus),
       signalStrength: parseInt(req.query.signalStrength),
