@@ -130,42 +130,24 @@ const Dashboard = () => {
                   <div className="space-y-2">
                     <h4 className="text-sm">Select Frequency</h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <label className="flex items-center gap-2 relative">
-                        <input
-                          type="radio"
-                          name="frequency"
-                          value="1"
-                          className="accent-primary absolute opacity-0 cursor-pointer h-0 w-0 before:content-['*'] before:absolute before:top-0 before:left-0 before:h-6 before:w-6 before:border-primary before:rounded-full"
-                        />
-                        <span className="text-sm">1 Hour</span>
-                      </label>
-                      <label className="flex items-center gap-2 relative">
-                        <input
-                          type="radio"
-                          name="frequency"
-                          value="6"
-                          className="accent-primary absolute opacity-0 cursor-pointer h-0 w-0 before:content-[''] before:absolute before:top-0 before:left-0 before:h-6 before:w-6 before:border-primary before:rounded-full"
-                        />
-                        <span className="text-sm">6 Hours</span>
-                      </label>
-                      <label className="flex items-center gap-2 relative">
-                        <input
-                          type="radio"
-                          name="frequency"
-                          value="12"
-                          className="accent-primary absolute opacity-0 cursor-pointer h-0 w-0 before:content-[''] before:absolute before:top-0 before:left-0 before:h-6 before:w-6 before:border-primary before:rounded-full"
-                        />
-                        <span className="text-sm">12 Hours</span>
-                      </label>
-                      <label className="flex items-center gap-2 relative">
-                        <input
-                          type="radio"
-                          name="frequency"
-                          value="24"
-                          className="accent-primary absolute opacity-0 cursor-pointer h-0 w-0 before:content-[''] before:absolute before:top-0 before:left-0 before:h-6 before:w-6 before:border-primary before:rounded-full"
-                        />
-                        <span className="text-sm">1 Day</span>
-                      </label>
+                      {["1 Hour", "6 Hours", "12 Hours", "24 Hours"].map(
+                        (freq, index) => (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <div className="relative">
+                              <input
+                                type="radio"
+                                name="frequency"
+                                value="1"
+                                className="sr-only peer"
+                              />
+                              <div className="w-5 h-5 border-2 border-primary rounded-full">
+                                <div className="hidden peer-checked:block w-3 h-3 m-[3px] rounded-full bg-primary"></div>
+                              </div>
+                            </div>
+                            <span className="text-sm">{freq}</span>
+                          </label>
+                        )
+                      )}
                     </div>
                   </div>
                   <div className="h-full">
@@ -209,67 +191,75 @@ const Dashboard = () => {
 
           {/* Right Column - Voltage Grid */}
           <div className="sm:col-span-6 h-full">
-            <div className="bg-secondary/50 p-2">
+            <div className="bg-secondary/50 p-1 rounded-lg">
               <div className="grid grid-cols-2 gap-1">
                 <div className="space-y-4 p-2">
-                  <h3>A Side</h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[...Array(20)].map((_, index) => {
-                      const sensorId = index + 1;
-                      const voltage = voltageData.voltages[`v${sensorId}`];
-                      return (
-                        <button
-                          key={sensorId}
-                          onClick={() => setSelectedSensor(sensorId)}
-                          className={`${getVoltageClass(voltage)}
-                        p-3 rounded-lg transition-all hover:scale-105
-                        ${
-                          selectedSensor === sensorId
-                            ? "ring-2 ring-primary"
-                            : ""
-                        }`}
-                        >
-                          <div className="text-xs font-semibold opacity-70">
-                            S{sensorId}
-                          </div>
-                          <div className="text-lg font-bold">
-                            {voltage?.toFixed(2) || "--"}
-                          </div>
-                          <div className="text-xs opacity-70">mV</div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <fieldset className="border border-primary/75 rounded-lg p-2 shadow-2xl">
+                    <legend className="px-2 text-primary text-sm font-semibold">
+                      A Side
+                    </legend>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[...Array(20)].map((_, index) => {
+                        const sensorId = index + 1;
+                        const voltage = voltageData.voltages[`v${sensorId}`];
+                        return (
+                          <button
+                            key={sensorId}
+                            onClick={() => setSelectedSensor(sensorId)}
+                            className={`${getVoltageClass(voltage)}
+                          p-3 rounded-lg transition-all hover:scale-105
+                          ${
+                            selectedSensor === sensorId
+                              ? "ring-2 ring-primary"
+                              : ""
+                          }`}
+                          >
+                            <div className="text-xs font-semibold opacity-70">
+                              S{sensorId}
+                            </div>
+                            <div className="text-lg font-bold">
+                              {voltage?.toFixed(2) || "--"}
+                            </div>
+                            <div className="text-xs opacity-70">mV</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
                 </div>
                 <div className="space-y-4 p-2">
-                  <h3>B Side</h3>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[...Array(20)].map((_, index) => {
-                      const sensorId = index + 21;
-                      const voltage = voltageData.voltages[`v${sensorId}`];
-                      return (
-                        <button
-                          key={sensorId}
-                          onClick={() => setSelectedSensor(sensorId)}
-                          className={`${getVoltageClass(voltage)}
-                        p-3 rounded-lg transition-all hover:scale-105
-                        ${
-                          selectedSensor === sensorId
-                            ? "ring-2 ring-primary"
-                            : ""
-                        }`}
-                        >
-                          <div className="text-xs font-semibold opacity-70">
-                            S{sensorId}
-                          </div>
-                          <div className="text-lg font-bold">
-                            {voltage?.toFixed(2) || "--"}
-                          </div>
-                          <div className="text-xs opacity-70">mV</div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <fieldset className="border border-primary rounded-lg p-2 shadow-2xl">
+                    <legend className="px-2 text-primary text-sm font-semibold">
+                      B Side
+                    </legend>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[...Array(20)].map((_, index) => {
+                        const sensorId = index + 21;
+                        const voltage = voltageData.voltages[`v${sensorId}`];
+                        return (
+                          <button
+                            key={sensorId}
+                            onClick={() => setSelectedSensor(sensorId)}
+                            className={`${getVoltageClass(voltage)}
+                          p-3 rounded-lg transition-all hover:scale-105
+                          ${
+                            selectedSensor === sensorId
+                              ? "ring-2 ring-primary"
+                              : ""
+                          }`}
+                          >
+                            <div className="text-xs font-semibold opacity-70">
+                              S{sensorId}
+                            </div>
+                            <div className="text-lg font-bold">
+                              {voltage?.toFixed(2) || "--"}
+                            </div>
+                            <div className="text-xs opacity-70">mV</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
                 </div>
               </div>
             </div>
