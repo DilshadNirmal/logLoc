@@ -1,0 +1,11 @@
+Model Information:
+* title:	Knob1 Mechanical Keyboard
+* source:	https://sketchfab.com/3d-models/knob1-mechanical-keyboard-39d5b5611c0f455a9631b21b762b7ba1
+* author:	eltayerkebulan (https://sketchfab.com/eltayerkebulan)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Knob1 Mechanical Keyboard" (https://sketchfab.com/3d-models/knob1-mechanical-keyboard-39d5b5611c0f455a9631b21b762b7ba1) by eltayerkebulan (https://sketchfab.com/eltayerkebulan) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

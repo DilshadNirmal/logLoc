@@ -4,8 +4,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { mainNavigation, profileDropdownItems } from "../config/navigation";
 
 import Logo from "../assets/images/xyma.webp";
-import Profile_Logo from "../assets/images/user.png";
 import { CgMenuLeft, CgClose } from "react-icons/cg";
+import { HiOutlineUser } from "react-icons/hi";
+import { IoIosNotificationsOutline } from "react-icons/io";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -14,6 +15,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
+
+  console.log(isDropdownOpen);
 
   const userRole = user?.Role?.toLowerCase() || "user";
   const dropdownItems = profileDropdownItems[userRole] || [];
@@ -46,10 +49,10 @@ const Navbar = () => {
   return (
     <header
       className={`${
-        location.pathname === "/" ? "bg-transparent" : "bg-secondary"
+        location.pathname === "/" ? "bg-transparent" : "bg-background"
       } fixed w-full z-20 top-0 start-0 shadow-md`}
     >
-      <div className="max-w-screen-3xl flex flex-wrap items-center justify-around mx-8 p-4 rtl:space-x-reverse">
+      <div className="max-w-screen flex flex-wrap items-center justify-between mx-8 px-4 py-3 rtl:space-x-reverse">
         <Link
           to="https://www.xyma.in/"
           className="flex items-center space-x-3 px-8 py-2"
@@ -57,64 +60,74 @@ const Navbar = () => {
           <img src={Logo} className="h-10 " alt="xyma-logo" />
         </Link>
 
-        <div className="flex items-center space-x-4 order-2">
+        <div className="flex items-center justify-center space-x-4 order-2">
           {user ? (
-            <div className="relative">
+            <>
+              <div className="relative">
+                <button
+                  type="button"
+                  className="text-text bg-secondary px-4 py-2 text-center flex items-center justify-center rounded-lg"
+                  onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen);
+                  }}
+                >
+                  <span className="sr-only">Open user menu</span>
+                  <HiOutlineUser className="h-10 w-6" />
+                </button>
+                {/* dropdown menu */}
+                <div
+                  ref={dropdownRef}
+                  className={`z-50 absolute right-0 translate-x-1 mt-2 w-48 bg-text/95 rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
+                    isDropdownOpen
+                      ? "opacity-100 visible pointer-events-auto"
+                      : "opacity-0 invisible pointer-events-none"
+                  }`}
+                  id="user-dropdown"
+                >
+                  <div className="px-4 py-3 border-b border-secondary">
+                    <span className="block text-sm text-primary ">
+                      {user.UserName}
+                    </span>
+                    <span class="block text-sm text-secondary truncate">
+                      {user.Email}
+                    </span>
+                  </div>
+                  <ul className="py-2" aria-labelledby="user-menu-button">
+                    {dropdownItems.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          to={item.path}
+                          className="block px-4 py-2 text-sm text-primary hover:bg-primary/10"
+                          onClick={handleDropdownItemClick}
+                        >
+                          {item.name}
+                        </Link>
+                      </li>
+                    ))}
+                    <li>
+                      <button
+                        onClick={() => {
+                          handleDropdownItemClick();
+                          handleLogout();
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-primary hover:bg-secondary/5 "
+                      >
+                        Sign out
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
               <button
                 type="button"
-                className="text-text w-12 focus:ring-1 focus:outline-none rounded-full text-center"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="text-text bg-secondary px-4 py-2 text-center flex items-center justify-center rounded-lg relative"
               >
-                <span className="sr-only">Open user menu</span>
-                <img
-                  className="w-full h-full rounded-full"
-                  src={Profile_Logo}
-                  alt="user photo"
-                />
+                <IoIosNotificationsOutline className="h-10 w-6" />
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                  2
+                </span>
               </button>
-
-              {/* dropdown menu */}
-              <div
-                ref={dropdownRef}
-                className={`z-50 ${
-                  isDropdownOpen ? "block" : "hidden"
-                } absolute right-0 translate-x-1 mt-2 w-48 bg-text/95 rounded-lg shadow-lg`}
-                id="user-dropdown"
-              >
-                <div className="px-4 py-3 border-b border-secondary">
-                  <span className="block text-sm text-primary ">
-                    {user.UserName}
-                  </span>
-                  <span class="block text-sm text-secondary truncate">
-                    {user.Email}
-                  </span>
-                </div>
-                <ul className="py-2" aria-labelledby="user-menu-button">
-                  {dropdownItems.map((item) => (
-                    <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        className="block px-4 py-2 text-sm text-primary hover:bg-primary/10"
-                        onClick={handleDropdownItemClick}
-                      >
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                  <li>
-                    <button
-                      onClick={() => {
-                        handleDropdownItemClick();
-                        handleLogout();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-primary hover:bg-secondary/5 "
-                    >
-                      Sign out
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            </>
           ) : (
             <>
               <Link
@@ -190,16 +203,22 @@ const Navbar = () => {
             </li>
           </ul>
         </div>
-        <nav className="hidden md:flex space-x-8" id="navbar-sticky">
+        <nav
+          className="hidden w-7/12 md:flex justify-around space-x-8 bg-secondary p-4 px-6 rounded-lg"
+          id="navbar-sticky"
+        >
           {mainNavigation.map((item) => (
             <Link
               to={item.path}
               key={item.path}
-              className={`text-text hover:text-primary transition-colors ${
-                location.pathname === item.path ? "text-primary" : ""
+              className={`font-medium tracking-wide hover:text-primary transition-colors duration-300 ease-in relative ${
+                location.pathname === item.path ? "text-primary" : "text-text"
               }`}
             >
               {item.name}
+              {location.pathname === item.path && (
+                <div className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-3/4 h-[0.3rem] rounded-2xl bg-primary"></div>
+              )}
             </Link>
           ))}
         </nav>

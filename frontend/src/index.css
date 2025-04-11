@@ -4,7 +4,7 @@
   --color-text: oklch(93% 0.01 255.4); /* #e9ebed */
   --color-background: oklch(8% 0.005 255.4); /* #0d0e10 */
   --color-primary: oklch(67% 0.15 255.4); /* #409fff */
-  --color-secondary: oklch(22% 0.05 255.4); /* #133044 */
+  --color-secondary: oklch(0.3 0.0504 241.39); /* #133044 */
 }
 
 @font-face {
@@ -43,8 +43,15 @@ body {
   margin: 0;
   padding: 0;
   line-height: 1.5;
+  overflow: hidden;
 }
 
 .font-helvetica {
   font-family: "Helvetica", sans-serif;
+}
+
+@media screen and (max-width: 458px) {
+  body {
+    overflow: auto;
+  }
 }
