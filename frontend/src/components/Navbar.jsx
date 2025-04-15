@@ -15,8 +15,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
-
-  console.log(isDropdownOpen);
+  const buttonRef = useRef(null);
 
   const userRole = user?.Role?.toLowerCase() || "user";
   const dropdownItems = profileDropdownItems[userRole] || [];
@@ -32,7 +31,13 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        isDropdownOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -65,6 +70,7 @@ const Navbar = () => {
             <>
               <div className="relative">
                 <button
+                  ref={buttonRef}
                   type="button"
                   className="text-text bg-secondary px-4 py-2 text-center flex items-center justify-center rounded-lg"
                   onClick={() => {

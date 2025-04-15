@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../lib/axios";
 import ThreedModel from "../canvas/ThreedModel";
 import Gauge from "../components/Gauge";
-import SignalStrengthGrid from "../components/SignalStrengthGrid";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -14,6 +13,7 @@ const Dashboard = () => {
     timestamp: null,
   });
   const [selectedSensor, setSelectedSensor] = useState(1);
+  const [selectedFrequency, setSelectedFrequency] = useState("1 Hour");
 
   const fetchVoltages = async () => {
     try {
@@ -64,12 +64,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-5rem)] bg-background text-text pt-8 mt-20">
-      <div className="max-w-screen sm:mx-10 px-4 h-full overflow-hidden">
+    <div className="h-[calc(100vh-5rem)] bg-background text-text pt-4 mt-20">
+      <div className="max-w-screen sm:mx-6 px-4 h-full overflow-hidden">
         {/* Main Content Grid */}
-        <div className="grid sm:grid-cols-12 gap-4 h-[95%] overflow-hidden">
+        <div className="grid sm:grid-cols-12 gap-4 h-[97%] overflow-hidden">
           {/* Left Column */}
-          <div className="sm:col-span-6 grid grid-rows-[auto_1fr_1fr_1fr] gap-3 h-full overflow-hidden">
+          <div className="sm:col-span-6 grid grid-rows-[45px_auto_220px_250px] gap-3 h-full overflow-hidden">
             {/* status bar */}
             <div className="bg-secondary text-text rounded-lg p-2 flex justify-around">
               <p className="text-base">
@@ -105,8 +105,8 @@ const Dashboard = () => {
             </div>
             {/* split column 1 */}
             <div className="grid grid-cols-8 gap-4 overflow-hidden">
-              <div className="col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-2 overflow-hidden">
-                <h3 className="text-sm font-semibold text-text/70 mb-1">
+              <div className="col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
+                <h3 className="text-sm font-semibold text-text mb-1">
                   Maximum Value
                 </h3>
                 <div className="h-[85%]">
@@ -122,26 +122,39 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className="col-span-5 bg-secondary rounded-lg p-4 overflow-hidden">
-                <h4 className="text-sm font-semibold tracking-wider text-text mb-4">
-                  Predict Value
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="text-sm">Select Frequency</h4>
-                    <div className="grid grid-cols-2 gap-4">
+              <div className="relative col-span-5 bg-secondary rounded-lg p-6 overflow-hidden">
+                <div className="grid grid-cols-[240px_1fr] gap-4">
+                  <div className="h-full">
+                    <h4 className="text-sm font-semibold tracking-wider text-text mb-4">
+                      Predict Value
+                    </h4>
+                    <h4 className="text-sm mb-10">Select Frequency</h4>
+                    <div className="grid grid-cols-2 gap-8">
                       {["1 Hour", "6 Hours", "12 Hours", "24 Hours"].map(
                         (freq, index) => (
-                          <label className="flex items-center gap-2 cursor-pointer">
+                          <label
+                            key={index}
+                            className="flex items-center gap-4 cursor-pointer"
+                          >
                             <div className="relative">
                               <input
                                 type="radio"
                                 name="frequency"
-                                value="1"
-                                className="sr-only peer"
+                                value={freq}
+                                checked={selectedFrequency === freq}
+                                onChange={() => setSelectedFrequency(freq)}
+                                className="sr-only"
                               />
-                              <div className="w-5 h-5 border-2 border-primary rounded-full">
-                                <div className="hidden peer-checked:block w-3 h-3 m-[3px] rounded-full bg-primary"></div>
+                              <div
+                                className={`w-5 h-5 border-2 ${
+                                  selectedFrequency === freq
+                                    ? "border-primary bg-primary/20"
+                                    : "border-primary"
+                                } rounded-full flex items-center justify-center`}
+                              >
+                                {selectedFrequency === freq && (
+                                  <div className="w-3 h-3 rounded-full bg-primary"></div>
+                                )}
                               </div>
                             </div>
                             <span className="text-sm">{freq}</span>
@@ -150,7 +163,8 @@ const Dashboard = () => {
                       )}
                     </div>
                   </div>
-                  <div className="h-full">
+                  <hr className="absolute h-[80%] w-px bg-text/70 top-[15%] left-1/2 transform -translate-x-1/2" />
+                  <div className="h-full flex items-center">
                     <Gauge
                       value={12}
                       lowThreshold={3}
@@ -163,7 +177,7 @@ const Dashboard = () => {
             </div>
             {/* split column 2 */}
             <div className="grid grid-cols-8 gap-4 overflow-hidden">
-              <div className="col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-4 overflow-hidden">
+              <div className="col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
                 <h3 className="text-sm font-semibold text-text/70 mb-2">
                   Minimum Value
                 </h3>
@@ -180,11 +194,84 @@ const Dashboard = () => {
                   />
                 </div>
               </div>
-              <div className="col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-4 overflow-hidden">
-                <h3 className="text-sm font-semibold text-text/70 mb-2">
-                  Signal Strength
-                </h3>
-                <SignalStrengthGrid value={voltageData.signalStrength} />
+              <div className="relative col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
+                <div className="grid grid-cols-[240px_1fr] gap-4">
+                  <div className="h-full">
+                    <h3 className="text-sm font-semibold text-text/70 mb-4">
+                      Signal Strength
+                    </h3>
+                    <div className="flex flex-col gap-4 justify-center items-center mt-8">
+                      <div className="flex items-end justify-center gap-1">
+                        {[1, 2, 3].map((bar) => (
+                          <div
+                            key={bar}
+                            className="w-4 transition-all duration-300"
+                            style={{
+                              height: `${bar * 14}px`,
+                              backgroundColor:
+                                voltageData.signalStrength >= 25 * bar
+                                  ? "#ffdd00"
+                                  : "#3ff45f",
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-4xl font-bold text-center">
+                        {voltageData.signalStrength}%
+                      </span>
+                    </div>
+                  </div>
+                  <hr className="absolute h-[80%] w-px bg-text/70 top-[15%] left-1/2 transform -translate-x-5" />
+                  <div className="">
+                    <h4 className="text-sm font-medium tracking-wide mb-1">
+                      Signal strength - 12 Hours
+                    </h4>
+                    <div className="grid grid-cols-4 grid-rows-3 gap-1">
+                      {[
+                        { time: "09:00 AM", strength: 2 },
+                        { time: "10:00 AM", strength: 4 },
+                        { time: "11:00 AM", strength: 2 },
+                        { time: "12:00 PM", strength: 4 },
+                        { time: "01:00 PM", strength: 1 },
+                        { time: "02:00 PM", strength: 2 },
+                        { time: "03:00 PM", strength: 3 },
+                        { time: "04:00 PM", strength: 4 },
+                        { time: "05:00 PM", strength: 4 },
+                        { time: "06:00 PM", strength: 3 },
+                        { time: "07:00 PM", strength: 1 },
+                        { time: "08:00 PM", strength: 2 },
+                      ].map((item, index) => (
+                        <div
+                          key={index}
+                          className="bg-background/20 rounded-lg p-2 pt-3 flex flex-col items-center justify-end"
+                        >
+                          <div className="flex items-end mb-2">
+                            {[...Array(item.strength)].map((_, i) => (
+                              <div
+                                key={i}
+                                className="w-1 mx-[1px]"
+                                style={{
+                                  height: `${(i + 1) * 4}px`,
+                                  backgroundColor:
+                                    item.strength === 1
+                                      ? "#ff4d4d"
+                                      : item.strength === 2
+                                      ? "#ffa64d"
+                                      : item.strength === 3
+                                      ? "#ffff4d"
+                                      : "#4dff4d",
+                                }}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[8px] text-text/70">
+                            {item.time}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
