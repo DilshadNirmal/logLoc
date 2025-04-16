@@ -1,8 +1,9 @@
 import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axiosInstance from "../lib/axios";
 import ThreedModel from "../canvas/ThreedModel";
 import Gauge from "../components/Gauge";
+import Chart from "../components/Chart";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -13,7 +14,10 @@ const Dashboard = () => {
     timestamp: null,
   });
   const [selectedSensor, setSelectedSensor] = useState(1);
-  const [selectedFrequency, setSelectedFrequency] = useState("1 Hour");
+  const [selectedFrequency, setSelectedFrequency] = useState("1h");
+  const [timeRange, setTimeRange] = useState("1h");
+  const [chartData, setChartData] = useState("");
+  const chartRef = useRef();
 
   const fetchVoltages = async () => {
     try {
@@ -55,6 +59,34 @@ const Dashboard = () => {
     const interval = setInterval(fetchVoltages, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchChart = async () => {
+      try {
+        const response = await axiosInstance.get("/voltage-data", {
+          params: {
+            sensorId: selectedSensor,
+            timeRange: timeRange,
+            refresh: new Date().getTime(),
+          },
+        });
+        //   {
+        //   responseType: "blob",
+        //   params: {
+        //     sensorId: selectedSensor,
+        //     timeRange: timeRange,
+        //     refresh: new Date().getTime(),
+        //   },
+        // });
+        // const url = URL.createObjectURL(response.data);
+        setChartData(response.data);
+      } catch (error) {
+        console.error("Error loading chart:", error);
+      }
+    };
+
+    fetchChart();
+  }, [selectedSensor, timeRange]);
 
   const getVoltageClass = (value) => {
     if (value === undefined) return "bg-secondary/20 text-text/50";
@@ -277,8 +309,8 @@ const Dashboard = () => {
           </div>
 
           {/* Right Column - Voltage Grid */}
-          <div className="sm:col-span-6 h-full">
-            <div className="bg-secondary/50 p-1 rounded-lg">
+          <div className="sm:col-span-6 h-full flex flex-col">
+            <div className="bg-secondary/50 rounded-lg">
               <div className="grid grid-cols-2 gap-1">
                 <div className="space-y-4 p-2">
                   <fieldset className="border border-primary/75 rounded-lg p-2 shadow-2xl">
@@ -348,6 +380,59 @@ const Dashboard = () => {
                     </div>
                   </fieldset>
                 </div>
+              </div>
+            </div>
+
+            {/* chart area */}
+            <div className="bg-secondary rounded-lg p-4 col-span-full h-full mt-3">
+              <div className="flex flex-wrap gap-4 items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-text">Sensor:</span>
+                  <select
+                    value={selectedSensor}
+                    onChange={(e) =>
+                      setSelectedSensor(parseInt(e.target.value))
+                    }
+                    className="bg-background/20 rounded-lg px-3 py-1 text-sm text-text"
+                  >
+                    {Array.from({ length: 40 }, (_, i) => i + 1).map((num) => (
+                      <option key={num} value={num}>
+                        Sensor {num}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  {["1h", "6h", "12h", "1d"].map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-3 py-1 rounded-lg text-sm ${
+                        timeRange === range
+                          ? "bg-primary text-white"
+                          : "bg-background/20 hover:bg-background/30 text-text"
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-[calc(100%-60px)]">
+                {chartData ? (
+                  <Chart
+                    ref={chartRef}
+                    data={chartData}
+                    width={800}
+                    height={250}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-text/50">
+                    Loading voltage chart...
+                  </div>
+                )}
               </div>
             </div>
           </div>

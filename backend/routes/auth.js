@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User.js");
 const auth = require("../middleware/auth.js");
 const axios = require("../utils/axiosConfig.js");
+const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const { locationFind } = require("../utils/locationService.js");
 const {
   storeRefreshToken,
@@ -590,6 +591,136 @@ router.get("/store-voltage-21-40", async (req, res) => {
       message: "Failed to store voltage data 21-40",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
+  }
+});
+
+router.get("/voltage-chart", async (req, res) => {
+  try {
+    const { sensorId, timeRange } = req.query;
+    const sensorKey = `v${sensorId}`;
+
+    // Calculate time range
+    const now = new Date();
+    let startDate = new Date(now);
+
+    // Get historical data for specific sensor
+    switch (timeRange) {
+      case "1hr":
+        startDate.setHours(now.getHours() - 1);
+        break;
+      case "6hrs":
+        startDate.setHours(now.getHours() - 6);
+        break;
+      case "12hrs":
+        startDate.setHours(now.getHours() - 12);
+        break;
+      case "24hrs":
+        startDate.setDate(now.getDate() - 1);
+        break;
+      default:
+        startDate.setHours(now.getHours() - 1);
+    }
+
+    // Get historical data for specific sensor
+    const voltageHistory = await VoltageData.find({
+      timestamp: { $gte: startDate },
+      [`voltages.${sensorKey}`]: { $exists: true },
+    }).sort({ timestamp: 1 });
+
+    // Extract values for selected sensor
+    const chartValues = voltageHistory.map((d) => d.voltages.get(sensorKey));
+    const timestamps = voltageHistory.map((d) => d.timestamp);
+
+    const configuration = {
+      type: "line",
+      data: {
+        labels: timestamps.map((t) => t.toLocaleTimeString()),
+        datasets: [
+          {
+            label: `Sensor ${sensorId} Voltage`,
+            data: chartValues,
+            borderColor: "#0077e4",
+            borderWidth: 2,
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { color: "rgba(255,255,255,0.1)" },
+            ticks: { color: "#CBD5E0", maxTicksLimit: 10 },
+          },
+          y: {
+            min: 0,
+            max: 10,
+            position: "right",
+            grid: { color: "rgba(255,255,255,0.1)" },
+            ticks: { color: "#CBD5E0" },
+          },
+        },
+      },
+    };
+
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({
+      width: 800,
+      height: 400,
+      backgroundColour: "oklch(8% 0.005 255.4)", // Match dashboard background
+    });
+
+    const buffer = await chartJSNodeCanvas.renderToBuffer(configuration);
+    res.set("Content-Type", "image/png");
+    res.send(buffer);
+  } catch (error) {
+    console.error("Chart generation error:", error);
+    res.status(500).send("Error generating voltage chart");
+  }
+});
+
+router.get("/voltage-data", async (req, res) => {
+  try {
+    const { sensorId, timeRange } = req.query;
+    const sensorKey = `v${sensorId}`;
+
+    // Calculate time range (same as image endpoint)
+    const now = new Date();
+    let startDate = new Date(now);
+
+    switch (timeRange) {
+      case "1h":
+        startDate.setHours(now.getHours() - 1);
+        break;
+      case "6h":
+        startDate.setHours(now.getHours() - 6);
+        break;
+      case "12h":
+        startDate.setHours(now.getHours() - 12);
+        break;
+      case "24h":
+        startDate.setDate(now.getDate() - 1);
+        break;
+      default:
+        startDate.setHours(now.getHours() - 1);
+    }
+
+    // Get formatted data for D3
+    const voltageHistory = await VoltageData.find({
+      timestamp: { $gte: startDate },
+      [`voltages.${sensorKey}`]: { $exists: true },
+    })
+      .sort({ timestamp: 1 })
+      .lean();
+
+    const chartData = voltageHistory.map((d) => ({
+      timestamp: d.timestamp,
+      value: d.voltages[sensorKey],
+    }));
+
+    res.json(chartData);
+  } catch (error) {
+    console.error("Chart data error:", error);
+    res.status(500).json({ error: "Failed to get chart data" });
   }
 });
 
