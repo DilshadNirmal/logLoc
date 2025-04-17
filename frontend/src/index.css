@@ -38,20 +38,85 @@ html {
 
 body {
   font-family: "Poppins", sans-serif;
-  background-color: var(--color-navy-50);
-  color: var(--color-navy-600);
   margin: 0;
   padding: 0;
   line-height: 1.5;
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 .font-helvetica {
   font-family: "Helvetica", sans-serif;
 }
 
+.dashboard-container {
+  width: 100vw;
+  overflow-x: hidden;
+}
+
+.dashboard-grid {
+  width: 100%;
+  max-width: 2560px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .max-w-screen {
+    max-width: min(100%, 2560px);
+  }
+}
+
+/* Adjust base font size for different screen sizes */
+@media screen and (max-width: 1536px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  html {
+    font-size: 12px;
+  }
+}
+
 @media screen and (max-width: 458px) {
+  html {
+    font-size: 12px;
+    scroll-behavior: smooth;
+  }
+
   body {
-    overflow: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    width: 100vw;
+  }
+
+  .dashboard-container {
+    height: auto !important;
+    min-height: 100vh;
+    overflow: hidden !important;
+    width: 100%;
+  }
+
+  .dashboard-grid {
+    height: auto !important;
+    overflow: hidden !important;
+    padding: 0 1rem;
+  }
+}
+
+/* Add smooth scrolling for mobile */
+@media screen and (max-width: 640px) {
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 }

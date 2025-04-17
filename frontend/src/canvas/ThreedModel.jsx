@@ -22,7 +22,12 @@ const ThreedModel = () => {
     <ErrorBoundary fallback={<Fallback />}>
       <Canvas
         frameloop="demand"
-        camera={{ position: [-4, 3, 6], fov: 45, near: 0.1, far: 200 }}
+        camera={{
+          position: [-4, 3, 6],
+          fov: window.innerWidth < 768 ? 60 : 45,
+          near: 0.1,
+          far: 200,
+        }}
         gl={{ preserveDrawingBuffer: true }}
       >
         <Suspense fallback={null}>

@@ -53,6 +53,7 @@ const Navbar = () => {
 
   return (
     <header
+      id="header"
       className={`${
         location.pathname === "/" ? "bg-transparent" : "bg-background"
       } fixed w-full z-20 top-0 start-0 shadow-md`}
@@ -177,34 +178,34 @@ const Navbar = () => {
                 className="block py-3 px-4 text-xl text-light hover:text-light/85"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Home
+                Dashboard
               </Link>
             </li>
             <li>
               <Link
-                to="/about"
+                to="/analytics"
                 className="block py-3 px-4 text-xl text-light hover:text-light/85"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                About
+                Analytics
               </Link>
             </li>
             <li>
               <Link
-                to="/services"
+                to="/reports"
                 className="block py-3 px-4 text-xl text-light hover:text-light/85"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Services
+                Reports
               </Link>
             </li>
             <li>
               <Link
-                to="/contact"
+                to="/settings"
                 className="block py-3 px-4 text-xl text-light hover:text-light/85"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Contact
+                Settings
               </Link>
             </li>
           </ul>
