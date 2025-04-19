@@ -11,13 +11,13 @@ export const mainNavigation = [
     allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.USER],
   },
   {
-    name: "Analytics",
-    path: "/analytics",
+    name: "Reports",
+    path: "/reports",
     allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.USER],
   },
   {
-    name: "Reports",
-    path: "/reports",
+    name: "Analytics",
+    path: "/analytics",
     allowedRoles: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.USER],
   },
   {

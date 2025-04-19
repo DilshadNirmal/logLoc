@@ -183,20 +183,20 @@ const Navbar = () => {
             </li>
             <li>
               <Link
-                to="/analytics"
-                className="block py-3 px-4 text-xl text-light hover:text-light/85"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Analytics
-              </Link>
-            </li>
-            <li>
-              <Link
                 to="/reports"
                 className="block py-3 px-4 text-xl text-light hover:text-light/85"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Reports
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/analytics"
+                className="block py-3 px-4 text-xl text-light hover:text-light/85"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Analytics
               </Link>
             </li>
             <li>

@@ -1,65 +1,77 @@
-import { Doughnut } from "react-chartjs-2";
+import Plot from "react-plotly.js";
 
-const Gauge = ({
-  value,
-  lowThreshold = 3,
-  highThreshold = 7,
-  showLabel = true,
-  size = "normal",
-}) => {
-  const gaugeColors = {
-    low: "#133044", // Blue
-    normal: "#409fff", // Primary
-    high: "#e9ebed", // Text
-  };
-
-  const gaugeData = {
-    labels: ["Low", "Normal", "High"],
-    datasets: [
-      {
-        data: [lowThreshold, highThreshold - lowThreshold, 10 - highThreshold],
-        backgroundColor: ["#0d0e10", "#409fff", "#e9ebed"],
-        borderWidth: 0,
-        circumference: 180,
-        rotation: -90,
+const Gauge = ({ value = 0, lowThreshold = 3, highThreshold = 7 }) => {
+  const data = [
+    {
+      type: "indicator",
+      mode: "gauge+number",
+      value: value || 0,
+      number: {
+        font: {
+          size: 24,
+          color: "#409fff",
+          family: "Helvetica",
+        },
+        suffix: " mV",
       },
-    ],
+      gauge: {
+        axis: {
+          range: [0, 10],
+          tickmode: "array",
+          tickvals: [0, 2, 4, 6, 8, 10],
+          ticktext: ["0", "02", "04", "06", "08", "10"],
+          tickwidth: 2,
+          tickcolor: "#e9ebed",
+          ticklen: 10,
+          tickfont: {
+            color: "#e9ebed",
+            size: 12,
+          },
+        },
+        bar: { color: "rgba(0,0,0,0)" },
+        bgcolor: "transparent",
+        borderwidth: 0,
+        steps: [
+          { range: [0, 20], color: "#133044" },
+          { range: [0, value], color: "#409fff" },
+        ],
+        shape: "angular",
+        rotation: -135,
+        angularaxis: {
+          range: [0, 20],
+        },
+        threshold: {
+          line: { color: "#e9ebed", width: 3 },
+          thickness: 1,
+          value: value || 0,
+        },
+      },
+    },
+  ];
+
+  const layout = {
+    autosize: true,
+    margin: { t: 10, r: 10, l: 10, b: 40 },
+    paper_bgcolor: "transparent",
+    plot_bgcolor: "transparent",
+    font: { color: "#e9ebed", family: "Helvetica" },
   };
 
-  const options = {
+  const config = {
+    displayModeBar: false,
+    staticPlot: true,
     responsive: true,
-    maintainAspectRatio: false,
-    circumference: 180,
-    rotation: -90,
-    cutout: "75%",
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false,
-      },
-    },
-    layout: {
-      padding: size === "small" ? 10 : 20,
-    },
   };
 
   return (
-    <div
-      className={`relative w-full ${
-        size === "small" ? "h-24" : "h-full"
-      } flex items-center justify-center`}
-    >
-      <Doughnut data={gaugeData} options={options} />
-      {showLabel && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[20%] text-center">
-          <span className="text-2xl font-semibold text-text">
-            {value?.toFixed(2) || "--"}
-          </span>
-          <span className="block text-sm text-text/70">mV</span>
-        </div>
-      )}
+    <div className="w-full h-full flex items-center justify-center">
+      <Plot
+        data={data}
+        layout={layout}
+        config={config}
+        style={{ width: "100%", height: "100%" }}
+        useResizeHandler={true}
+      />
     </div>
   );
 };

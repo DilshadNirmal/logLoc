@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import axiosInstance from "../lib/axios";
+import GaugeComponent from "react-gauge-component";
 import {
   Chart as ChartJs,
   CategoryScale,
@@ -37,6 +38,7 @@ const EmailConfig = () => {
   const [alertDelay, setAlertDelay] = useState("5");
   const [currentValue, setCurrentValue] = useState(0);
   const [voltageHistory, setVoltageHistory] = useState([]);
+  const [gaugeValue, setGaugeValue] = useState(5);
 
   const handleAddEmail = () => {
     if (newEmail && !emails.includes(newEmail)) {
@@ -64,6 +66,15 @@ const EmailConfig = () => {
       });
 
       setThresholds(thresholdData);
+
+      const sensorId =
+        selectedSensor.group === "A"
+          ? selectedSensor.number
+          : selectedSensor.number + 20;
+
+      if (thresholdData[sensorId]) {
+        setGaugeValue(thresholdData[sensorId].high);
+      }
 
       if (configs.length > 0) {
         setEmails(configs[0].emails || []);
@@ -129,6 +140,10 @@ const EmailConfig = () => {
         [type]: value === "" ? "" : parseFloat(parseFloat(value).toFixed(2)),
       },
     }));
+
+    if (type === "high") {
+      setGaugeValue(newValue);
+    }
   };
 
   const handleSaveConfiguration = async () => {
@@ -177,40 +192,40 @@ const EmailConfig = () => {
     }
   };
 
-  const gaugeData = {
-    labels: ["Low", "Normal", "High"],
-    datasets: [
-      {
-        data: [
-          thresholds[
-            selectedSensor.group === "A"
-              ? selectedSensor.number
-              : selectedSensor.number + 20
-          ]?.low || 3,
-          (thresholds[
-            selectedSensor.group === "A"
-              ? selectedSensor.number
-              : selectedSensor.number + 20
-          ]?.high || 7) -
-            (thresholds[
-              selectedSensor.group === "A"
-                ? selectedSensor.number
-                : selectedSensor.number + 20
-            ]?.low || 3),
-          10 -
-            (thresholds[
-              selectedSensor.group === "A"
-                ? selectedSensor.number
-                : selectedSensor.number + 20
-            ]?.high || 7),
-        ],
-        backgroundColor: ["#133044", "#409fff", "#e9ebed"],
-        borderWidth: 0,
-        circumference: 180,
-        rotation: -90,
-      },
-    ],
-  };
+  // const gaugeData = {
+  //   labels: ["Low", "Normal", "High"],
+  //   datasets: [
+  //     {
+  //       data: [
+  //         thresholds[
+  //           selectedSensor.group === "A"
+  //             ? selectedSensor.number
+  //             : selectedSensor.number + 20
+  //         ]?.low || 3,
+  //         (thresholds[
+  //           selectedSensor.group === "A"
+  //             ? selectedSensor.number
+  //             : selectedSensor.number + 20
+  //         ]?.high || 7) -
+  //           (thresholds[
+  //             selectedSensor.group === "A"
+  //               ? selectedSensor.number
+  //               : selectedSensor.number + 20
+  //           ]?.low || 3),
+  //         10 -
+  //           (thresholds[
+  //             selectedSensor.group === "A"
+  //               ? selectedSensor.number
+  //               : selectedSensor.number + 20
+  //           ]?.high || 7),
+  //       ],
+  //       backgroundColor: ["#133044", "#409fff", "#e9ebed"],
+  //       borderWidth: 0,
+  //       circumference: 180,
+  //       rotation: -90,
+  //     },
+  //   ],
+  // };
 
   return (
     <div className="min-h-screen bg-background pt-28">
@@ -304,25 +319,56 @@ const EmailConfig = () => {
                     </span>
                   </div>
                   <div className="h-64 relative">
-                    <Doughnut
-                      data={gaugeData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        circumference: 180,
-                        rotation: -90,
-                        cutout: "75%",
-                        plugins: {
-                          legend: {
-                            display: false,
+                    <GaugeComponent
+                      value={gaugeValue}
+                      type="semicircle"
+                      arc={{
+                        width: 0.3,
+                        padding: 0.005,
+                        cornerRadius: 1,
+                        gradient: false,
+                        subArcs: [
+                          {
+                            length: (gaugeValue / 10) * 100,
+                            color: "#409fff",
                           },
-                          tooltip: {
-                            enabled: false,
+                          {
+                            length: 100 - (gaugeValue / 10) * 100,
+                            color: "#5c5c5c99",
+                          },
+                        ],
+                      }}
+                      pointer={{
+                        color: "#e9ebed",
+                        length: 0.8,
+                        width: 15,
+                        elastic: true,
+                      }}
+                      labels={{
+                        valueLabel: {
+                          formatTextValue: (value) => value.toFixed(2) + " mV",
+                          style: { fontSize: 25, fill: "#e9ebed" },
+                        },
+                        tickLabels: {
+                          type: "outer",
+                          ticks: [
+                            { value: 0 },
+                            { value: 2 },
+                            { value: 4 },
+                            { value: 6 },
+                            { value: 8 },
+                            { value: 10 },
+                          ],
+                          defaultTickValueConfig: {
+                            formatTextValue: (value) => value,
+                            style: { fill: "#e9ebed" },
                           },
                         },
                       }}
+                      maxValue={10}
+                      minValue={0}
                     />
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[-25%] text-center">
+                    {/* <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[-25%] text-center">
                       <div className="text-lg font-medium text-text/70">
                         Threshold
                       </div>
@@ -340,7 +386,7 @@ const EmailConfig = () => {
                         ]?.high || 7}
                         &nbsp;mV
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
