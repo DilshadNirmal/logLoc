@@ -23,6 +23,7 @@ const Dashboard = () => {
   const chartContainerRef = useRef(null);
 
   const [navHeight, setNavHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
 
   const fetchVoltages = async () => {
     try {
@@ -122,9 +123,23 @@ const Dashboard = () => {
       }
     };
 
+    const updateContentHeight = () => {
+      const windowHeight = window.innerHeight;
+      const margin = 20;
+      if (window.innerWidth >= 1024) {
+        // lg breakpoint
+        setContentHeight(windowHeight - 100 - margin);
+      }
+    };
+
     updateNavHeight();
+    updateContentHeight();
     window.addEventListener("resize", updateNavHeight);
-    return () => window.removeEventListener("resize", updateNavHeight);
+    window.addEventListener("resize", updateContentHeight);
+    return () => {
+      window.removeEventListener("resize", updateNavHeight);
+      window.removeEventListener("resize", updateContentHeight);
+    };
   }, []);
 
   return (
@@ -133,9 +148,14 @@ const Dashboard = () => {
       style={{ marginTop: `${navHeight}px` }}
     >
       {/* content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mx-3 mt-5">
+      <div
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 mx-3 mt-5"
+        style={{
+          height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
+        }}
+      >
         {/* left column */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
           {/* status bar */}
           <div className="bg-secondary text-text rounded-lg p-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,16 +234,17 @@ const Dashboard = () => {
           </div>
 
           {/* 3d model */}
-          <div className=" bg-secondary text-text rounded-lg p-2 h-[350px] w-full">
+          <div
+            className=" bg-secondary text-text rounded-lg p-2 w-full"
+            style={{ height: `${contentHeight * 0.35}px` }}
+          >
             <ThreedModel />
           </div>
 
           {/* split column 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-8 gap-4 text-text">
             <div className="sm:col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
-              <h3 className="text-sm font-semibold text-text mb-1">
-                Maximum Value
-              </h3>
+              <h3 className="text-sm font-semibold mb-1">Maximum Value</h3>
               <div className="h-[85%]">
                 <Gauge
                   value={Math.max(
@@ -292,9 +313,9 @@ const Dashboard = () => {
           </div>
 
           {/* split column 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-8 gap-4 h-[250px] text-text">
-            <div className="col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
-              <h3 className="text-sm font-semibold text-text/70 mb-2">
+          <div className="grid grid-cols-1 md:grid-cols-8 gap-4 text-text">
+            <div className="sm:col-span-3 w-full bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
+              <h3 className="text-sm font-semibold text-text mb-2">
                 Minimum Value
               </h3>
               <div className="h-[85%]">
@@ -310,7 +331,7 @@ const Dashboard = () => {
                 />
               </div>
             </div>
-            <div className="relative col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
+            <div className="relative sm:col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
               <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-4">
                 <div className="h-full">
                   <h3 className="text-sm font-semibold text-text/70 mb-4">
@@ -393,7 +414,7 @@ const Dashboard = () => {
         </div>
 
         {/* right column */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           {/* voltage grid */}
           <div className="bg-secondary/50 rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -467,7 +488,7 @@ const Dashboard = () => {
           </div>
 
           {/* chart area */}
-          <div className="bg-secondary rounded-lg p-4 h-[350px]">
+          <div className="bg-secondary rounded-lg p-4 h-full">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-text">Sensor:</span>
