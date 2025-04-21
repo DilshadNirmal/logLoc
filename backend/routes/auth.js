@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User.js");
 const auth = require("../middleware/auth.js");
 const axios = require("../utils/axiosConfig.js");
-const { locationFind } = require("../utils/locationService.js");
+const { locationFind } = require("../services/locationService.js");
 const {
   storeRefreshToken,
   storeAccessToken,

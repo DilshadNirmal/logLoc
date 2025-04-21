@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
       if (accessToken && refreshToken) {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_BACKEND_URL}/verify-token`,
+            `${import.meta.env.VITE_BACKEND_URL}auth/verify-token`,
             {
               headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
         } catch (error) {
           try {
             const refreshResponse = await axios.post(
-              `${import.meta.env.VITE_BACKEND_URL}/refresh-token`,
+              `${import.meta.env.VITE_BACKEND_URL}auth/refresh-token`,
               { refreshToken }
             );
             localStorage.setItem(
@@ -100,7 +100,7 @@ export function AuthProvider({ children }) {
       };
 
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/login`,
+        `${import.meta.env.VITE_BACKEND_URL}auth/login`,
         loginData
       );
 
@@ -119,7 +119,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/logout`,
+        `${import.meta.env.VITE_BACKEND_URL}auth/logout`,
         {},
         {
           headers: {
@@ -172,7 +172,7 @@ export function AuthProvider({ children }) {
 
           try {
             const response = await axios.post(
-              `${import.meta.env.VITE_BACKEND_URL}/refresh-token`,
+              `${import.meta.env.VITE_BACKEND_URL}auth/refresh-token`,
               { refreshToken }
             );
             localStorage.setItem("accessToken", response.data.accessToken);
