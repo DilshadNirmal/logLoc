@@ -110,7 +110,7 @@ const Reports = () => {
         }}
       >
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
-          <div className="grid grid-cols-4 gap-4 mt-4 m-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 m-8">
             {tabOptions.map((tab) => (
               <TabButton
                 key={tab.id}
@@ -122,7 +122,7 @@ const Reports = () => {
             ))}
           </div>
           <div
-            className="bg-primary/25 rounded-lg p-8 m-8"
+            className="bg-primary/25 rounded-lg p-8 sm:m-8 my-4 mx-2"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}

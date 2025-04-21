@@ -11,12 +11,12 @@ const IntervalDataForm = ({
   setInterval,
   onDownload,
 }) => (
-  <div className="grid grid-cols-2 gap-8 h-full">
-    <div className="flex items-center justify-start">
+  <div className="grid sm:grid-cols-2 sm:gap-8 items-center justify-center h-full">
+    <div className="sm:flex items-center justify-start hidden">
       <img src={ReportAmico} alt="" className="w-8/12 ml-4" />
     </div>
-    <div className="flex flex-col h-full pl-0 pr-16 pt-16">
-      <div className="space-y-10 w-10/12">
+    <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 sm:pr-16 sm:pt-16">
+      <div className="space-y-10 w-full sm:w-10/12">
         <h2 className="text-2xl text-center font-bold text-text">
           Select Time Interval
         </h2>

@@ -339,7 +339,8 @@ const EmailConfig = () => {
                         ],
                       }}
                       pointer={{
-                        color: "#e9ebed",
+                        type: "arrow",
+                        color: "#409fff",
                         length: 0.8,
                         width: 15,
                         elastic: true,

@@ -145,7 +145,7 @@ const Dashboard = () => {
 
   return (
     <section
-      className="bg-background min-h-screen w-full overflow-x-hidden"
+      className="bg-background min-h-screen w-full overflow-x-hidden pb-4 sm:pb-0"
       style={{ marginTop: `${navHeight}px` }}
     >
       {/* content grid */}
@@ -296,7 +296,8 @@ const Dashboard = () => {
                   ],
                 }}
                 pointer={{
-                  color: "#e9ebed",
+                  type: "arrow",
+                  color: "#409fff",
                   length: 0.8,
                   width: 15,
                   elastic: true,
@@ -389,13 +390,17 @@ const Dashboard = () => {
                       ],
                     }}
                     pointer={{
-                      color: "#e9ebed",
+                      type: "arrow",
+                      color: "#409fff",
                       length: 0.8,
                       width: 15,
                       elastic: true,
                     }}
                     labels={{
-                      valueLabel: { formatTextValue: (value) => value + "mV" },
+                      valueLabel: {
+                        formatTextValue: (value) => value + "mV",
+                        style: { fontSize: 25, fill: "#e9ebed" },
+                      },
                       tickLabels: {
                         type: "outer",
                         ticks: [
@@ -420,7 +425,10 @@ const Dashboard = () => {
           {/* split column 2 */}
           <div
             className="grid grid-cols-1 md:grid-cols-8 gap-4 text-text"
-            style={{ height: `${contentHeight * 0.3}px` }}
+            style={{
+              height:
+                window.innerWidth >= 1024 ? `${contentHeight * 0.3}px` : "auto",
+            }}
           >
             <div className="sm:col-span-3 w-full bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
               <h3 className="text-sm font-semibold text-text mb-2">
@@ -470,13 +478,17 @@ const Dashboard = () => {
                   ],
                 }}
                 pointer={{
-                  color: "#e9ebed",
+                  type: "arrow",
+                  color: "#409fff",
                   length: 0.8,
                   width: 15,
                   elastic: true,
                 }}
                 labels={{
-                  valueLabel: { formatTextValue: (value) => value + "mV" },
+                  valueLabel: {
+                    formatTextValue: (value) => value + " mV",
+                    style: { fontSize: 25, fill: "#e9ebed" },
+                  },
                   tickLabels: {
                     type: "outer",
                     ticks: [
