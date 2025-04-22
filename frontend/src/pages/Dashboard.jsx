@@ -105,24 +105,31 @@ const Dashboard = () => {
   useEffect(() => {
     const updateDimensions = () => {
       if (chartContainerRef.current) {
-        setWidth(chartContainerRef.current.clientWidth);
-        setHeight(chartContainerRef.current.clientHeight);
+        const newWidth = chartContainerRef.current.clientWidth;
+        const newHeight = chartContainerRef.current.clientHeight;
+
+        // Only update if dimensions actually changed
+        if (newWidth !== width || newHeight !== height) {
+          setWidth(newWidth);
+          setHeight(newHeight);
+        }
       }
     };
 
-    console.log("Chart container ref:", chartContainerRef.current);
-    console.log("Chart ref:", chartRef.current);
-    console.log("Width:", width);
-    console.log("Height:", height);
-
     updateDimensions();
-    const resizeObserver = new ResizeObserver(updateDimensions);
+    let timeoutId;
+    const debouncedUpdate = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateDimensions, 100);
+    };
+
+    const resizeObserver = new ResizeObserver(debouncedUpdate);
     if (chartContainerRef.current) {
       resizeObserver.observe(chartContainerRef.current);
     }
 
-    // Cleanup
     return () => {
+      clearTimeout(timeoutId);
       resizeObserver.disconnect();
     };
   }, []);
@@ -138,21 +145,28 @@ const Dashboard = () => {
     const updateContentHeight = () => {
       const windowHeight = window.innerHeight;
       const margin = 20;
+      const gridGaps = 48;
       if (window.innerWidth >= 1024) {
-        // lg breakpoint
-        setContentHeight(windowHeight - 100 - margin);
+        const newHeight = windowHeight - navHeight - margin - gridGaps;
+        setContentHeight(newHeight);
       }
     };
 
-    updateNavHeight();
-    updateContentHeight();
-    window.addEventListener("resize", updateNavHeight);
-    window.addEventListener("resize", updateContentHeight);
+    setTimeout(() => {
+      updateNavHeight();
+      updateContentHeight();
+    }, 100);
+
+    // Add resize listener
+    window.addEventListener("resize", () => {
+      updateNavHeight();
+      updateContentHeight();
+    });
     return () => {
       window.removeEventListener("resize", updateNavHeight);
       window.removeEventListener("resize", updateContentHeight);
     };
-  }, []);
+  }, [navHeight]);
 
   return (
     <section
@@ -173,8 +187,8 @@ const Dashboard = () => {
             className="bg-secondary text-text rounded-lg p-2"
             style={{
               height:
-                window.innerWidth > 1024
-                  ? `${contentHeight * 0.15 - 16 * 4}px`
+                window.innerWidth >= 1024
+                  ? `${contentHeight * 0.08}px`
                   : "auto",
             }}
           >
@@ -256,18 +270,23 @@ const Dashboard = () => {
           {/* 3d model */}
           <div
             className=" bg-secondary text-text rounded-lg p-2 w-full"
-            style={{ height: `${contentHeight * 0.35 - 16 * 2}px` }}
+            style={{
+              height:
+                window.innerWidth >= 1024
+                  ? `${contentHeight * 0.35}px`
+                  : "auto",
+            }}
           >
             <ThreedModel />
           </div>
 
           {/* split column 1 */}
           <div
-            className=" bg-secondary rounded-lg p-4 text-text grid sm:grid-cols-2 gap-2 overflow-hidden"
+            className=" bg-secondary rounded-lg p-4 text-text grid lg:grid-cols-2 sm:grid-cols-2 gap-2 overflow-hidden"
             style={{
               height:
-                window.innerWidth > 1024
-                  ? `${contentHeight * 0.31 - 16 * 2}px`
+                window.innerWidth >= 1024
+                  ? `${contentHeight * 0.25}px`
                   : "auto",
             }}
           >
@@ -278,7 +297,7 @@ const Dashboard = () => {
 
               {/* chart for max and min */}
               <div className="flex sm:flex-row flex-col items-center justify-center w-full h-full gap-2">
-                <div className="sm:w-[48%] h-[100%]">
+                <div className="w-[90%] lg:w-[45%] sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
                   </h3>
@@ -322,7 +341,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 18, fill: "#e9ebed" },
+                        style: { fontSize: 15, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -343,7 +362,7 @@ const Dashboard = () => {
                     maxValue={10}
                   />
                 </div>
-                <div className="sm:w-[48%] h-[100%]">
+                <div className="w-[90%] lg:w-[45%] sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Minimum Value
                   </h3>
@@ -387,7 +406,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 18, fill: "#e9ebed" },
+                        style: { fontSize: 15, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -417,7 +436,7 @@ const Dashboard = () => {
 
               {/* chart for max and min */}
               <div className="flex sm:flex-row flex-col items-center justify-center w-full h-full gap-2">
-                <div className="sm:w-[48%] h-[100%]">
+                <div className="w-[90%] lg:w-[45%] sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
                   </h3>
@@ -461,7 +480,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 18, fill: "#e9ebed" },
+                        style: { fontSize: 15, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -482,7 +501,7 @@ const Dashboard = () => {
                     maxValue={10}
                   />
                 </div>
-                <div className="sm:w-[48%] h-[100%]">
+                <div className="w-[90%] lg:w-[45%] sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Minimum Value
                   </h3>
@@ -526,7 +545,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 18, fill: "#e9ebed" },
+                        style: { fontSize: 15, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -557,7 +576,7 @@ const Dashboard = () => {
             style={{
               height:
                 window.innerWidth >= 1024
-                  ? `${contentHeight * 0.28}px`
+                  ? `${contentHeight * 0.285}px`
                   : "auto",
             }}
           >
@@ -636,82 +655,80 @@ const Dashboard = () => {
                 minValue={0}
               />
             </div>
-            <div className="relative sm:col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-4">
-                <div className="h-full">
-                  <h3 className="text-sm font-semibold text-text/70 mb-4">
-                    Signal Strength
-                  </h3>
-                  <div className="flex flex-col gap-4 justify-center items-center mt-8">
-                    <div className="flex items-end justify-center gap-1">
-                      {[1, 2, 3].map((bar) => (
-                        <div
-                          key={bar}
-                          className="w-4 transition-all duration-300"
-                          style={{
-                            height: `${bar * 14}px`,
-                            backgroundColor:
-                              voltageData.signalStrength >= 25 * bar
-                                ? "#ffdd00"
-                                : "#3ff45f",
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-4xl font-bold text-center">
-                      {voltageData.signalStrength}%
-                    </span>
-                  </div>
-                </div>
-                {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
-                <div className="">
-                  <h4 className="text-sm font-medium tracking-wide mb-2">
-                    Signal strength - 12 Hours
-                  </h4>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 sm:grid-rows-3 gap-1">
-                    {[
-                      { time: "09:00 AM", strength: 2 },
-                      { time: "10:00 AM", strength: 4 },
-                      { time: "11:00 AM", strength: 2 },
-                      { time: "12:00 PM", strength: 4 },
-                      { time: "01:00 PM", strength: 1 },
-                      { time: "02:00 PM", strength: 2 },
-                      { time: "03:00 PM", strength: 3 },
-                      { time: "04:00 PM", strength: 4 },
-                      { time: "05:00 PM", strength: 4 },
-                      { time: "06:00 PM", strength: 3 },
-                      { time: "07:00 PM", strength: 1 },
-                      { time: "08:00 PM", strength: 2 },
-                    ].map((item, index) => (
+            <div className="relative sm:col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="h-full">
+                <h3 className="text-sm font-semibold text-text/70 mb-4">
+                  Signal Strength
+                </h3>
+                <div className="flex flex-col gap-4 justify-center items-center mt-8">
+                  <div className="flex items-end justify-center gap-1">
+                    {[1, 2, 3].map((bar) => (
                       <div
-                        key={index}
-                        className="bg-background/20 rounded-lg p-2 pt-3 flex flex-col items-center justify-end"
-                      >
-                        <div className="flex items-end mb-2">
-                          {[...Array(item.strength)].map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-1 mx-[1px]"
-                              style={{
-                                height: `${(i + 1) * 4}px`,
-                                backgroundColor:
-                                  item.strength === 1
-                                    ? "#ff4d4d"
-                                    : item.strength === 2
-                                    ? "#ffa64d"
-                                    : item.strength === 3
-                                    ? "#ffff4d"
-                                    : "#4dff4d",
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[8px] text-text/70">
-                          {item.time}
-                        </span>
-                      </div>
+                        key={bar}
+                        className="w-4 transition-all duration-300"
+                        style={{
+                          height: `${bar * 14}px`,
+                          backgroundColor:
+                            voltageData.signalStrength >= 25 * bar
+                              ? "#ffdd00"
+                              : "#3ff45f",
+                        }}
+                      />
                     ))}
                   </div>
+                  <span className="text-4xl font-bold text-center">
+                    {voltageData.signalStrength}%
+                  </span>
+                </div>
+              </div>
+              {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
+              <div className="">
+                <h4 className="text-sm font-medium tracking-wide mb-2">
+                  Signal strength - 12 Hours
+                </h4>
+                <div className="grid grid-cols-3 sm:grid-cols-4 sm:grid-rows-3 gap-1">
+                  {[
+                    { time: "09:00 AM", strength: 2 },
+                    { time: "10:00 AM", strength: 4 },
+                    { time: "11:00 AM", strength: 2 },
+                    { time: "12:00 PM", strength: 4 },
+                    { time: "01:00 PM", strength: 1 },
+                    { time: "02:00 PM", strength: 2 },
+                    { time: "03:00 PM", strength: 3 },
+                    { time: "04:00 PM", strength: 4 },
+                    { time: "05:00 PM", strength: 4 },
+                    { time: "06:00 PM", strength: 3 },
+                    { time: "07:00 PM", strength: 1 },
+                    { time: "08:00 PM", strength: 2 },
+                  ].map((item, index) => (
+                    <div
+                      key={index}
+                      className="bg-background/20 rounded-lg p-2 flex flex-col items-center justify-end"
+                    >
+                      <div className="flex items-end mb-2">
+                        {[...Array(item.strength)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-0.5 mx-[1px]"
+                            style={{
+                              height: `${(i + 1) * 4}px`,
+                              backgroundColor:
+                                item.strength === 1
+                                  ? "#ff4d4d"
+                                  : item.strength === 2
+                                  ? "#ffa64d"
+                                  : item.strength === 3
+                                  ? "#ffff4d"
+                                  : "#4dff4d",
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs lg:text-[7px] text-text/70">
+                        {item.time}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -831,14 +848,23 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div ref={chartContainerRef} className="h-[calc(100%-4rem)] w-full">
+            <div
+              ref={chartContainerRef}
+              className={`w-full ${
+                window.innerWidth >= 1024 ? "h-[calc(100%-4rem)]" : "h-[400px]"
+              }`}
+            >
               {chartData.length > 0 ? (
                 <>
                   <Chart
                     ref={chartRef}
                     data={chartData}
-                    width={width || 800}
-                    height={height || 250}
+                    width={
+                      width || chartContainerRef.current?.clientWidth || 400
+                    }
+                    height={
+                      height || chartContainerRef.current?.clientHeight || 300
+                    }
                   />
                 </>
               ) : (

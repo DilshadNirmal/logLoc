@@ -18,7 +18,7 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
   }));
 
   useEffect(() => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0 || !width || !height) return;
 
     // Setup dimensions
     const margin = { top: 20, right: 30, bottom: 30, left: 50 };
