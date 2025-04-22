@@ -110,11 +110,22 @@ const Dashboard = () => {
       }
     };
 
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
+    console.log("Chart container ref:", chartContainerRef.current);
+    console.log("Chart ref:", chartRef.current);
+    console.log("Width:", width);
+    console.log("Height:", height);
 
-    return () => window.removeEventListener("resize", updateDimensions);
-  }, []);
+    updateDimensions();
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    if (chartContainerRef.current) {
+      resizeObserver.observe(chartContainerRef.current);
+    }
+
+    // Cleanup
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [height, width]);
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -820,10 +831,7 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div
-              ref={chartContainerRef}
-              className="h-[calc(95%-20px)] sm:h-[calc(80%-60px)] w-full"
-            >
+            <div ref={chartContainerRef} className="h-[calc(100%-4rem)] w-full">
               {chartData.length > 0 ? (
                 <>
                   <Chart
