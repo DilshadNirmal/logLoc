@@ -76,19 +76,19 @@ body {
 
 @media screen and (max-width: 1024px) {
   html {
-    font-size: 13px;
+    font-size: 12px;
   }
 }
 
 @media screen and (max-width: 768px) {
   html {
-    font-size: 12px;
+    font-size: 10px;
   }
 }
 
 @media screen and (max-width: 458px) {
   html {
-    font-size: 12px;
+    font-size: 10px;
     scroll-behavior: smooth;
   }
 

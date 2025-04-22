@@ -4,7 +4,6 @@ import axiosInstance from "../lib/axios";
 import GaugeComponent from "react-gauge-component";
 
 import ThreedModel from "../canvas/ThreedModel";
-import Gauge from "../components/Gauge";
 import Chart from "../components/Chart";
 const Dashboard = () => {
   const { user } = useAuth();
@@ -15,7 +14,6 @@ const Dashboard = () => {
     timestamp: null,
   });
   const [selectedSensor, setSelectedSensor] = useState(1);
-  const [selectedFrequency, setSelectedFrequency] = useState("1h");
   const [timeRange, setTimeRange] = useState("1h");
   const [chartData, setChartData] = useState("");
   const [width, setWidth] = useState(0);
@@ -192,12 +190,12 @@ const Dashboard = () => {
                   : "auto",
             }}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:gap-2 sm:gap-2 gap-4">
               <fieldset className="border border-primary/75 rounded-lg p-2 py-1">
-                <legend className="px-2 text-primary text-sm font-semibold">
+                <legend className="px-2 text-primary lg:text-xs sm:text-xs text-sm font-semibold tracking-wider">
                   A Side
                 </legend>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm lg:text-xs sm:text-xs">
                   <div className="flex items-center gap-1">
                     Active:
                     <span className="text-primary font-medium">
@@ -230,10 +228,10 @@ const Dashboard = () => {
               </fieldset>
 
               <fieldset className="border border-primary rounded-lg p-2 py-1">
-                <legend className="px-2 text-primary text-sm font-semibold">
+                <legend className="px-2 text-primary text-sm lg:text-xs sm:text-xs font-semibold tracking-wider">
                   B Side
                 </legend>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm lg:text-xs sm:text-xs">
                   <div className="flex items-center gap-1">
                     Active:
                     <span className="text-primary font-medium">
@@ -291,7 +289,7 @@ const Dashboard = () => {
             }}
           >
             <fieldset className="border border-primary/75 rounded-lg p-1">
-              <legend className="px-2 text-primary text-sm font-semibold">
+              <legend className="px-2 text-primary text-sm lg:text-xs sm:text-xs font-semibold">
                 A side
               </legend>
 
@@ -430,7 +428,7 @@ const Dashboard = () => {
               </div>
             </fieldset>
             <fieldset className="border border-primary/75 rounded-lg p-1">
-              <legend className="px-2 text-primary text-sm font-semibold">
+              <legend className="px-2 text-primary text-sm lg:text-xs sm:text-xs font-semibold">
                 B side
               </legend>
 
@@ -580,8 +578,8 @@ const Dashboard = () => {
                   : "auto",
             }}
           >
-            <div className="sm:col-span-3 w-full bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
-              <h3 className="text-sm font-semibold text-text mb-2">
+            <div className="sm:col-span-3 w-full bg-secondary rounded-lg p-5 overflow-hidden">
+              <h3 className="text-sm font-medium text-text mb-4">
                 Minimum Value
               </h3>
 
@@ -655,80 +653,82 @@ const Dashboard = () => {
                 minValue={0}
               />
             </div>
-            <div className="relative sm:col-span-5 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="h-full">
-                <h3 className="text-sm font-semibold text-text/70 mb-4">
-                  Signal Strength
-                </h3>
-                <div className="flex flex-col gap-4 justify-center items-center mt-8">
-                  <div className="flex items-end justify-center gap-1">
-                    {[1, 2, 3].map((bar) => (
+            <div className="relative sm:col-span-5 bg-secondary rounded-lg p-5 lg:p-4 overflow-hidden ">
+              <h3 className="text-sm font-medium text-text/80">
+                Signal Strength
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="h-full">
+                  <div className="flex flex-col gap-4 justify-center items-center mt-8">
+                    <div className="flex items-end justify-center gap-1">
+                      {[1, 2, 3].map((bar) => (
+                        <div
+                          key={bar}
+                          className="w-4 transition-all duration-300"
+                          style={{
+                            height: `${bar * 14}px`,
+                            backgroundColor:
+                              voltageData.signalStrength >= 25 * bar
+                                ? "#ffdd00"
+                                : "#3ff45f",
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-4xl font-bold text-center">
+                      {voltageData.signalStrength}%
+                    </span>
+                  </div>
+                </div>
+                {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
+                <div className="relative">
+                  <h4 className="absolute bottom-3/5 right-3/5 -rotate-90 w-full text-xs font-normal tracking-wide">
+                    Signal strength - 12 Hrs
+                  </h4>
+                  <div className="grid grid-cols-4 sm:grid-rows-3 gap-1">
+                    {[
+                      { time: "09:00 AM", strength: 2 },
+                      { time: "10:00 AM", strength: 4 },
+                      { time: "11:00 AM", strength: 2 },
+                      { time: "12:00 PM", strength: 4 },
+                      { time: "01:00 PM", strength: 1 },
+                      { time: "02:00 PM", strength: 2 },
+                      { time: "03:00 PM", strength: 3 },
+                      { time: "04:00 PM", strength: 4 },
+                      { time: "05:00 PM", strength: 4 },
+                      { time: "06:00 PM", strength: 3 },
+                      { time: "07:00 PM", strength: 1 },
+                      { time: "08:00 PM", strength: 2 },
+                    ].map((item, index) => (
                       <div
-                        key={bar}
-                        className="w-4 transition-all duration-300"
-                        style={{
-                          height: `${bar * 14}px`,
-                          backgroundColor:
-                            voltageData.signalStrength >= 25 * bar
-                              ? "#ffdd00"
-                              : "#3ff45f",
-                        }}
-                      />
+                        key={index}
+                        className="bg-background/20 rounded-lg p-2 lg:p-1 lg:py-2 flex flex-col items-center justify-end"
+                      >
+                        <div className="flex items-end mb-2">
+                          {[...Array(item.strength)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-1 mx-[1px]"
+                              style={{
+                                height: `${(i + 1) * 4}px`,
+                                backgroundColor:
+                                  item.strength === 1
+                                    ? "#ff4d4d"
+                                    : item.strength === 2
+                                    ? "#ffa64d"
+                                    : item.strength === 3
+                                    ? "#ffff4d"
+                                    : "#4dff4d",
+                              }}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs lg:text-[7px] text-text/75">
+                          {item.time}
+                        </span>
+                      </div>
                     ))}
                   </div>
-                  <span className="text-4xl font-bold text-center">
-                    {voltageData.signalStrength}%
-                  </span>
-                </div>
-              </div>
-              {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
-              <div className="">
-                <h4 className="text-sm font-medium tracking-wide mb-2">
-                  Signal strength - 12 Hours
-                </h4>
-                <div className="grid grid-cols-3 sm:grid-cols-4 sm:grid-rows-3 gap-1">
-                  {[
-                    { time: "09:00 AM", strength: 2 },
-                    { time: "10:00 AM", strength: 4 },
-                    { time: "11:00 AM", strength: 2 },
-                    { time: "12:00 PM", strength: 4 },
-                    { time: "01:00 PM", strength: 1 },
-                    { time: "02:00 PM", strength: 2 },
-                    { time: "03:00 PM", strength: 3 },
-                    { time: "04:00 PM", strength: 4 },
-                    { time: "05:00 PM", strength: 4 },
-                    { time: "06:00 PM", strength: 3 },
-                    { time: "07:00 PM", strength: 1 },
-                    { time: "08:00 PM", strength: 2 },
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className="bg-background/20 rounded-lg p-2 flex flex-col items-center justify-end"
-                    >
-                      <div className="flex items-end mb-2">
-                        {[...Array(item.strength)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-0.5 mx-[1px]"
-                            style={{
-                              height: `${(i + 1) * 4}px`,
-                              backgroundColor:
-                                item.strength === 1
-                                  ? "#ff4d4d"
-                                  : item.strength === 2
-                                  ? "#ffa64d"
-                                  : item.strength === 3
-                                  ? "#ffff4d"
-                                  : "#4dff4d",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs lg:text-[7px] text-text/70">
-                        {item.time}
-                      </span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
@@ -738,13 +738,13 @@ const Dashboard = () => {
         {/* right column */}
         <div className="flex flex-col gap-4">
           {/* voltage grid */}
-          <div className="bg-secondary/50 rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-secondary/50 rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-2 lg:gap-2">
             <div className="space-y-2">
               <fieldset className="border border-primary/75 rounded-lg p-2">
-                <legend className="px-2 text-primary text-sm font-semibold">
+                <legend className="px-2 text-primary text-sm sm:text-xs lg:text-xs tracking-wider font-semibold">
                   A Side
                 </legend>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 1;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -760,10 +760,10 @@ const Dashboard = () => {
                               : ""
                           }`}
                       >
-                        <div className="text-xs font-semibold opacity-70">
+                        <div className="text-xs font-medium opacity-70">
                           S{sensorId}
                         </div>
-                        <div className="text-lg font-bold">
+                        <div className="text-lg sm:text-sm lg:text-sm font-semibold">
                           {voltage?.toFixed(2) || "--"}
                         </div>
                         <div className="text-xs opacity-70">mV</div>
@@ -775,10 +775,10 @@ const Dashboard = () => {
             </div>
             <div className="space-y-2">
               <fieldset className="border border-primary rounded-lg p-2">
-                <legend className="px-2 text-primary text-sm font-semibold">
+                <legend className="px-2 text-primary text-sm sm:text-xs lg:text-xs tracking-wider font-semibold">
                   B Side
                 </legend>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 21;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -794,10 +794,10 @@ const Dashboard = () => {
                               : ""
                           }`}
                       >
-                        <div className="text-xs font-semibold opacity-70">
+                        <div className="text-xs font-medium opacity-70">
                           S{sensorId}
                         </div>
-                        <div className="text-lg font-bold">
+                        <div className="text-lg sm:text-sm lg:text-sm font-semibold">
                           {voltage?.toFixed(2) || "--"}
                         </div>
                         <div className="text-xs opacity-70">mV</div>

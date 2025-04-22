@@ -22,7 +22,6 @@ import { registerLicense } from "@syncfusion/ej2-base";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  console.log(user, loading);
 
   if (loading) {
     return (

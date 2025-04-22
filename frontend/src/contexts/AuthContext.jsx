@@ -3,6 +3,9 @@ import axios from "axios";
 
 const AuthContext = createContext(null);
 
+export const AuthContextProvider = AuthContext.Provider;
+export const AuthContextConsumer = AuthContext.Consumer;
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -31,7 +34,6 @@ export function AuthProvider({ children }) {
               },
             }
           );
-          console.log(response);
           setUser(response.data.user);
         } catch (error) {
           try {
@@ -204,3 +206,5 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
+export default AuthContext;

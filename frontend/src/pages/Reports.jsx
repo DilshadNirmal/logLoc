@@ -9,14 +9,14 @@ import CountWiseForm from "../components/form/countWiseForm";
 
 const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
   <button
-    className={`flex items-center justify-center gap-3 p-4 rounded-lg transition-all ${
+    className={`flex items-center justify-center gap-3 p-4 sm:p-3 lg:p-3 rounded-lg transition-all ${
       isSelected
         ? "bg-primary text-white"
         : "bg-secondary text-text hover:bg-secondary/70"
     }`}
     onClick={onClick}
   >
-    <Icon className="w-8 h-8" />
+    <Icon className="w-8 h-8 lg:w-7 lg:h-7" />
     <span className="text-lg font-medium tracking-wide">{label}</span>
   </button>
 );
@@ -42,7 +42,7 @@ const Reports = () => {
       const header = document.querySelector("header");
       if (header) setNavHeight(header.offsetHeight);
       if (window.innerWidth >= 1024) {
-        setContentHeight(window.innerHeight - 100 - 20);
+        setContentHeight(window.innerHeight - 100);
       }
     };
 
@@ -122,7 +122,7 @@ const Reports = () => {
             ))}
           </div>
           <div
-            className="bg-primary/25 rounded-lg p-8 sm:m-8 my-4 mx-2"
+            className="bg-primary/25 rounded-lg p-4 xl:p-8 lg:p-4 sm:m-8 my-4 mx-2"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}

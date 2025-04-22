@@ -58,7 +58,6 @@ const EmailConfig = () => {
     try {
       const response = await axiosInstance.get("/alert-config");
       const configs = response.data;
-      console.log(configs);
 
       // transforming data to match our state structure
       const thresholdData = {};

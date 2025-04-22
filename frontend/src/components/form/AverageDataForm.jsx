@@ -13,11 +13,14 @@ const AverageDataForm = ({
 }) => (
   <div className="grid sm:grid-cols-2 gap-8 h-full">
     <div className="sm:flex items-center justify-start hidden">
-      <img src={ReportAmico} alt="" className="w-8/12 ml-4" />
+      <img src={ReportAmico} alt="" className="w-8/12  ml-4" />
     </div>
-    <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 sm:pr-16 sm:pt-16">
-      <div className="space-y-10 w-full sm:w-10/12">
-        <h2 className="text-2xl text-center font-bold text-text">
+    <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 xl:pr-16 xl:pt-16 lg:pr-8 lg:pt-8">
+      <div
+        className="space-y-6 lg:space-y-6 xl:space-y-10
+      w-full sm:w-10/12"
+      >
+        <h2 className="text-2xl lg:text-xl text-center font-semibold tracking-wider text-text">
           Select Data Range
         </h2>
 
@@ -31,7 +34,7 @@ const AverageDataForm = ({
           </select>
         </FormInput>
 
-        <div className="space-y-8">
+        <div className="xl:space-y-8 lg:space-y-6 space-y-5">
           <FormInput label="From">
             <input
               type="date"

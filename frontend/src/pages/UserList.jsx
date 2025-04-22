@@ -45,7 +45,6 @@ const UserList = () => {
     try {
       const response = await axiosInstance.get("/users");
       setUsers(response.data);
-      console.log(response.data);
     } catch (error) {
       if (error.response?.status === 403) {
         setError("You don't have permission to view user list");
@@ -121,7 +120,6 @@ const UserList = () => {
         phoneNumber: "",
         Password: "",
       });
-      console.log(addForm);
     } catch (error) {
       setError(error.response?.data?.message || "Error adding user");
     }

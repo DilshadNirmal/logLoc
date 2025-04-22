@@ -11,7 +11,6 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const [selection, setSelection] = useState(null);
-  // console.log(data);
 
   useImperativeHandle(ref, () => ({
     resetZoom: () => setSelection(null),
