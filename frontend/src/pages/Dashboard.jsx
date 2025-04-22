@@ -125,7 +125,7 @@ const Dashboard = () => {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [height, width]);
+  }, []);
 
   useEffect(() => {
     const updateNavHeight = () => {
