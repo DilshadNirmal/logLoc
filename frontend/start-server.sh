@@ -1,0 +1,1 @@
+server -s dist -l 0.0.0.0 -p 5173
