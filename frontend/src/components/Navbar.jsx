@@ -45,7 +45,7 @@ const Navbar = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [isDropdownOpen]);
 
   const handleDropdownItemClick = () => {
     setIsDropdownOpen(false);
@@ -84,7 +84,7 @@ const Navbar = () => {
                 {/* dropdown menu */}
                 <div
                   ref={dropdownRef}
-                  className={`z-50 absolute right-0 translate-x-1 mt-2 w-48 bg-text/95 rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
+                  className={`z-50 absolute right-0 translate-x-1 mt-2 w-48 bg-text rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
                     isDropdownOpen
                       ? "opacity-100 visible pointer-events-auto"
                       : "opacity-0 invisible pointer-events-none"
@@ -95,7 +95,7 @@ const Navbar = () => {
                     <span className="block text-sm text-primary ">
                       {user.UserName}
                     </span>
-                    <span class="block text-sm text-secondary truncate">
+                    <span class="block text-sm text-secondary/90 truncate">
                       {user.Email}
                     </span>
                   </div>

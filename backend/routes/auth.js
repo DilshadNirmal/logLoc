@@ -5,14 +5,15 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User.js");
 const auth = require("../middleware/auth.js");
 const axios = require("../utils/axiosConfig.js");
-const { locationFind } = require("../services/locationService.js");
+const {
+  locationFind,
+  reverseGeocode,
+} = require("../services/locationService.js");
 const {
   storeRefreshToken,
   storeAccessToken,
   clearPreviousUserSessions,
 } = require("../utils/redis.js");
-const twilioClient = require("../config/twilio.js");
-const { reverseGeocode } = require("../services/locationService.js");
 
 const router = express.Router();
 

@@ -11,12 +11,12 @@ const AlertConfigSchema = new mongoose.Schema({
   high: {
     type: Number,
     required: true,
-    default: 450,
+    default: 10,
   },
   low: {
     type: Number,
     required: true,
-    default: 100,
+    default: 0,
   },
   alertDelay: {
     type: Number,

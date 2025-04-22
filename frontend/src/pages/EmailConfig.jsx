@@ -55,6 +55,7 @@ const EmailConfig = () => {
     try {
       const response = await axiosInstance.get("/alert-config");
       const configs = response.data;
+      console.log(configs);
 
       // transforming data to match our state structure
       const thresholdData = {};
@@ -123,6 +124,14 @@ const EmailConfig = () => {
     fetchVoltageHistroy();
     fetchGlobalEmailConfig();
 
+    const sensorId =
+      selectedSensor.group === "A"
+        ? selectedSensor.number
+        : selectedSensor.number + 20;
+    if (thresholds[sensorId]) {
+      setGaugeValue(currentValue || thresholds[sensorId].high);
+    }
+
     const interval = setInterval(fetchVoltageHistroy, 5000);
     return () => clearInterval(interval);
   }, [selectedSensor]);
@@ -142,7 +151,7 @@ const EmailConfig = () => {
     }));
 
     if (type === "high") {
-      setGaugeValue(newValue);
+      setGaugeValue(parseFloat(parseFloat(value).toFixed(2)));
     }
   };
 
@@ -226,6 +235,19 @@ const EmailConfig = () => {
   //     },
   //   ],
   // };
+
+  useEffect(() => {
+    if (voltageHistory?.Voltages) {
+      const sensorId =
+        selectedSensor.group === "A"
+          ? selectedSensor.number
+          : selectedSensor.number + 20;
+      const voltageKey = `v${sensorId}`;
+      if (voltageHistory.Voltages[voltageKey] !== undefined) {
+        setGaugeValue(voltageHistory.Voltages[voltageKey]);
+      }
+    }
+  }, [voltageHistory, selectedSensor]);
 
   return (
     <div className="min-h-screen bg-background pt-28">
@@ -329,26 +351,47 @@ const EmailConfig = () => {
                         gradient: false,
                         subArcs: [
                           {
-                            length: (gaugeValue / 10) * 100,
-                            color: "#409fff",
+                            limit:
+                              thresholds[
+                                selectedSensor.group === "A"
+                                  ? selectedSensor.number
+                                  : selectedSensor.number + 20
+                              ]?.low ?? 3,
+                            color: "#133044",
+                            showTick: true,
                           },
                           {
-                            length: 100 - (gaugeValue / 10) * 100,
+                            limit:
+                              thresholds[
+                                selectedSensor.group === "A"
+                                  ? selectedSensor.number
+                                  : selectedSensor.number + 20
+                              ]?.high ?? 7,
+                            color: "#409fff",
+                            showTick: true,
+                          },
+                          {
+                            limit: 10,
                             color: "#5c5c5c99",
+                            showTick: true,
                           },
                         ],
                       }}
                       pointer={{
                         type: "arrow",
                         color: "#409fff",
-                        length: 0.8,
-                        width: 15,
+                        length: 0.6,
+                        width: 10,
                         elastic: true,
                       }}
                       labels={{
                         valueLabel: {
                           formatTextValue: (value) => value.toFixed(2) + " mV",
-                          style: { fontSize: 25, fill: "#e9ebed" },
+                          style: {
+                            fontSize: 5,
+                            fill: "#e9ebed",
+                            display: "none",
+                          },
                         },
                         tickLabels: {
                           type: "outer",
@@ -369,7 +412,7 @@ const EmailConfig = () => {
                       maxValue={10}
                       minValue={0}
                     />
-                    {/* <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[-25%] text-center">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[-25%] text-center mt-2">
                       <div className="text-lg font-medium text-text/70">
                         Threshold
                       </div>
@@ -387,7 +430,7 @@ const EmailConfig = () => {
                         ]?.high || 7}
                         &nbsp;mV
                       </div>
-                    </div> */}
+                    </div>
                   </div>
                 </div>
               </div>

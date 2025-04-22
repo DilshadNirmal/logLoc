@@ -150,13 +150,13 @@ const Dashboard = () => {
     >
       {/* content grid */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-4 mx-3 mt-5"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-3 mt-5"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
         {/* left column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {/* status bar */}
           <div
             className="bg-secondary text-text rounded-lg p-2"
@@ -247,13 +247,349 @@ const Dashboard = () => {
 
           {/* split column 1 */}
           <div
-            className="grid grid-cols-1 md:grid-cols-8 gap-4 text-text"
+            className=" bg-secondary rounded-lg p-4 text-text grid grid-cols-2 gap-2 overflow-hidden"
             style={{ height: `${contentHeight * 0.3 - 16 * 2}px` }}
           >
-            <div className="sm:col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
+            <fieldset className="border border-primary/75 rounded-lg p-2 h-full">
+              <legend className="px-2 text-primary text-sm font-semibold">
+                A side
+              </legend>
+
+              <div className="flex gap-2 h-full">
+                <div className="w-1/2 h-full">
+                  <h3 className="text-xs font-semibold tracking-wider text-text/75 mb-2">
+                    Maximum Value
+                  </h3>
+                  <div className="h-[calc(80%-1.5rem)]">
+                    <GaugeComponent
+                      value={Math.max(
+                        ...Object.entries(voltageData.voltages)
+                          .filter(([key]) => parseInt(key.slice(1)) <= 20)
+                          .map(([_, value]) => value || 0)
+                      )}
+                      type="semicircle"
+                      arc={{
+                        width: 0.2,
+                        padding: 0.005,
+                        cornerRadius: 1,
+                        gradient: false,
+                        subArcs: [
+                          {
+                            length:
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                              100,
+                            color: "#409fff",
+                          },
+                          {
+                            length:
+                              100 -
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                                100,
+                            color: "#5c5c5c99",
+                          },
+                        ],
+                      }}
+                      pointer={{
+                        type: "arrow",
+                        color: "#409fff",
+                        length: 0.5,
+                        width: 8,
+                        elastic: true,
+                      }}
+                      labels={{
+                        valueLabel: {
+                          formatTextValue: (value) => value.toFixed(2) + " mV",
+                          style: { fontSize: 14, fill: "#e9ebed" },
+                        },
+                        tickLabels: {
+                          type: "outer",
+                          ticks: [
+                            { value: 0 },
+                            { value: 2 },
+                            { value: 4 },
+                            { value: 6 },
+                            { value: 8 },
+                            { value: 10 },
+                          ],
+                          defaultTickValueConfig: {
+                            formatTextValue: (value) => value,
+                            style: { fill: "#e9ebed", fontSize: 8 },
+                          },
+                        },
+                      }}
+                      maxValue={10}
+                      minValue={0}
+                    />
+                  </div>
+                </div>
+                <div className="w-1/2 h-full">
+                  <h3 className="text-xs font-semibold tracking-wider text-text/75 mb-2">
+                    Minimum Value
+                  </h3>
+                  <div className="h-[calc(80%-1.5rem)]">
+                    <GaugeComponent
+                      value={Math.min(
+                        ...Object.entries(voltageData.voltages)
+                          .filter(([key]) => parseInt(key.slice(1)) <= 20)
+                          .map(([_, value]) => value || 0)
+                      )}
+                      type="semicircle"
+                      arc={{
+                        width: 0.2,
+                        padding: 0.005,
+                        cornerRadius: 1,
+                        gradient: false,
+                        subArcs: [
+                          {
+                            length:
+                              (Math.min(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                              100,
+                            color: "#409fff",
+                          },
+                          {
+                            length:
+                              100 -
+                              (Math.min(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                                100,
+                            color: "#5c5c5c99",
+                          },
+                        ],
+                      }}
+                      pointer={{
+                        type: "arrow",
+                        color: "#409fff",
+                        length: 0.5,
+                        width: 8,
+                        elastic: true,
+                      }}
+                      labels={{
+                        valueLabel: {
+                          formatTextValue: (value) => value + " mV",
+                          style: { fontSize: 14, fill: "#e9ebed" },
+                        },
+                        tickLabels: {
+                          type: "outer",
+                          ticks: [
+                            { value: 0 },
+                            { value: 2 },
+                            { value: 4 },
+                            { value: 6 },
+                            { value: 8 },
+                            { value: 10 },
+                          ],
+                          defaultTickValueConfig: {
+                            formatTextValue: (value) => value,
+                            style: { fill: "#e9ebed", fontSize: 8 },
+                          },
+                        },
+                      }}
+                      maxValue={10}
+                      minValue={0}
+                    />
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset className="border border-primary/75 rounded-lg p-2 h-full">
+              <legend className="px-2 text-primary text-sm font-semibold">
+                B side
+              </legend>
+
+              <div className="flex gap-2 h-full">
+                <div className="w-1/2 h-full">
+                  <h3 className="text-xs font-semibold tracking-wider text-text/75 mb-2">
+                    Maximum Value
+                  </h3>
+                  <div className="h-[calc(80%-1.5rem)]">
+                    <GaugeComponent
+                      value={Math.max(
+                        ...Object.entries(voltageData.voltages)
+                          .filter(([key]) => parseInt(key.slice(1)) <= 20)
+                          .map(([_, value]) => value || 0)
+                      )}
+                      type="semicircle"
+                      arc={{
+                        width: 0.2,
+                        padding: 0.005,
+                        cornerRadius: 1,
+                        gradient: false,
+                        subArcs: [
+                          {
+                            length:
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                              100,
+                            color: "#409fff",
+                          },
+                          {
+                            length:
+                              100 -
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                                100,
+                            color: "#5c5c5c99",
+                          },
+                        ],
+                      }}
+                      pointer={{
+                        type: "arrow",
+                        color: "#409fff",
+                        length: 0.5,
+                        width: 8,
+                        elastic: true,
+                      }}
+                      labels={{
+                        valueLabel: {
+                          formatTextValue: (value) => value.toFixed(2) + " mV",
+                          style: { fontSize: 14, fill: "#e9ebed" },
+                        },
+                        tickLabels: {
+                          type: "outer",
+                          ticks: [
+                            { value: 0 },
+                            { value: 2 },
+                            { value: 4 },
+                            { value: 6 },
+                            { value: 8 },
+                            { value: 10 },
+                          ],
+                          defaultTickValueConfig: {
+                            formatTextValue: (value) => value,
+                            style: { fill: "#e9ebed", fontSize: 8 },
+                          },
+                        },
+                      }}
+                      maxValue={10}
+                      minValue={0}
+                    />
+                  </div>
+                </div>
+                <div className="w-1/2 h-full">
+                  <h3 className="text-xs font-semibold tracking-wider text-text/75 mb-2">
+                    Minimum Value
+                  </h3>
+                  <div className="h-[calc(80%-1.5rem)]">
+                    <GaugeComponent
+                      value={Math.max(
+                        ...Object.entries(voltageData.voltages)
+                          .filter(([key]) => parseInt(key.slice(1)) <= 20)
+                          .map(([_, value]) => value || 0)
+                      )}
+                      type="semicircle"
+                      arc={{
+                        width: 0.2,
+                        padding: 0.005,
+                        cornerRadius: 1,
+                        gradient: false,
+                        subArcs: [
+                          {
+                            length:
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                              100,
+                            color: "#409fff",
+                          },
+                          {
+                            length:
+                              100 -
+                              (Math.max(
+                                ...Object.entries(voltageData.voltages)
+                                  .filter(
+                                    ([key]) => parseInt(key.slice(1)) <= 20
+                                  )
+                                  .map(([_, value]) => value || 0)
+                              ) /
+                                10) *
+                                100,
+                            color: "#5c5c5c99",
+                          },
+                        ],
+                      }}
+                      pointer={{
+                        type: "arrow",
+                        color: "#409fff",
+                        length: 0.5,
+                        width: 8,
+                        elastic: true,
+                      }}
+                      labels={{
+                        valueLabel: {
+                          formatTextValue: (value) => value.toFixed(2) + " mV",
+                          style: { fontSize: 14, fill: "#e9ebed" },
+                        },
+                        tickLabels: {
+                          type: "outer",
+                          ticks: [
+                            { value: 0 },
+                            { value: 2 },
+                            { value: 4 },
+                            { value: 6 },
+                            { value: 8 },
+                            { value: 10 },
+                          ],
+                          defaultTickValueConfig: {
+                            formatTextValue: (value) => value,
+                            style: { fill: "#e9ebed", fontSize: 8 },
+                          },
+                        },
+                      }}
+                      maxValue={10}
+                      minValue={0}
+                    />
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+            {/* <div className="sm:col-span-3 bg-secondary backdrop-blur-sm rounded-lg p-6 overflow-hidden">
               <h3 className="text-sm font-semibold mb-1">Maximum Value</h3>
 
-              {/* react gauge component here */}
+               react gauge component here 
               <GaugeComponent
                 value={Math.max(
                   ...Object.values(voltageData.voltages).filter(
@@ -327,8 +663,8 @@ const Dashboard = () => {
                 minValue={0}
               />
             </div>
-            <div className="relative sm:col-span-5 bg-secondary rounded-lg p-6 overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-2">
+            <div className="relative sm:col-span-5 bg-secondary rounded-lg p-5 overflow-hidden">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 h-full">
                 <div className="h-full m-4 sm:m-0">
                   <h4 className="text-sm font-semibold tracking-wider text-text mb-4">
                     Predict Value
@@ -368,58 +704,61 @@ const Dashboard = () => {
                     )}
                   </div>
                 </div>
-                {/* <hr className="absolute h-[85%] sm:h-[80%] w-px bg-text/70 top-[20%] left-1/2 transform -translate-x-1/2 rotate-90 sm:rotate-0" /> */}
-                <div className="h-full flex items-center justify-center">
-                  <GaugeComponent
-                    value={8}
-                    type="semicircle"
-                    arc={{
-                      width: 0.3,
-                      padding: 0.005,
-                      cornerRadius: 1,
-                      gradient: false,
-                      subArcs: [
-                        {
-                          length: (8 / 10) * 100,
-                          color: "#409fff",
-                        },
-                        {
-                          length: 100 - (8 / 10) * 100,
-                          color: "#5c5c5c99",
-                        },
+                 <hr className="absolute h-[85%] sm:h-[80%] w-px bg-text/70 top-[20%] left-1/2 transform -translate-x-1/2 rotate-90 sm:rotate-0" /> 
+
+                <GaugeComponent
+                  value={8}
+                  type="semicircle"
+                  arc={{
+                    width: 0.3,
+                    padding: 0.005,
+                    cornerRadius: 1,
+                    gradient: false,
+                    subArcs: [
+                      {
+                        length: (8 / 10) * 100,
+                        color: "#409fff",
+                      },
+                      {
+                        length: 100 - (8 / 10) * 100,
+                        color: "#5c5c5c99",
+                      },
+                    ],
+                  }}
+                  pointer={{
+                    type: "arrow",
+                    color: "#409fff",
+                    length: 0.8,
+                    width: 15,
+                    elastic: true,
+                  }}
+                  labels={{
+                    valueLabel: {
+                      formatTextValue: (value) => value + "mV",
+                      style: { fontSize: 25, fill: "#e9ebed" },
+                    },
+                    tickLabels: {
+                      type: "outer",
+                      ticks: [
+                        { value: 0 },
+                        { value: 2 },
+                        { value: 4 },
+                        { value: 6 },
+                        { value: 8 },
+                        { value: 10 },
                       ],
-                    }}
-                    pointer={{
-                      type: "arrow",
-                      color: "#409fff",
-                      length: 0.8,
-                      width: 15,
-                      elastic: true,
-                    }}
-                    labels={{
-                      valueLabel: {
-                        formatTextValue: (value) => value + "mV",
-                        style: { fontSize: 25, fill: "#e9ebed" },
-                      },
-                      tickLabels: {
-                        type: "outer",
-                        ticks: [
-                          { value: 0 },
-                          { value: 2 },
-                          { value: 4 },
-                          { value: 6 },
-                          { value: 8 },
-                          { value: 10 },
-                        ],
-                      },
-                    }}
-                    maxValue={10}
-                    minValue={0}
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </div>
+                    },
+                  }}
+                  maxValue={10}
+                  minValue={0}
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    placeItems: "center",
+                  }}
+                />
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* split column 2 */}
@@ -672,7 +1011,11 @@ const Dashboard = () => {
                   className="bg-background/20 rounded-lg px-3 py-1 text-sm text-text"
                 >
                   {Array.from({ length: 40 }, (_, i) => i + 1).map((num) => (
-                    <option key={num} value={num}>
+                    <option
+                      key={num}
+                      value={num}
+                      className="text-text/75 bg-background"
+                    >
                       Sensor {num}
                     </option>
                   ))}
@@ -696,17 +1039,19 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div ref={chartContainerRef} className="h-[calc(100%-60px)] w-full">
-              {chartData ? (
-                <Chart
-                  ref={chartRef}
-                  data={chartData}
-                  width={width || 800}
-                  height={height || 250}
-                />
+            <div ref={chartContainerRef} className="h-[calc(80%-60px)] w-full">
+              {chartData > 0 ? (
+                <>
+                  <Chart
+                    ref={chartRef}
+                    data={chartData}
+                    width={width || 800}
+                    height={height || 250}
+                  />
+                </>
               ) : (
-                <div className="h-full flex items-center justify-center text-text/50">
-                  Loading voltage chart...
+                <div className="h-full flex items-center justify-center text-text">
+                  no voltage data to display chart...
                 </div>
               )}
             </div>

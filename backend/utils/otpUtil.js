@@ -24,15 +24,15 @@ const verifyOTP = (phoneNumber, userOTP) => {
     return false;
   }
 
-  // if (otpData.attemps >= 3) {
-  //     otpStore.delete(phoneNumber)
-  //     return false
-  // }
-  // if (otpData.otp !== userOTP) {
-  //     otpData.attemps += 1
-  //     return false
-  // }
-  // otpStore.delete(phoneNumber)
+  if (otpData.attemps >= 3) {
+    otpStore.delete(phoneNumber);
+    return false;
+  }
+  if (otpData.otp !== userOTP) {
+    otpData.attemps += 1;
+    return false;
+  }
+  otpStore.delete(phoneNumber);
 
   return otpData.otp === userOTP;
 };

@@ -61,9 +61,9 @@ const VerifyOtp = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <h2 className="text-3xl font-bold text-center text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="max-w-md w-full space-y-8 p-8 bg-secondary rounded-lg shadow-md">
+        <h2 className="text-3xl font-bold text-center text-text">
           Phone Verification
         </h2>
         {error && <p className="text-red-500 text-center">{error}</p>}
@@ -71,7 +71,7 @@ const VerifyOtp = () => {
 
         <div className="mt-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-text">
               Phone Number
             </label>
             <div className="mt-1 flex rounded-md shadow-sm">
@@ -81,13 +81,13 @@ const VerifyOtp = () => {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1234567890"
                 disabled={!isEditing}
-                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-100"
+                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-text/20 bg-secondary focus:outline-none focus:ring-primary focus:border-primary sm:text-sm disabled:bg-secondary/50 text-text placeholder-text/50"
               />
               {!isEditing ? (
                 <button
                   type="button"
                   onClick={handleEditClick}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-r-md text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center px-4 py-2 border border-text/20 text-sm font-medium rounded-r-md text-text bg-secondary hover:bg-secondary/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   Edit
                 </button>
@@ -95,7 +95,7 @@ const VerifyOtp = () => {
                 <button
                   onClick={handleSendOTP}
                   disabled={isOtpSent}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md text-text bg-primary hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                 >
                   Send OTP
                 </button>
@@ -106,7 +106,7 @@ const VerifyOtp = () => {
           {isOtpSent && (
             <form onSubmit={handleVerifyOTP}>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-text">
                   Enter OTP
                 </label>
                 <input
@@ -114,12 +114,12 @@ const VerifyOtp = () => {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   placeholder="Enter 6-digit OTP"
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-text/20 rounded-md shadow-sm bg-secondary focus:outline-none focus:ring-primary focus:border-primary sm:text-sm text-text placeholder-text/50"
                 />
               </div>
               <button
                 type="submit"
-                className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-text bg-primary hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
                 Verify OTP
               </button>

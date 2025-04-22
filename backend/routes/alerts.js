@@ -10,6 +10,7 @@ const router = express.Router();
 router.post("/alert-config", auth, async (req, res) => {
   try {
     const { sensorId, high, low, emails, alertDelay } = req.body;
+    console.log(sensorId);
 
     const config = await AlertConfig.findOneAndUpdate(
       { sensorId },
@@ -40,8 +41,9 @@ router.post("/alert-config", auth, async (req, res) => {
 
 router.get("/alert-config", auth, async (req, res) => {
   try {
-    const configs = await VoltageThreshold.find({});
+    const configs = await AlertConfig.find({});
     const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
+    console.log(configs);
 
     const response = configs.map((config) => ({
       ...config.toObject(),
@@ -102,7 +104,7 @@ router.post("/thresholds", auth, async (req, res) => {
   try {
     const { sensorId, high, low } = req.body;
 
-    const threshold = await VoltageThreshold.findOneAndUpdate(
+    const threshold = await AlertConfig.findOneAndUpdate(
       { sensorId },
       { high, low },
       { upsert: true, new: true }
@@ -124,7 +126,7 @@ router.post("/thresholds", auth, async (req, res) => {
 
 router.get("/thresholds", auth, async (req, res) => {
   try {
-    const thresholds = await VoltageThreshold.find();
+    const thresholds = await AlertConfig.find();
     const thresholdMap = thresholds.reduce((acc, threshold) => {
       acc[threshold.sensorId] = {
         high: threshold.high,
