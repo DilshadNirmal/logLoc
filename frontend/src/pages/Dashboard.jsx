@@ -94,7 +94,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchVoltages();
-    const interval = setInterval(fetchVoltages, 5000);
+    const interval = setInterval(fetchVoltages, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -150,7 +150,7 @@ const Dashboard = () => {
     >
       {/* content grid */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-3 mt-5"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-3 mt-4 sm:mt-5"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
@@ -247,7 +247,7 @@ const Dashboard = () => {
 
           {/* split column 1 */}
           <div
-            className=" bg-secondary rounded-lg p-4 text-text grid grid-cols-2 gap-2 overflow-hidden"
+            className=" bg-secondary rounded-lg p-4 text-text grid sm:grid-cols-2 gap-2 overflow-hidden"
             style={{ height: `${contentHeight * 0.31 - 16 * 2}px` }}
           >
             <fieldset className="border border-primary/75 rounded-lg p-1">
@@ -256,7 +256,7 @@ const Dashboard = () => {
               </legend>
 
               {/* chart for max and min */}
-              <div className="flex items-center justify-center w-full h-full gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center w-full h-full gap-2">
                 <div className="w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
@@ -395,7 +395,7 @@ const Dashboard = () => {
               </legend>
 
               {/* chart for max and min */}
-              <div className="flex items-center justify-center w-full h-full gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center w-full h-full gap-2">
                 <div className="w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
@@ -706,7 +706,7 @@ const Dashboard = () => {
                 <legend className="px-2 text-primary text-sm font-semibold">
                   A Side
                 </legend>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 1;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -715,7 +715,7 @@ const Dashboard = () => {
                         key={sensorId}
                         onClick={() => setSelectedSensor(sensorId)}
                         className={`${getVoltageClass(voltage)}
-                          p-3 rounded-lg transition-all hover:scale-105
+                          p-2 sm:p-3 rounded-lg transition-all hover:scale-105
                           ${
                             selectedSensor === sensorId
                               ? "ring-2 ring-primary"
@@ -740,7 +740,7 @@ const Dashboard = () => {
                 <legend className="px-2 text-primary text-sm font-semibold">
                   B Side
                 </legend>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 21;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -749,7 +749,7 @@ const Dashboard = () => {
                         key={sensorId}
                         onClick={() => setSelectedSensor(sensorId)}
                         className={`${getVoltageClass(voltage)}
-                          p-3 rounded-lg transition-all hover:scale-105
+                          p-2 sm:p-3 rounded-lg transition-all hover:scale-105
                           ${
                             selectedSensor === sensorId
                               ? "ring-2 ring-primary"
@@ -773,9 +773,9 @@ const Dashboard = () => {
 
           {/* chart area */}
           <div className="bg-secondary rounded-lg p-4 h-full">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+            <div className="flex  sm:flex-row justify-between items-center gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-text">Sensor:</span>
+                {/* <span className="text-sm text-text">Sensor:</span> */}
                 <select
                   value={selectedSensor}
                   onChange={(e) => setSelectedSensor(parseInt(e.target.value))}
@@ -810,8 +810,11 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div ref={chartContainerRef} className="h-[calc(80%-60px)] w-full">
-              {chartData > 0 ? (
+            <div
+              ref={chartContainerRef}
+              className="sm:h-[calc(80%-60px)] w-full"
+            >
+              {chartData.length > 0 ? (
                 <>
                   <Chart
                     ref={chartRef}

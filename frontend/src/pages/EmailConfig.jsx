@@ -36,8 +36,11 @@ const EmailConfig = () => {
   });
   const [thresholds, setThresholds] = useState({});
   const [alertDelay, setAlertDelay] = useState("5");
-  const [currentValue, setCurrentValue] = useState(0);
   const [voltageHistory, setVoltageHistory] = useState([]);
+  const [voltageData, setVoltageData] = useState({
+    voltages: {},
+    timestamp: null,
+  });
   const [gaugeValue, setGaugeValue] = useState(5);
 
   const handleAddEmail = () => {
@@ -249,11 +252,45 @@ const EmailConfig = () => {
     }
   }, [voltageHistory, selectedSensor]);
 
+  const fetchVoltages = async () => {
+    try {
+      const response = await axiosInstance("/voltage-history");
+      if (response.data && response.data.length > 0) {
+        const group1Data = response.data.find((d) => d.sensorGroup === "1-20");
+        const group2Data = response.data.find((d) => d.sensorGroup === "21-40");
+
+        const latestVoltages = {
+          ...(group1Data?.voltages || {}),
+          ...(group2Data?.voltages || {}),
+        };
+
+        setVoltageData({
+          voltages: latestVoltages,
+          timestamp: new Date(
+            Math.max(
+              new Date(group1Data?.timestamp || 0),
+              new Date(group2Data?.timestamp || 0)
+            )
+          ),
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching voltages:", error);
+    }
+  };
+
+  // Add this useEffect to fetch voltage data periodically
+  useEffect(() => {
+    fetchVoltages();
+    const interval = setInterval(fetchVoltages, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background pt-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-secondary/10 rounded-lg p-6">
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid sm:grid-cols-2 gap-8">
             {/* Sensor Configuration Column */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-text">
@@ -337,7 +374,15 @@ const EmailConfig = () => {
                 <div className="bg-secondary/50 p-4 rounded-lg mt-6">
                   <div className="text-center mb-4">
                     <span className="text-2xl font-semibold tracking-wider text-text">
-                      Current: {currentValue}mV
+                      Current:{" "}
+                      {voltageData.voltages[
+                        `v${
+                          selectedSensor.group === "A"
+                            ? selectedSensor.number
+                            : selectedSensor.number + 20
+                        }`
+                      ]?.toFixed(2) || "0.00"}
+                      mV
                     </span>
                   </div>
                   <div className="h-64 relative">
