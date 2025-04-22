@@ -105,8 +105,8 @@ const Dashboard = () => {
   useEffect(() => {
     const updateDimensions = () => {
       if (chartContainerRef.current) {
-        setWidth(chartContainerRef.current.offsetWidth);
-        setHeight(chartContainerRef.current.offsetHeight);
+        setWidth(chartContainerRef.current.clientWidth);
+        setHeight(chartContainerRef.current.clientHeight);
       }
     };
 
@@ -145,7 +145,7 @@ const Dashboard = () => {
 
   return (
     <section
-      className="bg-background min-h-screen w-full overflow-x-hidden pb-4 sm:pb-0"
+      className="bg-background min-h-[100dvh] w-full overflow-x-hidden pb-4 sm:pb-0"
       style={{ marginTop: `${navHeight}px` }}
     >
       {/* content grid */}
@@ -160,7 +160,12 @@ const Dashboard = () => {
           {/* status bar */}
           <div
             className="bg-secondary text-text rounded-lg p-2"
-            style={{ height: `${contentHeight * 0.15 - 16 * 4}px` }}
+            style={{
+              height:
+                window.innerWidth > 1024
+                  ? `${contentHeight * 0.15 - 16 * 4}px`
+                  : "auto",
+            }}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <fieldset className="border border-primary/75 rounded-lg p-2 py-1">
@@ -248,7 +253,12 @@ const Dashboard = () => {
           {/* split column 1 */}
           <div
             className=" bg-secondary rounded-lg p-4 text-text grid sm:grid-cols-2 gap-2 overflow-hidden"
-            style={{ height: `${contentHeight * 0.31 - 16 * 2}px` }}
+            style={{
+              height:
+                window.innerWidth > 1024
+                  ? `${contentHeight * 0.31 - 16 * 2}px`
+                  : "auto",
+            }}
           >
             <fieldset className="border border-primary/75 rounded-lg p-1">
               <legend className="px-2 text-primary text-sm font-semibold">
@@ -256,8 +266,8 @@ const Dashboard = () => {
               </legend>
 
               {/* chart for max and min */}
-              <div className="flex flex-col sm:flex-row items-center justify-center w-full h-full gap-2">
-                <div className="w-[48%] h-[100%]">
+              <div className="flex sm:flex-row flex-col items-center justify-center w-full h-full gap-2">
+                <div className="sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
                   </h3>
@@ -315,14 +325,14 @@ const Dashboard = () => {
                         ],
                         defaultTickValueConfig: {
                           formatTextValue: (value) => value,
-                          style: { fill: "#e9ebed", fontSize: 8 },
+                          style: { fill: "#e9ebed", fontSize: 7 },
                         },
                       },
                     }}
                     maxValue={10}
                   />
                 </div>
-                <div className="w-[48%] h-[100%]">
+                <div className="sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Minimum Value
                   </h3>
@@ -380,7 +390,7 @@ const Dashboard = () => {
                         ],
                         defaultTickValueConfig: {
                           formatTextValue: (value) => value,
-                          style: { fill: "#e9ebed", fontSize: 8 },
+                          style: { fill: "#e9ebed", fontSize: 7 },
                         },
                       },
                     }}
@@ -395,8 +405,8 @@ const Dashboard = () => {
               </legend>
 
               {/* chart for max and min */}
-              <div className="flex flex-col sm:flex-row items-center justify-center w-full h-full gap-2">
-                <div className="w-[48%] h-[100%]">
+              <div className="flex sm:flex-row flex-col items-center justify-center w-full h-full gap-2">
+                <div className="sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Maximum Value
                   </h3>
@@ -454,14 +464,14 @@ const Dashboard = () => {
                         ],
                         defaultTickValueConfig: {
                           formatTextValue: (value) => value,
-                          style: { fill: "#e9ebed", fontSize: 8 },
+                          style: { fill: "#e9ebed", fontSize: 7 },
                         },
                       },
                     }}
                     maxValue={10}
                   />
                 </div>
-                <div className="w-[48%] h-[100%]">
+                <div className="sm:w-[48%] h-[100%]">
                   <h3 className="text-xs font-semibold tracking-wider text-text/75 text-center mb-2">
                     Minimum Value
                   </h3>
@@ -519,7 +529,7 @@ const Dashboard = () => {
                         ],
                         defaultTickValueConfig: {
                           formatTextValue: (value) => value,
-                          style: { fill: "#e9ebed", fontSize: 8 },
+                          style: { fill: "#e9ebed", fontSize: 7 },
                         },
                       },
                     }}
@@ -647,7 +657,7 @@ const Dashboard = () => {
                   <h4 className="text-sm font-medium tracking-wide mb-2">
                     Signal strength - 12 Hours
                   </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 sm:grid-rows-3 gap-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 sm:grid-rows-3 gap-1">
                     {[
                       { time: "09:00 AM", strength: 2 },
                       { time: "10:00 AM", strength: 4 },
@@ -706,7 +716,7 @@ const Dashboard = () => {
                 <legend className="px-2 text-primary text-sm font-semibold">
                   A Side
                 </legend>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 1;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -740,7 +750,7 @@ const Dashboard = () => {
                 <legend className="px-2 text-primary text-sm font-semibold">
                   B Side
                 </legend>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 21;
                     const voltage = voltageData.voltages[`v${sensorId}`];
@@ -773,7 +783,7 @@ const Dashboard = () => {
 
           {/* chart area */}
           <div className="bg-secondary rounded-lg p-4 h-full">
-            <div className="flex  sm:flex-row justify-between items-center gap-3 mb-4">
+            <div className="flex sm:flex-row justify-between items-center gap-3 mb-4">
               <div className="flex items-center gap-2">
                 {/* <span className="text-sm text-text">Sensor:</span> */}
                 <select
@@ -812,7 +822,7 @@ const Dashboard = () => {
 
             <div
               ref={chartContainerRef}
-              className="sm:h-[calc(80%-60px)] w-full"
+              className="h-[calc(95%-20px)] sm:h-[calc(80%-60px)] w-full"
             >
               {chartData.length > 0 ? (
                 <>
