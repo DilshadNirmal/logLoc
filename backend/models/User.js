@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 
+const locationHistorySchema = new mongoose.Schema({
+  ip: String,
+  city: String,
+  region: String,
+  country: String,
+  latitude: Number,
+  longitude: Number,
+  timestamp: Date,
+});
+
 const UserSchema = new mongoose.Schema({
   UserName: {
     type: String,
@@ -42,12 +52,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         requied: true,
       },
-      location: {
-        city: String,
-        country: String,
-        latitude: Number,
-        longitude: Number,
-      },
+      location: [locationHistorySchema],
     },
   ],
   cookieConsent: {

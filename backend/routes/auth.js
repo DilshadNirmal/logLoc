@@ -39,17 +39,22 @@ router.get("/signup", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { UserName, Password, latitude, longitude, consent } = req.body;
+    const { UserName, Password } = req.body;
     const user = await User.findOne({ UserName });
 
-    if (!user || !(await bcrypt.compare(Password, user.Password))) {
-      throw new Error("Invalid login credentials");
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(Password, user.Password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid password" });
     }
 
     await clearPreviousUserSessions(user._id);
 
     const accessToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1d",
     });
     const refreshToken = jwt.sign(
       { _id: user._id },
@@ -60,56 +65,41 @@ router.post("/login", async (req, res) => {
     await storeAccessToken(user._id, accessToken);
     await storeRefreshToken(user._id, refreshToken);
 
-    // Get location data
-    let locationData = null;
-    console.log("Latitude:", latitude, "Longitude:", longitude);
-    if (latitude && longitude) {
-      locationData = await reverseGeocode(latitude, longitude);
-      console.log(locationData);
-    } else {
-      locationData = await locationFind(req.ip);
-    }
-
-    const clientIp = req.ip;
-
-    // Update activity with login
-    user.activities = user.activities.filter(
-      (activity) => activity.type !== "login"
-    );
-    user.activities.push({
-      type: "login",
-      ipAddress: clientIp,
-      location: {
-        city: locationData?.city || locationData?.state_district || "Unknown",
-        country: locationData?.country || "Unknown",
-        latitude: locationData?.latitude || null,
-        longitude: locationData?.longitude || null,
-      },
-    });
-
     await user.save();
 
-    // Set cookie consent
-    if (user.cookieConsent) {
-      res.cookie("cookieConsent", true, {
-        maxAge: 365 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
-    }
-
-    res.send({
+    res.json({
       user: {
-        ...user.toObject(),
-        phoneVerified: user.phoneVerified || false,
+        _id: user._id,
+        UserName: user.UserName,
+        Email: user.Email,
+        Role: user.Role,
+        phoneNumber: user.phoneNumber,
+        cookieConsent: user.cookieConsent,
+        phoneVerified: user.phoneVerified,
       },
       accessToken,
       refreshToken,
-      hasCookieConsent: user.cookieConsent,
     });
   } catch (error) {
     res.status(400).send({ error: error.message });
+  }
+});
+
+router.post("/update-location", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Store location history
+    user.locationHistory = user.locationHistory || [];
+    user.locationHistory.push(req.body);
+    await user.save();
+
+    res.json({ message: "Location updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -204,7 +194,7 @@ router.post("/refresh-token", async (req, res) => {
     }
 
     const accessToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1d",
     });
 
     await storeAccessToken(user._id, accessToken);

@@ -5,7 +5,7 @@ import axiosInstance from "../lib/axios";
 
 const VerifyOtp = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -46,7 +46,14 @@ const VerifyOtp = () => {
 
       if (response.data.success) {
         setMessage("Phone number verified successfully");
-        setTimeout(() => navigate("/"), 1500);
+        if (updateUser) {
+          updateUser({
+            ...user,
+            phoneNumber,
+            phoneVerified: true,
+          });
+        }
+        setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid OTP");

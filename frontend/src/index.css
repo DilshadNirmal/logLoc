@@ -83,6 +83,14 @@ body {
 @media screen and (max-width: 768px) {
   html {
     font-size: 10px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    width: 100dvw;
   }
 }
 
@@ -97,19 +105,6 @@ body {
     overflow-x: hidden !important;
     height: auto !important;
     width: 100vw;
-  }
-
-  .dashboard-container {
-    height: auto !important;
-    min-height: 100vh;
-    overflow: hidden !important;
-    width: 100%;
-  }
-
-  .dashboard-grid {
-    height: auto !important;
-    overflow: hidden !important;
-    padding: 0 1rem;
   }
 }
 

@@ -8,11 +8,16 @@ const CookieConsent = () => {
 
   const handleConsent = async () => {
     try {
-      await axiosInstance.post("/update-cookie-consent", {
+      await axiosInstance.post("auth/update-cookie-consent", {
         userId: user._id,
         consent: true,
       });
-      navigate("/");
+
+      if (!user.phoneVerified) {
+        navigate("/verify-otp");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Error updating cookie consent:", error);
     }

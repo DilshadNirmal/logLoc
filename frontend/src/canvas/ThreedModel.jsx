@@ -9,7 +9,7 @@ import { Suspense, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 const Model = () => {
-  const racoonCity = useGLTF("/models/mechanicalKeboard/scene.gltf", true);
+  const racoonCity = useGLTF("/models/potline.gltf", true);
   return <primitive object={racoonCity.scene} scale={25} />;
 };
 

@@ -13,7 +13,9 @@ const Dashboard = () => {
     signalStrength: 0,
     timestamp: null,
   });
-  const [selectedSensor, setSelectedSensor] = useState(1);
+  // const [selectedSensor, setSelectedSensor] = useState(1);
+  const [selectedSensors, setSelectedSensors] = useState([]);
+  const [selectedSide, setSelectedSide] = useState("A");
   const [timeRange, setTimeRange] = useState("1h");
   const [chartData, setChartData] = useState("");
   const [width, setWidth] = useState(0);
@@ -61,25 +63,30 @@ const Dashboard = () => {
 
   const fetchChart = async () => {
     try {
+      if (selectedSensors.length === 0) {
+        setChartData([]);
+        return;
+      }
+
       const response = await axiosInstance.get("/voltage-data", {
         params: {
-          sensorId: selectedSensor,
-          timeRange: timeRange,
-          refresh: new Date().getTime(),
+          sensorId: selectedSensors,
+          timeRange: parseInt(timeRange), // Convert "1h" to 1
         },
       });
-      //   {
-      //   responseType: "blob",
-      //   params: {
-      //     sensorId: selectedSensor,
-      //     timeRange: timeRange,
-      //     refresh: new Date().getTime(),
-      //   },
-      // });
-      // const url = URL.createObjectURL(response.data);
-      setChartData(response.data);
+
+      if (response.data && Array.isArray(response.data)) {
+        // Filter out any sensors with empty data
+        const validData = response.data.filter(
+          (sensor) => sensor.data && sensor.data.length > 0
+        );
+        setChartData(validData);
+      } else {
+        setChartData([]);
+      }
     } catch (error) {
       console.error("Error loading chart:", error);
+      setChartData([]);
     }
   };
 
@@ -98,7 +105,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchChart();
-  }, [selectedSensor, timeRange]);
+  }, [selectedSensors, timeRange]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -145,7 +152,7 @@ const Dashboard = () => {
       const margin = 20;
       const gridGaps = 48;
       if (window.innerWidth >= 1024) {
-        const newHeight = windowHeight - navHeight - margin - gridGaps;
+        const newHeight = windowHeight - navHeight - gridGaps;
         setContentHeight(newHeight);
       }
     };
@@ -168,18 +175,18 @@ const Dashboard = () => {
 
   return (
     <section
-      className="bg-background min-h-[100dvh] w-full overflow-x-hidden pb-4 sm:pb-0"
+      className="bg-background min-h-[100dvh] w-full overflow-x-hidden pb-4 sm:pb-1"
       style={{ marginTop: `${navHeight}px` }}
     >
       {/* content grid */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-3 mt-4 sm:mt-5"
+        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-4 mt-4 sm:mt-5 sm:mb-2"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
         {/* left column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col justify-between">
           {/* status bar */}
           <div
             className="bg-secondary text-text rounded-lg p-2"
@@ -192,7 +199,7 @@ const Dashboard = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:gap-2 sm:gap-2 gap-4">
               <fieldset className="border border-primary/75 rounded-lg p-2 py-1">
-                <legend className="px-2 text-primary lg:text-xs sm:text-xs text-sm font-semibold tracking-wider">
+                <legend className="px-2 text-primary lg:text-xs text-xs xl:text-sm font-semibold tracking-wider">
                   A Side
                 </legend>
                 <div className="flex justify-between text-sm lg:text-xs sm:text-xs">
@@ -267,12 +274,12 @@ const Dashboard = () => {
 
           {/* 3d model */}
           <div
-            className=" bg-secondary text-text rounded-lg p-2 w-full"
+            className=" bg-secondary text-text rounded-lg p-2 md:h-3/5 w-full"
             style={{
               height:
                 window.innerWidth >= 1024
                   ? `${contentHeight * 0.35}px`
-                  : "auto",
+                  : "225px",
             }}
           >
             <ThreedModel />
@@ -574,7 +581,7 @@ const Dashboard = () => {
             style={{
               height:
                 window.innerWidth >= 1024
-                  ? `${contentHeight * 0.285}px`
+                  ? `${contentHeight * 0.275}px`
                   : "auto",
             }}
           >
@@ -682,7 +689,7 @@ const Dashboard = () => {
                 </div>
                 {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
                 <div className="relative">
-                  <h4 className="absolute bottom-3/5 right-3/5 -rotate-90 w-full text-xs font-normal tracking-wide">
+                  <h4 className="absolute bottom-5/7 sm:bottom-4/7 right-6/7 sm:right-4/5 -rotate-90 w-[25ch] text-xs font-normal tracking-wide">
                     Signal strength - 12 Hrs
                   </h4>
                   <div className="grid grid-cols-4 sm:grid-rows-3 gap-1">
@@ -736,7 +743,7 @@ const Dashboard = () => {
         </div>
 
         {/* right column */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {/* voltage grid */}
           <div className="bg-secondary/50 rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-2 lg:gap-2">
             <div className="space-y-2">
@@ -751,11 +758,20 @@ const Dashboard = () => {
                     return (
                       <button
                         key={sensorId}
-                        onClick={() => setSelectedSensor(sensorId)}
+                        onClick={() => {
+                          if (selectedSensors.includes(sensorId)) {
+                            setSelectedSensors(
+                              selectedSensors.filter((id) => id !== sensorId)
+                            );
+                          } else {
+                            setSelectedSensors([...selectedSensors, sensorId]);
+                            setSelectedSide(sensorId <= 20 ? "A" : "B");
+                          }
+                        }}
                         className={`${getVoltageClass(voltage)}
                           p-2 sm:p-3 rounded-lg transition-all hover:scale-105
                           ${
-                            selectedSensor === sensorId
+                            selectedSensors.includes(sensorId)
                               ? "ring-2 ring-primary"
                               : ""
                           }`}
@@ -785,11 +801,20 @@ const Dashboard = () => {
                     return (
                       <button
                         key={sensorId}
-                        onClick={() => setSelectedSensor(sensorId)}
+                        onClick={() => {
+                          if (selectedSensors.includes(sensorId)) {
+                            setSelectedSensors(
+                              selectedSensors.filter((id) => id !== sensorId)
+                            );
+                          } else {
+                            setSelectedSensors([...selectedSensors, sensorId]);
+                            setSelectedSide(sensorId <= 20 ? "A" : "B");
+                          }
+                        }}
                         className={`${getVoltageClass(voltage)}
                           p-2 sm:p-3 rounded-lg transition-all hover:scale-105
                           ${
-                            selectedSensor === sensorId
+                            selectedSensors.includes(sensorId)
                               ? "ring-2 ring-primary"
                               : ""
                           }`}
@@ -810,26 +835,82 @@ const Dashboard = () => {
           </div>
 
           {/* chart area */}
-          <div className="bg-secondary rounded-lg p-4 h-full">
-            <div className="flex sm:flex-row justify-between items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                {/* <span className="text-sm text-text">Sensor:</span> */}
-                <select
-                  value={selectedSensor}
-                  onChange={(e) => setSelectedSensor(parseInt(e.target.value))}
-                  className="bg-background/20 rounded-lg px-3 py-1 text-sm text-text"
-                >
-                  {Array.from({ length: 40 }, (_, i) => i + 1).map((num) => (
-                    <option
-                      key={num}
-                      value={num}
-                      className="text-text/75 bg-background"
-                    >
-                      Sensor {num}
-                    </option>
-                  ))}
-                </select>
+          <div className="bg-secondary text-text rounded-lg p-3 h-full overflow-hidden">
+            <div className="flex justify-between gap-4 mb-2">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedSide("A");
+                      setSelectedSensors([]);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm ${
+                      selectedSide === "A" ||
+                      selectedSensors.some((id) => id <= 20)
+                        ? "bg-primary text-white"
+                        : "bg-background/20 hover:bg-background/30 text-text"
+                    }`}
+                  >
+                    A Side
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSide("B");
+                      setSelectedSensors([]);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm ${
+                      selectedSide === "B" ||
+                      selectedSensors.some((id) => id > 20)
+                        ? "bg-primary text-white"
+                        : "bg-background/20 hover:bg-background/30 text-text"
+                    }`}
+                  >
+                    B Side
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedSensors([]); // Only clear selected sensors
+                    }}
+                    className="px-4 py-2 rounded-lg text-sm bg-background/20 hover:bg-background/30 text-text"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
+
+              {selectedSide && (
+                <div className="grid grid-cols-10 gap-1 bg-background/20 p-1 px-2 rounded-lg">
+                  {[...Array(20)].map((_, index) => {
+                    const sensorId =
+                      selectedSide === "A" ? index + 1 : index + 21;
+                    return (
+                      <label
+                        key={sensorId}
+                        className="flex items-center gap-1 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedSensors.includes(sensorId)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSensors([
+                                ...selectedSensors,
+                                sensorId,
+                              ]);
+                            } else {
+                              setSelectedSensors(
+                                selectedSensors.filter((id) => id !== sensorId)
+                              );
+                            }
+                          }}
+                          className="w-2 h-2 accent-primary checked:bg-primary checked:hover:bg-primary/80 focus:ring-primary"
+                        />
+                        <span className="text-[10px]">S{sensorId}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="flex gap-2">
                 {["1h", "6h", "12h", "24h"].map((range) => (
@@ -852,7 +933,7 @@ const Dashboard = () => {
               ref={chartContainerRef}
               className={`w-full ${
                 window.innerWidth >= 1024 ? "h-[calc(100%-4rem)]" : "h-[400px]"
-              }`}
+              } overflow-hidden`}
             >
               {chartData.length > 0 ? (
                 <>

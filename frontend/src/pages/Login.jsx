@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import bg_image from "../assets/images/RusticHome.jpg";
 import bgImage from "../assets/images/power_line.png";
 import logo from "../assets/images/xyma.png";
+import axiosInstance from "../lib/axios";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,10 +35,47 @@ const Login = () => {
       } else if (!response.user.phoneVerified) {
         navigate("/verify-otp");
       } else {
+        // Only get location if cookie consent is given
+        if (response.user.cookieConsent) {
+          await handleLocationAccess();
+        }
         navigate("/");
       }
     } catch (err) {
       console.error("Login error:", err);
+    }
+  };
+
+  const handleLocationAccess = async () => {
+    try {
+      let locationData = {};
+
+      // Get IP-based location first
+      const ipResponse = await fetch("https://ipapi.co/json/");
+      const ipData = await ipResponse.json();
+
+      locationData = {
+        ip: ipData.ip,
+        city: ipData.city,
+        region: ipData.region,
+        country: ipData.country_name,
+        timestamp: new Date().toISOString(),
+      };
+
+      // If geolocation is available and permitted, get precise location
+      if (navigator.geolocation) {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+
+        locationData.latitude = position.coords.latitude;
+        locationData.longitude = position.coords.longitude;
+      }
+
+      // Send location data to backend
+      await axiosInstance.post("/update-location", locationData);
+    } catch (error) {
+      console.error("Error getting location:", error);
     }
   };
 

@@ -206,49 +206,66 @@ router.get("/voltage-chart", async (req, res) => {
   }
 });
 
-router.get("/voltage-data", async (req, res) => {
+router.get("/voltage-data", auth, async (req, res) => {
   try {
     const { sensorId, timeRange } = req.query;
-    const sensorKey = `v${sensorId}`;
+    const sensorIds = Array.isArray(sensorId)
+      ? sensorId.map(Number)
+      : [Number(sensorId)];
 
-    // Calculate time range (same as image endpoint)
-    const now = new Date();
-    let startDate = new Date(now);
-
-    switch (timeRange) {
-      case "1h":
-        startDate.setHours(now.getHours() - 1);
-        break;
-      case "6h":
-        startDate.setHours(now.getHours() - 6);
-        break;
-      case "12h":
-        startDate.setHours(now.getHours() - 12);
-        break;
-      case "24h":
-        startDate.setDate(now.getDate() - 1);
-        break;
-      default:
-        startDate.setHours(now.getHours() - 1);
+    const hours = parseInt(timeRange);
+    if (isNaN(hours)) {
+      throw new Error("Invalid time range");
     }
 
-    // Get formatted data for D3
-    const voltageHistory = await VoltageData.find({
-      timestamp: { $gte: startDate },
-      [`voltages.${sensorKey}`]: { $exists: true },
-    })
-      .sort({ timestamp: 1 })
-      .lean();
+    const endDate = new Date();
+    const startDate = new Date(endDate - hours * 60 * 60 * 1000);
 
-    const chartData = voltageHistory.map((d) => ({
-      timestamp: d.timestamp,
-      value: d.voltages[sensorKey],
-    }));
+    // Query for documents that have any of the requested sensor voltages
+    const voltageHistory = await VoltageData.find({
+      timestamp: { $gte: startDate, $lte: endDate },
+      $or: [
+        { sensorGroup: "1-20", $and: [{ voltages: { $exists: true } }] },
+        { sensorGroup: "21-40", $and: [{ voltages: { $exists: true } }] },
+      ],
+    }).sort({ timestamp: 1 });
+
+    console.log("Found voltage records:", voltageHistory.length);
+
+    const chartData = sensorIds
+      .map((id) => {
+        const sensorKey = `v${id}`;
+        const sensorData = voltageHistory
+          .map((record) => {
+            const voltage = record.voltages.get(sensorKey);
+            return {
+              timestamp: record.timestamp,
+              value: voltage !== undefined ? voltage : null,
+            };
+          })
+          .filter((data) => data.value !== null);
+
+        console.log(`Sensor ${id} data points:`, sensorData.length);
+
+        return {
+          sensorId: id,
+          data: sensorData,
+        };
+      })
+      .filter((sensor) => sensor.data.length > 0);
+
+    if (chartData.length === 0) {
+      console.log("No data found for sensors:", sensorIds);
+    }
 
     res.json(chartData);
   } catch (error) {
-    console.error("Chart data error:", error);
-    res.status(500).json({ error: "Failed to get chart data" });
+    console.error("Error fetching voltage data:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch voltage data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 

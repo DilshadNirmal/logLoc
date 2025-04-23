@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
@@ -22,6 +23,7 @@ import { registerLicense } from "@syncfusion/ej2-base";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -30,8 +32,19 @@ const PrivateRoute = ({ children }) => {
       </div>
     );
   }
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
 
-  return user ? children : <Navigate to="/login" />;
+  if (!user.cookieConsent && location.pathname !== "/cookie-consent") {
+    return <Navigate to="/cookie-consent" />;
+  }
+
+  if (!user.phoneVerified && location.pathname !== "/verify-otp") {
+    return <Navigate to="/verify-otp" />;
+  }
+
+  return children;
 };
 
 const PublicRoute = ({ children }) => {

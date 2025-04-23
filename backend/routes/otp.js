@@ -3,6 +3,7 @@ const express = require("express");
 const auth = require("../middleware/auth.js");
 const { generateOTP, storeOTP, verifyOTP } = require("../utils/otpUtil.js");
 const twilioClient = require("../config/twilio.js");
+const User = require("../models/User.js");
 
 const router = express.Router();
 
@@ -51,6 +52,18 @@ router.post("/verify-otp", auth, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid or expired OTP",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      phoneNumber,
+      _id: { $ne: req.user._id },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "This phone number is already registered to another account",
       });
     }
 
