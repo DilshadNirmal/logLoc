@@ -14,7 +14,7 @@ const Dashboard = () => {
     timestamp: null,
   });
   // const [selectedSensor, setSelectedSensor] = useState(1);
-  const [selectedSensors, setSelectedSensors] = useState([]);
+  const [selectedSensors, setSelectedSensors] = useState([1]);
   const [selectedSide, setSelectedSide] = useState("A");
   const [timeRange, setTimeRange] = useState("1h");
   const [chartData, setChartData] = useState("");
@@ -588,31 +588,66 @@ const Dashboard = () => {
             <div className="sm:col-span-3 w-full bg-secondary rounded-lg p-4 overflow-hidden">
               <h3 className="text-sm font-medium text-text">Battery Status</h3>
 
-              <div className="flex justify-center items-center h-full relative">
-                {/* Battery Head */}
-                <div className="w-1/6 h-1 bg-text/85 absolute top-8 rounded-r-sm"></div>
+              <div className="flex flex-col justify-between items-center h-4/5 relative gap-4">
+                {/* A Side Battery */}
+                <div className="flex flex-col items-center h-1/2">
+                  <span className="text-xs font-medium mb-2">A Side</span>
+                  <div className="relative flex items-center">
+                    <div className="h-12 w-30 border-2 border-text/85 rounded-lg relative overflow-hidden">
+                      <div
+                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg"
+                        style={{
+                          width: `${Math.max(
+                            ...Object.entries(voltageData.voltages)
+                              .filter(([key]) => parseInt(key.slice(1)) <= 20)
+                              .map(([_, value]) => value || 0)
+                          )}%`,
+                          backgroundColor:
+                            voltageData.batteryStatus <= 20
+                              ? "#ef4444"
+                              : voltageData.batteryStatus <= 50
+                              ? "#eab308"
+                              : "#22c55e",
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-text">
+                          {voltageData.batteryStatus}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-6 w-0.5 bg-text/85 absolute -right-0.5 top-3"></div>
+                  </div>
+                </div>
 
-                {/* Battery Container */}
-                <div className="w-2/6 h-4/6 border-2 border-text/85 rounded-lg relative overflow-hidden">
-                  {/* Battery Fill Animation */}
-                  <div
-                    className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-b-lg"
-                    style={{
-                      height: `${voltageData.batteryStatus}%`,
-                      backgroundColor:
-                        voltageData.batteryStatus <= 20
-                          ? "#ef4444"
-                          : voltageData.batteryStatus <= 50
-                          ? "#eab308"
-                          : "#22c55e",
-                    }}
-                  />
-
-                  {/* Percentage Text */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-lg font-semibold text-text">
-                      {voltageData.batteryStatus}%
-                    </span>
+                {/* B Side Battery */}
+                <div className="flex flex-col items-center h-1/2">
+                  <span className="text-xs font-medium mb-2">B Side</span>
+                  <div className="relative flex items-center">
+                    <div className="h-12 w-30 border-2 border-text/85 rounded-lg relative overflow-hidden">
+                      <div
+                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg"
+                        style={{
+                          width: `${Math.max(
+                            ...Object.entries(voltageData.voltages)
+                              .filter(([key]) => parseInt(key.slice(1)) > 20)
+                              .map(([_, value]) => value || 0)
+                          )}%`,
+                          backgroundColor:
+                            voltageData.batteryStatus <= 20
+                              ? "#ef4444"
+                              : voltageData.batteryStatus <= 50
+                              ? "#eab308"
+                              : "#22c55e",
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-text">
+                          {voltageData.batteryStatus}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-6 w-0.5 bg-text/85 absolute -right-0.5 top-3"></div>
                   </div>
                 </div>
               </div>
