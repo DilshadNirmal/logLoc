@@ -15,23 +15,13 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [process.env.CLIENT_URL, process.env.CLIENT_URL_2];
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: [process.env.CLIENT_URL, process.env.CLIENT_URL_2],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Authorization"],
     maxAge: 3600,
-    preflightContinue: false,
+    optionsSuccessStatus: 200
   })
 );
 app.use(express.json());
