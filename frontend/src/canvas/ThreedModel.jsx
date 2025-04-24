@@ -23,7 +23,7 @@ const ThreedModel = () => {
       <Canvas
         frameloop="demand"
         camera={{
-          position: [180, 150, 500],
+          position: [800, -100, 600],
           fov: window.innerWidth < 768 ? 60 : 45,
           near: 0.1,
           far: 600,
@@ -34,7 +34,7 @@ const ThreedModel = () => {
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <Model />
-          <OrbitControls />
+          <OrbitControls minDistance={350} maxDistance={500} />
           <Environment preset="apartment" />
           <Preload all />
         </Suspense>
