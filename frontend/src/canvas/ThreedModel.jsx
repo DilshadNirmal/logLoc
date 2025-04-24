@@ -23,10 +23,10 @@ const ThreedModel = () => {
       <Canvas
         frameloop="demand"
         camera={{
-          position: [-4, 3, 6],
+          position: [180, 150, 500],
           fov: window.innerWidth < 768 ? 60 : 45,
           near: 0.1,
-          far: 200,
+          far: 600,
         }}
         gl={{ preserveDrawingBuffer: true }}
       >
@@ -35,7 +35,7 @@ const ThreedModel = () => {
           <directionalLight position={[10, 10, 5]} intensity={1} />
           <Model />
           <OrbitControls />
-          <Environment preset="city" />
+          <Environment preset="apartment" />
           <Preload all />
         </Suspense>
       </Canvas>

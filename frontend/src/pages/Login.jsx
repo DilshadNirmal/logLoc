@@ -73,7 +73,7 @@ const Login = () => {
       }
 
       // Send location data to backend
-      await axiosInstance.post("/update-location", locationData);
+      await axiosInstance.post("auth/update-location", locationData);
     } catch (error) {
       console.error("Error getting location:", error);
     }

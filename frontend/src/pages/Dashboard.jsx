@@ -346,7 +346,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 15, fill: "#e9ebed" },
+                        style: { fontSize: 20, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -411,7 +411,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 15, fill: "#e9ebed" },
+                        style: { fontSize: 20, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -485,7 +485,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 15, fill: "#e9ebed" },
+                        style: { fontSize: 20, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -550,7 +550,7 @@ const Dashboard = () => {
                     labels={{
                       valueLabel: {
                         formatTextValue: (value) => value.toFixed(2) + " mV",
-                        style: { fontSize: 15, fill: "#e9ebed" },
+                        style: { fontSize: 20, fill: "#e9ebed" },
                       },
                       tickLabels: {
                         type: "outer",
@@ -585,80 +585,37 @@ const Dashboard = () => {
                   : "auto",
             }}
           >
-            <div className="sm:col-span-3 w-full bg-secondary rounded-lg p-5 overflow-hidden">
-              <h3 className="text-sm font-medium text-text mb-4">
-                Minimum Value
-              </h3>
+            <div className="sm:col-span-3 w-full bg-secondary rounded-lg p-4 overflow-hidden">
+              <h3 className="text-sm font-medium text-text">Battery Status</h3>
 
-              {/* react gauge component here */}
-              <GaugeComponent
-                value={Math.min(
-                  ...Object.values(voltageData.voltages).filter(
-                    (v) => v !== undefined
-                  ),
-                  10
-                )}
-                type="semicircle"
-                arc={{
-                  width: 0.3,
-                  padding: 0.005,
-                  cornerRadius: 1,
-                  gradient: false,
-                  subArcs: [
-                    {
-                      length:
-                        (Math.min(
-                          ...Object.values(voltageData.voltages).filter(
-                            (v) => v !== undefined
-                          ),
-                          10
-                        ) /
-                          10) *
-                        100,
-                      color: "#409fff",
-                    },
-                    {
-                      length:
-                        100 -
-                        (Math.min(
-                          ...Object.values(voltageData.voltages).filter(
-                            (v) => v !== undefined
-                          ),
-                          10
-                        ) /
-                          10) *
-                          100,
-                      color: "#5c5c5c99",
-                    },
-                  ],
-                }}
-                pointer={{
-                  type: "arrow",
-                  color: "#409fff",
-                  length: 0.8,
-                  width: 15,
-                  elastic: true,
-                }}
-                labels={{
-                  valueLabel: {
-                    formatTextValue: (value) => value + " mV",
-                    style: { fontSize: 25, fill: "#e9ebed" },
-                  },
-                  tickLabels: {
-                    type: "outer",
-                    ticks: [
-                      { value: 0 },
-                      { value: 2 },
-                      { value: 4 },
-                      { value: 6 },
-                      { value: 8 },
-                      { value: 10 },
-                    ],
-                  },
-                }}
-                maxValue={10}
-                minValue={0}
-              />
+              <div className="flex justify-center items-center h-full relative">
+                {/* Battery Head */}
+                <div className="w-1/6 h-1 bg-text/85 absolute top-8 rounded-r-sm"></div>
+
+                {/* Battery Container */}
+                <div className="w-2/6 h-4/6 border-2 border-text/85 rounded-lg relative overflow-hidden">
+                  {/* Battery Fill Animation */}
+                  <div
+                    className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-b-lg"
+                    style={{
+                      height: `${voltageData.batteryStatus}%`,
+                      backgroundColor:
+                        voltageData.batteryStatus <= 20
+                          ? "#ef4444"
+                          : voltageData.batteryStatus <= 50
+                          ? "#eab308"
+                          : "#22c55e",
+                    }}
+                  />
+
+                  {/* Percentage Text */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-semibold text-text">
+                      {voltageData.batteryStatus}%
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="relative sm:col-span-5 bg-secondary rounded-lg p-5 lg:p-4 overflow-hidden ">
               <h3 className="text-sm font-medium text-text/80">

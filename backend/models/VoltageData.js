@@ -3,11 +3,11 @@ const mongoose = require("mongoose");
 const voltageValidator = {
   validator: function (v) {
     return (
-      !isNaN(v) && typeof v === "number" && isFinite(v) && v >= 0 && v <= 10
+      !isNaN(v) && typeof v === "number" && isFinite(v) && v >= -10 && v <= 10
     );
   },
   message: (props) =>
-    `${props.value} is not a valid voltage reading. Must be between 0 and 10 mV`,
+    `${props.value} is not a valid voltage reading. Must be between -10 and 10 mV`,
 };
 
 // Create a voltage schema with all required fields
