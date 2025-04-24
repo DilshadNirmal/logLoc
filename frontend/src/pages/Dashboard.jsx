@@ -7,7 +7,14 @@ import ThreedModel from "../canvas/ThreedModel";
 import Chart from "../components/Chart";
 const Dashboard = () => {
   const { user } = useAuth();
-  const [voltageData, setVoltageData] = useState({
+  const [voltageDataA, setVoltageDataA] = useState({
+    voltages: {},
+    batteryStatus: 0,
+    signalStrength: 0,
+    timestamp: null,
+  });
+
+  const [voltageDataB, setVoltageDataB] = useState({
     voltages: {},
     batteryStatus: 0,
     signalStrength: 0,
@@ -33,34 +40,28 @@ const Dashboard = () => {
         const group1Data = response.data.find((d) => d.sensorGroup === "1-20");
         const group2Data = response.data.find((d) => d.sensorGroup === "21-40");
 
-        const latestVoltages = {
-          ...(group1Data?.voltages || {}),
-          ...(group2Data?.voltages || {}),
-        };
+        if (group1Data) {
+          setVoltageDataA({
+            voltages: group1Data.voltages || {},
+            batteryStatus: group1Data.batteryStatus || 0,
+            signalStrength: group1Data.signalStrength || -100,
+            timestamp: new Date(group1Data.timestamp || 0),
+          });
+        }
 
-        setVoltageData({
-          voltages: latestVoltages,
-          batteryStatus: Math.max(
-            group1Data?.batteryStatus || 0,
-            group2Data?.batteryStatus || 0
-          ),
-          signalStrength: Math.max(
-            group1Data?.signalStrength || -100,
-            group2Data?.signalStrength || -100
-          ),
-          timestamp: new Date(
-            Math.max(
-              new Date(group1Data?.timestamp || 0),
-              new Date(group2Data?.timestamp || 0)
-            )
-          ),
-        });
+        if (group2Data) {
+          setVoltageDataB({
+            voltages: group2Data.voltages || {},
+            batteryStatus: group2Data.batteryStatus || 0,
+            signalStrength: group2Data.signalStrength || -100,
+            timestamp: new Date(group2Data.timestamp || 0),
+          });
+        }
       }
     } catch (error) {
       console.error("Error fetching voltages:", error);
     }
   };
-
   const fetchChart = async () => {
     try {
       if (selectedSensors.length === 0) {
@@ -99,7 +100,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchVoltages();
-    const interval = setInterval(fetchVoltages, 3000);
+    const interval = setInterval(fetchVoltages, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -110,34 +111,56 @@ const Dashboard = () => {
   useEffect(() => {
     const updateDimensions = () => {
       if (chartContainerRef.current) {
-        const newWidth = chartContainerRef.current.clientWidth;
-        const newHeight = chartContainerRef.current.clientHeight;
+        const container = chartContainerRef.current;
+        const newWidth = container.clientWidth;
+        const newHeight = container.clientHeight;
 
-        // Only update if dimensions actually changed
-        if (newWidth !== width || newHeight !== height) {
-          setWidth(newWidth);
-          setHeight(newHeight);
+        // Set minimum dimensions to prevent initial stretch
+        const minWidth = 400;
+        const minHeight = 300;
+
+        // Only update if dimensions are valid and changed
+        if (
+          newWidth >= minWidth &&
+          newHeight >= minHeight &&
+          (newWidth !== width || newHeight !== height)
+        ) {
+          // Add delay to dimension updates
+          setTimeout(() => {
+            setWidth(newWidth);
+            setHeight(newHeight);
+          }, 300); // 300ms delay for smoother transition
         }
       }
     };
 
-    updateDimensions();
-    let timeoutId;
+    // Initial dimension update with longer delay
+    const initialTimer = setTimeout(updateDimensions, 400);
+
+    // Debounced resize handler with longer delay
+    let resizeTimer;
     const debouncedUpdate = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(updateDimensions, 100);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateDimensions, 150);
     };
 
+    // Set up resize observer
     const resizeObserver = new ResizeObserver(debouncedUpdate);
     if (chartContainerRef.current) {
       resizeObserver.observe(chartContainerRef.current);
     }
 
+    // Update dimensions when chart data changes
+    if (chartData.length > 0) {
+      setTimeout(updateDimensions, 100);
+    }
+
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(initialTimer);
+      clearTimeout(resizeTimer);
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [width, height, chartData]);
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -207,9 +230,9 @@ const Dashboard = () => {
                     Active:
                     <span className="text-primary font-medium">
                       {
-                        Object.entries(voltageData.voltages).filter(
+                        Object.entries(voltageDataA.voltages).filter(
                           ([key, value]) =>
-                            parseInt(key.slice(1)) <= 20 && value !== undefined
+                            parseInt(key.slice(1)) <= 20 && value === undefined
                         ).length
                       }
                     </span>
@@ -218,7 +241,7 @@ const Dashboard = () => {
                     Inactive:
                     <span className="text-primary font-medium">
                       {
-                        Object.entries(voltageData.voltages).filter(
+                        Object.entries(voltageDataA.voltages).filter(
                           ([key, value]) =>
                             parseInt(key.slice(1)) <= 20 && value === undefined
                         ).length
@@ -228,7 +251,7 @@ const Dashboard = () => {
                   <div className="flex items-center gap-1">
                     Lt.Upd:
                     <span className="text-primary font-medium">
-                      {voltageData.timestamp?.toLocaleString() || "--:--:--"}
+                      {voltageDataA.timestamp?.toLocaleString() || "--:--:--"}
                     </span>
                   </div>
                 </div>
@@ -243,7 +266,7 @@ const Dashboard = () => {
                     Active:
                     <span className="text-primary font-medium">
                       {
-                        Object.entries(voltageData.voltages).filter(
+                        Object.entries(voltageDataB.voltages).filter(
                           ([key, value]) =>
                             parseInt(key.slice(1)) > 20 && value !== undefined
                         ).length
@@ -254,7 +277,7 @@ const Dashboard = () => {
                     Inactive:
                     <span className="text-primary font-medium">
                       {
-                        Object.entries(voltageData.voltages).filter(
+                        Object.entries(voltageDataB.voltages).filter(
                           ([key, value]) =>
                             parseInt(key.slice(1)) > 20 && value === undefined
                         ).length
@@ -264,7 +287,7 @@ const Dashboard = () => {
                   <div className="flex items-center gap-1">
                     Lt.Upd:
                     <span className="text-primary font-medium">
-                      {voltageData.timestamp?.toLocaleString() || "--:--:--"}
+                      {voltageDataB.timestamp?.toLocaleString() || "--:--:--"}
                     </span>
                   </div>
                 </div>
@@ -308,7 +331,7 @@ const Dashboard = () => {
                   </h3>
                   <GaugeComponent
                     value={Math.max(
-                      ...Object.entries(voltageData.voltages)
+                      ...Object.entries(voltageDataA.voltages)
                         .filter(([key]) => parseInt(key.slice(1)) <= 20)
                         .map(([_, value]) => value || 0)
                     )}
@@ -321,7 +344,7 @@ const Dashboard = () => {
                         {
                           length:
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataA.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) <= 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -333,7 +356,7 @@ const Dashboard = () => {
                           length:
                             100 -
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataA.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) <= 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -373,7 +396,7 @@ const Dashboard = () => {
                   </h3>
                   <GaugeComponent
                     value={Math.min(
-                      ...Object.entries(voltageData.voltages)
+                      ...Object.entries(voltageDataA.voltages)
                         .filter(([key]) => parseInt(key.slice(1)) <= 20)
                         .map(([_, value]) => value || 0)
                     )}
@@ -386,7 +409,7 @@ const Dashboard = () => {
                         {
                           length:
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataA.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) <= 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -398,7 +421,7 @@ const Dashboard = () => {
                           length:
                             100 -
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataA.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) <= 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -447,7 +470,7 @@ const Dashboard = () => {
                   </h3>
                   <GaugeComponent
                     value={Math.max(
-                      ...Object.entries(voltageData.voltages)
+                      ...Object.entries(voltageDataB.voltages)
                         .filter(([key]) => parseInt(key.slice(1)) > 20)
                         .map(([_, value]) => value || 0)
                     )}
@@ -460,7 +483,7 @@ const Dashboard = () => {
                         {
                           length:
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataB.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) > 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -472,7 +495,7 @@ const Dashboard = () => {
                           length:
                             100 -
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataB.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) > 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -512,7 +535,7 @@ const Dashboard = () => {
                   </h3>
                   <GaugeComponent
                     value={Math.min(
-                      ...Object.entries(voltageData.voltages)
+                      ...Object.entries(voltageDataB.voltages)
                         .filter(([key]) => parseInt(key.slice(1)) > 20)
                         .map(([_, value]) => value || 0)
                     )}
@@ -525,7 +548,7 @@ const Dashboard = () => {
                         {
                           length:
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataB.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) > 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -537,7 +560,7 @@ const Dashboard = () => {
                           length:
                             100 -
                             (Math.max(
-                              ...Object.entries(voltageData.voltages)
+                              ...Object.entries(voltageDataB.voltages)
                                 .filter(([key]) => parseInt(key.slice(1)) > 20)
                                 .map(([_, value]) => value || 0)
                             ) /
@@ -595,24 +618,20 @@ const Dashboard = () => {
                   <div className="relative flex items-center">
                     <div className="h-12 w-30 border-2 border-text/85 rounded-lg relative overflow-hidden">
                       <div
-                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg"
+                        className={`absolute left-0 top-0 h-full bg-gradient-to-r  from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg`}
                         style={{
-                          width: `${Math.max(
-                            ...Object.entries(voltageData.voltages)
-                              .filter(([key]) => parseInt(key.slice(1)) <= 20)
-                              .map(([_, value]) => value || 0)
-                          )}%`,
+                          width: `${voltageDataA.batteryStatus}%`,
                           backgroundColor:
-                            voltageData.batteryStatus <= 20
+                            voltageDataA.batteryStatus <= 20
                               ? "#ef4444"
-                              : voltageData.batteryStatus <= 50
+                              : voltageDataA.batteryStatus <= 50
                               ? "#eab308"
                               : "#22c55e",
                         }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-sm font-semibold text-text">
-                          {voltageData.batteryStatus}%
+                          {voltageDataA.batteryStatus}%
                         </span>
                       </div>
                     </div>
@@ -628,22 +647,18 @@ const Dashboard = () => {
                       <div
                         className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg"
                         style={{
-                          width: `${Math.max(
-                            ...Object.entries(voltageData.voltages)
-                              .filter(([key]) => parseInt(key.slice(1)) > 20)
-                              .map(([_, value]) => value || 0)
-                          )}%`,
+                          width: `${voltageDataB.batteryStatus}%`,
                           backgroundColor:
-                            voltageData.batteryStatus <= 20
+                            voltageDataB.batteryStatus <= 20
                               ? "#ef4444"
-                              : voltageData.batteryStatus <= 50
+                              : voltageDataB.batteryStatus <= 50
                               ? "#eab308"
                               : "#22c55e",
                         }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-sm font-semibold text-text">
-                          {voltageData.batteryStatus}%
+                          {voltageDataB.batteryStatus}%
                         </span>
                       </div>
                     </div>
@@ -667,7 +682,7 @@ const Dashboard = () => {
                           style={{
                             height: `${bar * 14}px`,
                             backgroundColor:
-                              voltageData.signalStrength >= 25 * bar
+                              voltageDataA.signalStrength >= 25 * bar
                                 ? "#ffdd00"
                                 : "#3ff45f",
                           }}
@@ -675,7 +690,7 @@ const Dashboard = () => {
                       ))}
                     </div>
                     <span className="text-4xl font-bold text-center">
-                      {voltageData.signalStrength}%
+                      {voltageDataA.signalStrength}%
                     </span>
                   </div>
                 </div>
@@ -746,7 +761,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 1;
-                    const voltage = voltageData.voltages[`v${sensorId}`];
+                    const voltage = voltageDataA.voltages[`v${sensorId}`];
                     return (
                       <button
                         key={sensorId}
@@ -789,7 +804,7 @@ const Dashboard = () => {
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
                   {[...Array(20)].map((_, index) => {
                     const sensorId = index + 21;
-                    const voltage = voltageData.voltages[`v${sensorId}`];
+                    const voltage = voltageDataB.voltages[`v${sensorId}`];
                     return (
                       <button
                         key={sensorId}
