@@ -102,7 +102,7 @@ const Dashboard = () => {
     fetchVoltages();
     const interval = setInterval(fetchVoltages, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedSensors, timeRange, voltageDataA, voltageDataB]);
 
   useEffect(() => {
     fetchChart();
@@ -203,7 +203,7 @@ const Dashboard = () => {
     >
       {/* content grid */}
       <div
-        className="grid grid-cols-1 lg:grid-cols-2 gap-3 mx-4 mt-4 sm:mt-5 sm:mb-2"
+        className={`grid grid-cols-1 lg:grid-cols-2 gap-3 mx-4 mt-4 sm:mt-5 sm:mb-2 `}
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
@@ -243,7 +243,9 @@ const Dashboard = () => {
                       {
                         Object.entries(voltageDataA.voltages).filter(
                           ([key, value]) =>
-                            parseInt(key.slice(1)) <= 20 && value === undefined
+                            parseInt(key.slice(1)) <= 20 &&
+                            value === undefined &&
+                            NaN(value)
                         ).length
                       }
                     </span>
@@ -953,6 +955,7 @@ const Dashboard = () => {
                     height={
                       height || chartContainerRef.current?.clientHeight || 300
                     }
+                    key={`chart-${JSON.stringify(chartData)}`}
                   />
                 </>
               ) : (

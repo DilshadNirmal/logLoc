@@ -15,7 +15,7 @@ const voltagesSchema = {
   type: Map,
   of: {
     type: Number,
-    validate: voltageValidator,
+    // validate: voltageValidator,
   },
   required: true,
   default: {},
