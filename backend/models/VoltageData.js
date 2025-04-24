@@ -51,15 +51,15 @@ const VoltageDataSchema = new mongoose.Schema({
   signalStrength: {
     type: Number,
     required: true,
-    min: 0,
-    max: 50,
-    validate: {
-      validator: function (v) {
-        return !isNaN(v) && v >= 0 && v <= 50;
-      },
-      message: (props) =>
-        `${props.value} is not a valid signal strength! Must be between 0 and 50 dBm.`,
-    },
+    // min: 0,
+    // max: 50,
+    // validate: {
+    //   validator: function (v) {
+    //     return !isNaN(v) && v >= 0 && v <= 50;
+    //   },
+    //   message: (props) =>
+    //     `${props.value} is not a valid signal strength! Must be between 0 and 50 dBm.`,
+    // },
   },
 });
 
