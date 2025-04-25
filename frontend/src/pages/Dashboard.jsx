@@ -166,7 +166,7 @@ const Dashboard = () => {
     const updateNavHeight = () => {
       const header = document.querySelector("header");
       if (header) {
-        setNavHeight(header.offsetHeight);
+        setNavHeight(header.clientHeight);
       }
     };
 
@@ -180,55 +180,48 @@ const Dashboard = () => {
       }
     };
 
-    setTimeout(() => {
-      updateNavHeight();
-      updateContentHeight();
-    }, 100);
+    // Initial update
+    updateNavHeight();
+    updateContentHeight();
 
-    // Add resize listener
-    window.addEventListener("resize", () => {
+    // Handle resize
+    const handleResize = () => {
       updateNavHeight();
       updateContentHeight();
-    });
+    };
+
+    window.addEventListener("resize", handleResize);
+
     return () => {
-      window.removeEventListener("resize", updateNavHeight);
-      window.removeEventListener("resize", updateContentHeight);
+      window.removeEventListener("resize", handleResize);
     };
   }, [navHeight]);
 
   return (
     <section
-      className="bg-background min-h-[100dvh] w-full overflow-x-hidden pb-4 sm:pb-1"
-      style={{ marginTop: `${navHeight}px` }}
+      className="bg-background w-full overflow-x-hidden"
+      style={{
+        height: `calc(100dvh - ${navHeight}px)`,
+        marginTop: `${navHeight}px`,
+      }}
     >
       {/* content grid */}
       <div
-        className={`grid grid-cols-1 lg:grid-cols-2 gap-3 mx-4 mt-4 sm:mt-5 sm:mb-2 `}
-        style={{
-          height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
-        }}
+        className={`h-full grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-4 mx-5 my-2`}
       >
         {/* left column */}
-        <div className="flex flex-col justify-between">
+        <div className="flex flex-col justify-between gap-4">
           {/* status bar */}
-          <div
-            className="bg-secondary text-text rounded-lg p-2"
-            style={{
-              height:
-                window.innerWidth >= 1024
-                  ? `${contentHeight * 0.08}px`
-                  : "auto",
-            }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:gap-2 sm:gap-2 gap-4">
-              <fieldset className="border border-primary/75 rounded-lg p-2 py-1">
-                <legend className="px-2 text-primary lg:text-xs text-xs xl:text-sm font-semibold tracking-wider">
-                  A Side
-                </legend>
-                <div className="flex justify-between text-sm lg:text-xs sm:text-xs">
-                  <div className="flex items-center gap-1">
+          <div className="bg-secondary text-text rounded-lg p-4 flex justify-around gap-2">
+            <fieldset className="border border-primary/75 rounded-lg py-2 w-1/2">
+              <legend className="px-2 sm:px-3 text-sm sm:text-base text-primary tracking-widest font-semibold capitalize">
+                A Side
+              </legend>
+              <div className="flex flex-col justify-center mx-1.5">
+                <div className="flex items-center justify-around gap-2">
+                  <div className="flex items-center gap-1 text-base font-light tracking-wider">
                     Active:
-                    <span className="text-primary font-medium">
+                    <span className="text-primary font-medium text-xl">
                       {
                         Object.entries(voltageDataA.voltages).filter(
                           ([key, value]) =>
@@ -237,9 +230,9 @@ const Dashboard = () => {
                       }
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 text-base font-light tracking-wider">
                     Inactive:
-                    <span className="text-primary font-medium">
+                    <span className="text-primary font-medium text-xl">
                       {
                         Object.entries(voltageDataA.voltages).filter(
                           ([key, value]) =>
@@ -250,23 +243,25 @@ const Dashboard = () => {
                       }
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    Lt.Upd:
-                    <span className="text-primary font-medium">
-                      {voltageDataA.timestamp?.toLocaleString() || "--:--:--"}
-                    </span>
-                  </div>
                 </div>
-              </fieldset>
+                <div className="flex items-center justify-center gap-1">
+                  Lt.Upd:
+                  <span className="text-primary font-medium">
+                    {voltageDataA.timestamp?.toLocaleString() || "--:--:--"}
+                  </span>
+                </div>
+              </div>
+            </fieldset>
 
-              <fieldset className="border border-primary rounded-lg p-2 py-1">
-                <legend className="px-2 text-primary text-sm lg:text-xs sm:text-xs font-semibold tracking-wider">
-                  B Side
-                </legend>
-                <div className="flex justify-between text-sm lg:text-xs sm:text-xs">
-                  <div className="flex items-center gap-1">
+            <fieldset className="border border-primary rounded-lg py-2 w-1/2">
+              <legend className="px-2 sm:px-3 text-sm sm:text-base text-primary tracking-widest font-semibold capitalize">
+                B Side
+              </legend>
+              <div className="flex flex-col justify-center mx-1.5">
+                <div className="flex items-center justify-around gap-2">
+                  <div className="flex items-center gap-1 text-base font-light tracking-wider">
                     Active:
-                    <span className="text-primary font-medium">
+                    <span className="text-primary font-medium text-xl">
                       {
                         Object.entries(voltageDataB.voltages).filter(
                           ([key, value]) =>
@@ -275,9 +270,9 @@ const Dashboard = () => {
                       }
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 text-base font-light tracking-wider">
                     Inactive:
-                    <span className="text-primary font-medium">
+                    <span className="text-primary font-medium text-xl">
                       {
                         Object.entries(voltageDataB.voltages).filter(
                           ([key, value]) =>
@@ -286,40 +281,24 @@ const Dashboard = () => {
                       }
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    Lt.Upd:
-                    <span className="text-primary font-medium">
-                      {voltageDataB.timestamp?.toLocaleString() || "--:--:--"}
-                    </span>
-                  </div>
                 </div>
-              </fieldset>
-            </div>
+                <div className="flex items-center justify-center gap-1">
+                  Lt.Upd:
+                  <span className="text-primary font-medium">
+                    {voltageDataB.timestamp?.toLocaleString() || "--:--:--"}
+                  </span>
+                </div>
+              </div>
+            </fieldset>
           </div>
 
           {/* 3d model */}
-          <div
-            className=" bg-secondary text-text rounded-lg p-2 md:h-3/5 w-full"
-            style={{
-              height:
-                window.innerWidth >= 1024
-                  ? `${contentHeight * 0.35}px`
-                  : "225px",
-            }}
-          >
+          <div className="bg-secondary text-text rounded-lg p-4 h-[400px]">
             <ThreedModel />
           </div>
 
           {/* split column 1 */}
-          <div
-            className=" bg-secondary rounded-lg p-4 text-text grid lg:grid-cols-2 sm:grid-cols-2 gap-2 overflow-hidden"
-            style={{
-              height:
-                window.innerWidth >= 1024
-                  ? `${contentHeight * 0.25}px`
-                  : "auto",
-            }}
-          >
+          <div className=" bg-secondary rounded-lg p-4 text-text grid lg:grid-cols-2 sm:grid-cols-2 gap-2 overflow-hidden">
             <fieldset className="border border-primary/75 rounded-lg p-1">
               <legend className="px-2 text-primary text-sm lg:text-xs sm:text-xs font-semibold">
                 A side
@@ -601,79 +580,78 @@ const Dashboard = () => {
           </div>
 
           {/* split column 2 */}
-          <div
-            className="grid grid-cols-1 md:grid-cols-8 gap-4 text-text"
-            style={{
-              height:
-                window.innerWidth >= 1024
-                  ? `${contentHeight * 0.275}px`
-                  : "auto",
-            }}
-          >
-            <div className="sm:col-span-3 w-full bg-secondary rounded-lg p-4 overflow-hidden">
-              <h3 className="text-sm font-medium text-text">Battery Status</h3>
-
-              <div className="flex flex-col justify-between items-center h-4/5 relative gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-text">
+            {/* Battery Status */}
+            <div className="bg-secondary rounded-lg p-4">
+              <h3 className="text-lg font-medium mb-4">Battery Status</h3>
+              <div className="flex justify-around items-center">
                 {/* A Side Battery */}
-                <div className="flex flex-col items-center h-1/2">
-                  <span className="text-xs font-medium mb-2">A Side</span>
-                  <div className="relative flex items-center">
-                    <div className="h-12 w-30 border-2 border-text/85 rounded-lg relative overflow-hidden">
+                <div className="flex items-center gap-1">
+                  <span className="text-xl font-medium text-text/85 capitalize -rotate-90">
+                    A Side
+                  </span>
+                  <div className="flex flex-col items-center">
+                    {/* Battery Cap */}
+                    <div className="h-1 w-10 bg-text rounded-t-md"></div>
+                    {/* Battery Body */}
+                    <div className="relative h-[150px] w-[90px] border border-text rounded-lg overflow-hidden">
                       <div
-                        className={`absolute left-0 top-0 h-full bg-gradient-to-r  from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg`}
+                        className={`absolute bottom-0 left-0 w-full transition-all duration-500 ease-in-out rounded-b-lg ${
+                          voltageDataA.batteryStatus > 50
+                            ? "bg-gradient-to-t from-primary to-primary/90"
+                            : voltageDataA.batteryStatus > 20
+                            ? "bg-gradient-to-t from-primary/50 to-primary/30"
+                            : "bg-gradient-to-t from-primary/30 to-primary/10"
+                        }`}
                         style={{
-                          width: `${voltageDataA.batteryStatus}%`,
-                          backgroundColor:
-                            voltageDataA.batteryStatus <= 20
-                              ? "#ef4444"
-                              : voltageDataA.batteryStatus <= 50
-                              ? "#eab308"
-                              : "#22c55e",
+                          height: `${voltageDataA.batteryStatus}%`,
                         }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-text">
+                        <span className="text-lg font-semibold text-text rotate-[-90deg]">
                           {voltageDataA.batteryStatus}%
                         </span>
                       </div>
                     </div>
-                    <div className="h-6 w-0.5 bg-text/85 absolute -right-0.5 top-3"></div>
                   </div>
                 </div>
 
                 {/* B Side Battery */}
-                <div className="flex flex-col items-center h-1/2">
-                  <span className="text-xs font-medium mb-2">B Side</span>
-                  <div className="relative flex items-center">
-                    <div className="h-12 w-30 border-2 border-text/85 rounded-lg relative overflow-hidden">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl font-medium text-text/85 capitalize -rotate-90">
+                    B Side
+                  </span>
+                  <div className="flex flex-col items-center">
+                    {/* Battery Cap */}
+                    <div className="h-1 w-10 bg-text rounded-t-md"></div>
+                    {/* Battery Body */}
+                    <div className="relative h-[150px] w-[90px] border border-text rounded-lg overflow-hidden">
                       <div
-                        className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary/75 to-primary transition-all duration-500 ease-in-out rounded-l-lg"
+                        className={`absolute bottom-0 left-0 w-full transition-all duration-500 ease-in-out rounded-b-lg ${
+                          voltageDataB.batteryStatus > 50
+                            ? "bg-gradient-to-t from-primary to-primary/90"
+                            : voltageDataB.batteryStatus > 20
+                            ? "bg-gradient-to-t from-primary/50 to-primary/30"
+                            : "bg-gradient-to-t from-primary/30 to-primary/10"
+                        }`}
                         style={{
-                          width: `${voltageDataB.batteryStatus}%`,
-                          backgroundColor:
-                            voltageDataB.batteryStatus <= 20
-                              ? "#ef4444"
-                              : voltageDataB.batteryStatus <= 50
-                              ? "#eab308"
-                              : "#22c55e",
+                          height: `${voltageDataB.batteryStatus}%`,
                         }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-text">
+                        <span className="text-lg font-semibold text-text rotate-[-90deg]">
                           {voltageDataB.batteryStatus}%
                         </span>
                       </div>
                     </div>
-                    <div className="h-6 w-0.5 bg-text/85 absolute -right-0.5 top-3"></div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="relative sm:col-span-5 bg-secondary rounded-lg p-5 lg:p-4 overflow-hidden ">
-              <h3 className="text-sm font-medium text-text/80">
-                Signal Strength
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+            <div className="relative bg-secondary rounded-lg p-4 overflow-hidden ">
+              <h3 className="text-lg font-medium mb-4">Signal Strength</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-6">
                 <div className="h-full">
                   <div className="flex flex-col gap-4 justify-center items-center mt-8">
                     <div className="flex items-end justify-center gap-1">
@@ -697,8 +675,8 @@ const Dashboard = () => {
                   </div>
                 </div>
                 {/* <hr className="absolute h-[75%] sm:h-[80%] w-px bg-text/70 -top-[7%] sm:top-[15%] left-1/2 transform -translate-x-5 rotate-90 sm:rotate-0" /> */}
-                <div className="relative">
-                  <h4 className="absolute bottom-5/7 sm:bottom-4/7 right-6/7 sm:right-4/5 -rotate-90 w-[25ch] text-xs font-normal tracking-wide">
+                <div className="flex flex-col gap-1.5">
+                  <h4 className="text-base text-text/85 font-normal tracking-wide mb-2">
                     Signal strength - 12 Hrs
                   </h4>
                   <div className="grid grid-cols-4 sm:grid-rows-3 gap-1">
@@ -752,102 +730,98 @@ const Dashboard = () => {
         </div>
 
         {/* right column */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col justify-between gap-4">
           {/* voltage grid */}
-          <div className="bg-secondary/50 rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-2 lg:gap-2">
-            <div className="space-y-2">
-              <fieldset className="border border-primary/75 rounded-lg p-2">
-                <legend className="px-2 text-primary text-sm sm:text-xs lg:text-xs tracking-wider font-semibold">
-                  A Side
-                </legend>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
-                  {[...Array(20)].map((_, index) => {
-                    const sensorId = index + 1;
-                    const voltage = voltageDataA.voltages[`v${sensorId}`];
-                    return (
-                      <button
-                        key={sensorId}
-                        onClick={() => {
-                          if (selectedSensors.includes(sensorId)) {
-                            setSelectedSensors(
-                              selectedSensors.filter((id) => id !== sensorId)
-                            );
-                          } else {
-                            setSelectedSensors([...selectedSensors, sensorId]);
-                            setSelectedSide(sensorId <= 20 ? "A" : "B");
-                          }
-                        }}
-                        className={`${getVoltageClass(voltage)}
-                          p-2 sm:p-3 rounded-lg transition-all hover:scale-105
+          <div className="bg-secondary/50 text-text rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <fieldset className="border border-primary/75 rounded-lg p-2">
+              <legend className="px-2 text-primary text-base font-medium tracking-wider">
+                A Side
+              </legend>
+              <div className="grid grid-cols-5 sm:grid-cols-4 gap-1.5">
+                {[...Array(20)].map((_, index) => {
+                  const sensorId = index + 1;
+                  const voltage = voltageDataA.voltages[`v${sensorId}`];
+                  return (
+                    <button
+                      key={sensorId}
+                      onClick={() => {
+                        if (selectedSensors.includes(sensorId)) {
+                          setSelectedSensors(
+                            selectedSensors.filter((id) => id !== sensorId)
+                          );
+                        } else {
+                          setSelectedSensors([...selectedSensors, sensorId]);
+                          setSelectedSide(sensorId <= 20 ? "A" : "B");
+                        }
+                      }}
+                      className={`${getVoltageClass(voltage)}
+                          p-1.5 rounded-lg transition-all hover:scale-105
                           ${
                             selectedSensors.includes(sensorId)
-                              ? "ring-2 ring-primary"
+                              ? "ring-1 ring-primary"
                               : ""
                           }`}
-                      >
-                        <div className="text-xs font-medium opacity-70">
-                          S{sensorId}
-                        </div>
-                        <div className="text-lg sm:text-sm lg:text-sm font-semibold">
-                          {voltage?.toFixed(2) || "--"}
-                        </div>
-                        <div className="text-xs opacity-70">mV</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            </div>
-            <div className="space-y-2">
-              <fieldset className="border border-primary rounded-lg p-2">
-                <legend className="px-2 text-primary text-sm sm:text-xs lg:text-xs tracking-wider font-semibold">
-                  B Side
-                </legend>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1 sm:gap-2 lg:gap-1.5">
-                  {[...Array(20)].map((_, index) => {
-                    const sensorId = index + 21;
-                    const voltage = voltageDataB.voltages[`v${sensorId}`];
-                    return (
-                      <button
-                        key={sensorId}
-                        onClick={() => {
-                          if (selectedSensors.includes(sensorId)) {
-                            setSelectedSensors(
-                              selectedSensors.filter((id) => id !== sensorId)
-                            );
-                          } else {
-                            setSelectedSensors([...selectedSensors, sensorId]);
-                            setSelectedSide(sensorId <= 20 ? "A" : "B");
-                          }
-                        }}
-                        className={`${getVoltageClass(voltage)}
-                          p-2 sm:p-3 rounded-lg transition-all hover:scale-105
+                    >
+                      <div className="text-sm font-medium tracking-wider opacity-55 mb-0.5">
+                        S{sensorId}
+                      </div>
+                      <div className="text-xl font-semibold tracking-wider mb-1">
+                        {voltage?.toFixed(2) || "--"}
+                      </div>
+                      <div className="text-xs opacity-75">mV</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <fieldset className="border border-primary rounded-lg p-2">
+              <legend className="px-2 text-primary text-base font-medium tracking-wider">
+                B Side
+              </legend>
+              <div className="grid grid-cols-5 sm:grid-cols-4 gap-1.5">
+                {[...Array(20)].map((_, index) => {
+                  const sensorId = index + 21;
+                  const voltage = voltageDataB.voltages[`v${sensorId}`];
+                  return (
+                    <button
+                      key={sensorId}
+                      onClick={() => {
+                        if (selectedSensors.includes(sensorId)) {
+                          setSelectedSensors(
+                            selectedSensors.filter((id) => id !== sensorId)
+                          );
+                        } else {
+                          setSelectedSensors([...selectedSensors, sensorId]);
+                          setSelectedSide(sensorId <= 20 ? "A" : "B");
+                        }
+                      }}
+                      className={`${getVoltageClass(voltage)}
+                          p-1.5 rounded-lg transition-all hover:scale-105
                           ${
                             selectedSensors.includes(sensorId)
-                              ? "ring-2 ring-primary"
+                              ? "ring-1 ring-primary"
                               : ""
                           }`}
-                      >
-                        <div className="text-xs font-medium opacity-70">
-                          S{sensorId}
-                        </div>
-                        <div className="text-lg sm:text-sm lg:text-sm font-semibold">
-                          {voltage?.toFixed(2) || "--"}
-                        </div>
-                        <div className="text-xs opacity-70">mV</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            </div>
+                    >
+                      <div className="text-sm font-medium tracking-wider opacity-55 mb-0.5">
+                        S{sensorId}
+                      </div>
+                      <div className="text-xl font-semibold tracking-wider mb-1">
+                        {voltage?.toFixed(2) || "--"}
+                      </div>
+                      <div className="text-xs opacity-75">mV</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
           </div>
 
           {/* chart area */}
-          <div className="bg-secondary text-text rounded-lg p-3 h-full overflow-hidden">
-            <div className="flex justify-between gap-4 mb-2">
+          <div className="bg-secondary text-text rounded-lg p-4 mb-4 overflow-hidden">
+            <div className="flex flex-col gap-3 mb-2">
               <div className="flex justify-between items-center">
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       setSelectedSide("A");
@@ -888,14 +862,14 @@ const Dashboard = () => {
               </div>
 
               {selectedSide && (
-                <div className="grid grid-cols-10 gap-1 bg-background/20 p-1 px-2 rounded-lg">
+                <div className="grid grid-cols-10 gap-1 bg-background/20 p-2 rounded-lg">
                   {[...Array(20)].map((_, index) => {
                     const sensorId =
                       selectedSide === "A" ? index + 1 : index + 21;
                     return (
                       <label
                         key={sensorId}
-                        className="flex items-center gap-1 cursor-pointer"
+                        className="container relative flex items-center gap-1 cursor-pointer select-none text-[10px] pl-5 mb-1"
                       >
                         <input
                           type="checkbox"
@@ -912,9 +886,10 @@ const Dashboard = () => {
                               );
                             }
                           }}
-                          className="w-2 h-2 accent-primary checked:bg-primary checked:hover:bg-primary/80 focus:ring-primary"
+                          className="absolute opacity-0 cursor-pointer h-0 w-0"
                         />
-                        <span className="text-[10px]">S{sensorId}</span>
+                        <span className="checkmark absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 bg-text/20 rounded transition-colors duration-200 hover:bg-text/30 peer-checked:bg-primary peer-checked:before:block"></span>
+                        <span>S{sensorId}</span>
                       </label>
                     );
                   })}

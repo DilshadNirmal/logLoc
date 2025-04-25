@@ -49,16 +49,21 @@ body {
   font-family: "Helvetica", sans-serif;
 }
 
-.dashboard-container {
-  width: 100vw;
-  overflow-x: hidden;
+/* for custom radio checkbox in chart area */
+.container input:checked ~ .checkmark {
+  @apply bg-primary;
 }
 
-.dashboard-grid {
-  width: 100%;
-  max-width: 2560px;
-  margin: 0 auto;
-  overflow-x: hidden;
+.container input:checked ~ .checkmark:before {
+  display: block;
+}
+
+.container:hover input ~ .checkmark {
+  @apply bg-text/30;
+}
+
+.container input:checked:hover ~ .checkmark {
+  @apply bg-primary/80;
 }
 
 @layer utilities {

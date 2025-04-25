@@ -4,13 +4,16 @@ import {
   useGLTF,
   OrbitControls,
   Environment,
+  Stage,
 } from "@react-three/drei";
 import { Suspense, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 
 const Model = () => {
   const racoonCity = useGLTF("/models/potline.gltf", true);
-  return <primitive object={racoonCity.scene} scale={25} />;
+  return (
+    <primitive object={racoonCity.scene} scale={1.5} position={[0, -2.5, 0]} />
+  );
 };
 
 const Fallback = () => (
@@ -19,29 +22,32 @@ const Fallback = () => (
 
 const ThreedModel = () => {
   return (
-    <ErrorBoundary fallback={<Fallback />}>
-      <Canvas
-        frameloop="demand"
-        camera={{
-          position: [800, -100, 600],
-          fov: window.innerWidth < 768 ? 60 : 45,
-          near: 0.1,
-          far: 600,
-        }}
-        gl={{ preserveDrawingBuffer: true }}
+    <Canvas
+      camera={{
+        position: [0, 2, 10], // Moved camera back and up
+        fov: 45,
+      }}
+      style={{ height: "100%" }}
+    >
+      <Stage
+        intensity={0.5}
+        environment="city"
+        adjustCamera={false}
+        preset="rembrandt"
       >
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <Model />
-          <OrbitControls minDistance={350} maxDistance={500} />
-          <Environment preset="apartment" />
-          <Preload all />
-        </Suspense>
-      </Canvas>
-    </ErrorBoundary>
+        <Model />
+      </Stage>
+      <OrbitControls
+        enableZoom={true}
+        enablePan={true}
+        enableRotate={true}
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 1.5}
+        minDistance={10} // Prevent zooming too close
+        maxDistance={30} // Limit max zoom out
+      />
+    </Canvas>
   );
 };
 
-useGLTF.preload("/models/mechanicalKeboard/scene.gltf");
 export default ThreedModel;

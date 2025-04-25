@@ -99,9 +99,9 @@ const Login = () => {
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
       </div>
 
-      <div className="flex bg-background border border-secondary rounded-2xl shadow-lg max-w-3xl sm:p-5 py-5 mx-4 z-10">
+      <div className="w-3/5 h-[35dvh] flex bg-background border border-secondary rounded-2xl shadow-lg max-w-3xl sm:p-5 py-5 mx-4 z-10">
         {/* form */}
-        <div className="sm:w-1/2 px-8 md:px-16 flex flex-col justify-center">
+        <div className="w-full sm:w-1/2 px-8 md:px-16 flex flex-col justify-center gap-2">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-text">Welcome Back!</h2>
             <p className="text-sm mt-4 text-text/60">
