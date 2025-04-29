@@ -4,7 +4,7 @@ import {
   useGLTF,
   OrbitControls,
   Environment,
-  Stage,
+  Html,
 } from "@react-three/drei";
 import { Suspense, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
@@ -16,8 +16,11 @@ const Model = () => {
   );
 };
 
+// This is a proper Three.js fallback - it uses Html from drei
 const Fallback = () => (
-  <div className="text-text text-center">Error loading 3D model</div>
+  <Html center>
+    <div className="text-text text-center">Loading 3D model...</div>
+  </Html>
 );
 
 const ThreedModel = () => {
@@ -29,23 +32,21 @@ const ThreedModel = () => {
       }}
       style={{ height: "100%" }}
     >
-      <Stage
-        intensity={0.5}
-        environment="city"
-        adjustCamera={false}
-        preset="rembrandt"
-      >
+      <Suspense fallback={<Fallback />}>
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[10, 10, 5]} intensity={2} />
         <Model />
-      </Stage>
-      <OrbitControls
-        enableZoom={true}
-        enablePan={true}
-        enableRotate={true}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 1.5}
-        minDistance={10} // Prevent zooming too close
-        maxDistance={30} // Limit max zoom out
-      />
+        {/* <Environment preset="city" /> */}
+        <OrbitControls
+          enableZoom={true}
+          enablePan={true}
+          enableRotate={true}
+          minPolarAngle={Math.PI / 4}
+          maxPolarAngle={Math.PI / 1.5}
+          minDistance={15} // Prevent zooming too close
+          maxDistance={30} // Limit max zoom out
+        />
+      </Suspense>
     </Canvas>
   );
 };

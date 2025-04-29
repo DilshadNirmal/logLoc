@@ -1,14 +1,19 @@
 import { useRef, useEffect, forwardRef } from "react";
 import * as d3 from "d3";
 
-const Chart = forwardRef(({ data, width, height }, ref) => {
+const Chart = forwardRef(({ data }, ref) => {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const brushGroupRef = useRef(null);
   const brushRef = useRef(null);
 
   useEffect(() => {
-    if (!data || data.length === 0 || !width || !height) return;
+    if (!data || data.length === 0) return;
+
+    // Get the container dimensions from the SVG element itself
+    const svgElement = svgRef.current;
+    const width = svgElement.clientWidth;
+    const height = svgElement.clientHeight;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
@@ -19,8 +24,10 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
 
     // Background
     svg
-      .attr("width", width)
-      .attr("height", height)
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
       .append("rect")
       .attr("width", width)
       .attr("height", height)
@@ -30,6 +37,17 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
     const g = svg
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Adding clipPath to ensure lines don't extend beyond the chart area
+    svg
+      .append("defs")
+      .append("clipPath")
+      .attr("id", "chart-area-clip")
+      .append("rect")
+      .attr("width", innerWidth)
+      .attr("height", innerHeight)
+      .attr("x", 0)
+      .attr("y", 0);
 
     // Process data
     const allTimestamps = data.flatMap((sensor) =>
@@ -47,9 +65,13 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
       .domain(d3.extent(allTimestamps))
       .range([0, innerWidth]);
 
+    const yMin = d3.min(allValues);
+    const yMax = d3.max(allValues);
+    const yPadding = Math.abs((yMax - yMin) * 0.1);
+
     const yScale = d3
       .scaleLinear()
-      .domain([d3.min(allValues) * 1.1, d3.max(allValues) * 1.1])
+      .domain([yMin - yPadding, yMax + yPadding])
       .range([innerHeight, 0]);
 
     // Line generator
@@ -88,13 +110,16 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
       .call(d3.axisLeft(yScale).tickFormat((d) => `${d}mV`))
       .attr("color", "#e9ebed");
 
+    // Create a group for the lines with clipping applied
+    const linesGroup = g.append("g").attr("clip-path", "url(#chart-area-clip)");
+
     // Draw lines
     const colors = ["#0ea5e9", "#f43f5e", "#22c55e", "#f59e0b", "#8b5cf6"];
     const lines = data.map((sensor, i) => {
       const validData = sensor.data.filter(
         (d) => d.value !== null && !isNaN(d.value)
       );
-      return g
+      return linesGroup
         .append("path")
         .datum(validData)
         .attr("fill", "none")
@@ -383,22 +408,20 @@ const Chart = forwardRef(({ data, width, height }, ref) => {
     return () => {
       d3.select(document).on("keydown", null);
     };
-  }, [data, width, height]);
+  }, [data]);
 
   return (
-    <div className="relative w-full h-full">
-      <svg ref={svgRef} />
+    <>
+      <svg
+        ref={svgRef}
+        className="w-full h-full"
+        style={{ minHeight: "250px" }}
+      />
       <div
         ref={tooltipRef}
-        className="absolute pointer-events-none opacity-0 transition-opacity"
-        style={{
-          // backgroundColor: "#fff",
-          // borderRadius: "4px",
-          // padding: "8px",
-          zIndex: 40, // Lower z-index than brush
-        }}
+        className="absolute hidden bg-background/90 border border-primary/30 rounded-md p-2 text-xs pointer-events-none"
       />
-    </div>
+    </>
   );
 });
 

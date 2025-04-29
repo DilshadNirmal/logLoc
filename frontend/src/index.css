@@ -41,82 +41,12 @@ body {
   margin: 0;
   padding: 0;
   line-height: 1.5;
+  @apply bg-background;
+
+  /* for custom css to work */
   overflow: hidden;
-  overflow-x: hidden;
 }
 
 .font-helvetica {
   font-family: "Helvetica", sans-serif;
-}
-
-/* for custom radio checkbox in chart area */
-.container input:checked ~ .checkmark {
-  @apply bg-primary;
-}
-
-.container input:checked ~ .checkmark:before {
-  display: block;
-}
-
-.container:hover input ~ .checkmark {
-  @apply bg-text/30;
-}
-
-.container input:checked:hover ~ .checkmark {
-  @apply bg-primary/80;
-}
-
-@layer utilities {
-  .max-w-screen {
-    max-width: min(100%, 2560px);
-  }
-}
-
-/* Adjust base font size for different screen sizes */
-@media screen and (max-width: 1536px) {
-  html {
-    font-size: 14px;
-  }
-}
-
-@media screen and (max-width: 1024px) {
-  html {
-    font-size: 12px;
-  }
-}
-
-@media screen and (max-width: 768px) {
-  html {
-    font-size: 10px;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: auto !important;
-    width: 100dvw;
-  }
-}
-
-@media screen and (max-width: 458px) {
-  html {
-    font-size: 10px;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: auto !important;
-    width: 100vw;
-  }
-}
-
-/* Add smooth scrolling for mobile */
-@media screen and (max-width: 640px) {
-  .smooth-scroll {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-  }
 }

@@ -19,7 +19,6 @@ import Settings from "./pages/Settings";
 import EmailConfig from "./pages/EmailConfig";
 import UserList from "./pages/UserList";
 import ChangePassword from "./pages/ChangePassword";
-import { registerLicense } from "@syncfusion/ej2-base";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -146,10 +145,6 @@ const AppContent = () => {
     </Router>
   );
 };
-
-registerLicense(
-  "Ngo9BigBOggjHTQxAR8/V1NNaF5cXmZCe0xxWmFZfVtgdVdMYFlbR3JPMyBoS35Rc0VnWXhecHVQRGBYWEdwVEBU"
-);
 
 function App() {
   return (
