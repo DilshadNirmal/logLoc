@@ -42,7 +42,7 @@ const Gauge = ({ value = 0, min = -10, max = 10, label = "", units = "" }) => {
     svg
       .append("path")
       .datum({ endAngle: Math.PI / 1.2, startAngle: -Math.PI / 1.2 })
-      .style("fill", "#133044")
+      .style("fill", "#1330f4cc")
       .attr("d", arc);
 
     // Foreground arc (value indicator)
@@ -79,32 +79,31 @@ const Gauge = ({ value = 0, min = -10, max = 10, label = "", units = "" }) => {
       .attr("stroke", "#ffffff")
       .attr("stroke-width", 1);
 
-    // Add value text
+    // Add value and units text combined
     svg
       .append("text")
-      .attr("y", 0)
+      .attr("y", radius * 0.6) // Move text down
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
       .attr("fill", "#ffffff")
-      .attr("font-size", "24px")
-      .attr("font-weight", "bold")
+      .attr("font-size", "18px")
+      .attr("font-weight", "semi-bold")
       .text(`${value.toFixed(2)}`);
 
-    // Add units text
     svg
       .append("text")
-      .attr("y", 25)
+      .attr("y", radius * 0.8) // Place units below value
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
       .attr("fill", "#ffffff")
-      .attr("font-size", "14px")
+      .attr("font-size", "12px")
       .text(units);
 
     // Add label text if provided
     if (label) {
       svg
         .append("text")
-        .attr("y", -25)
+        .attr("y", -radius * 0.3)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
         .attr("fill", "#ffffff")

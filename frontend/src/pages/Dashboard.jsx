@@ -250,7 +250,7 @@ const Dashboard = () => {
               Signal Strength
             </h4>
             <div className="h-9/12 px-3 flex">
-              <div className="flex flex-col justify-center items-center h-[100%] w-[35%]">
+              <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
                 <div className="flex items-end justify-center gap-1">
                   {[1, 2, 3].map((bar) => (
                     <div

@@ -13,14 +13,11 @@ const AverageDataForm = ({
 }) => (
   <div className="grid sm:grid-cols-2 gap-8 h-full">
     <div className="sm:flex items-center justify-start hidden">
-      <img src={ReportAmico} alt="" className="w-8/12  ml-4" />
+      <img src={ReportAmico} alt="" className="md:w-9/12 md:ml-8" />
     </div>
-    <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 xl:pr-16 xl:pt-16 lg:pr-8 lg:pt-8">
-      <div
-        className="space-y-6 lg:space-y-6 xl:space-y-10
-      w-full sm:w-10/12"
-      >
-        <h2 className="text-2xl lg:text-xl text-center font-semibold tracking-wider text-text">
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="space-y-6 md:space-y-8 lg:space-y-6 xl:space-y-10 w-full sm:w-10/12">
+        <h2 className="text-lg lg:text-xl text-center font-semibold tracking-wider text-text">
           Select Data Range
         </h2>
 
@@ -58,8 +55,10 @@ const AverageDataForm = ({
         </div>
 
         <div className="flex items-center justify-center gap-20">
-          <label className="text-text w-32 font-bold">Average By:</label>
-          <div className="w-7/12 flex items-center gap-8">
+          <label className="text-text w-fit md:w-32 font-semibold">
+            Average By:
+          </label>
+          <div className="w-7/12 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-8">
             <RadioOption
               value="hour"
               checked={averageBy === "hour"}

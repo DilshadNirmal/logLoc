@@ -41,7 +41,7 @@ const CountWiseForm = ({ onDownload }) => {
   return (
     <div className="grid sm:grid-cols-2 sm:gap-8 items-center justify-center h-full">
       <div className="sm:flex items-center justify-start hidden">
-        <img src={ReportAmico} alt="" className="w-8/12 ml-4" />
+        <img src={ReportAmico} alt="" className="md:w-9/12 md:ml-8" />
       </div>
       <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 sm:pr-16 sm:pt-16">
         <div className="space-y-10 w-full sm:w-10/12">
@@ -49,7 +49,7 @@ const CountWiseForm = ({ onDownload }) => {
             Select Count
           </h2>
 
-          <div className="grid grid-cols-2 gap-8 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 place-items-center md:gap-8 mt-8">
             <CheckboxOption
               label="Last 100 Data"
               checked={selectedCounts.last100}
@@ -73,7 +73,7 @@ const CountWiseForm = ({ onDownload }) => {
           </div>
         </div>
 
-        <div className="flex justify-center items-center mt-22 pb-8 w-10/12">
+        <div className="flex justify-center items-center mt-10 md:mt-22 pb-8 w-10/12">
           <DownloadButton onClick={onDownload} />
         </div>
       </div>

@@ -13,11 +13,11 @@ const IntervalDataForm = ({
 }) => (
   <div className="grid sm:grid-cols-2 sm:gap-8 items-center justify-center h-full">
     <div className="sm:flex items-center justify-start hidden">
-      <img src={ReportAmico} alt="" className="w-8/12 ml-4" />
+      <img src={ReportAmico} alt="" className="md:w-9/12 md:ml-8" />
     </div>
-    <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 sm:pr-16 sm:pt-16">
-      <div className="space-y-10 w-full sm:w-10/12">
-        <h2 className="text-2xl text-center font-bold text-text">
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="space-y-6 md:space-y-8 w-full sm:w-10/12">
+        <h2 className="text-lg lg:text-xl text-center font-semibold tracking-wider text-text">
           Select Time Interval
         </h2>
 
@@ -56,10 +56,10 @@ const IntervalDataForm = ({
         </div>
 
         <div className="flex items-center justify-center gap-20">
-          <label className="text-text w-32 font-bold">
+          <label className="text-text w-fit md:w-32 font-semibold">
             Get 1 data for every-
           </label>
-          <div className="w-7/12 flex items-center gap-8">
+          <div className="w-7/12 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-8">
             <RadioOption
               value="hour"
               checked={interval === "hour"}

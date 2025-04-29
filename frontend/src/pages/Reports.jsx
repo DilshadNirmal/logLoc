@@ -9,15 +9,17 @@ import CountWiseForm from "../components/form/countWiseForm";
 
 const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
   <button
-    className={`flex items-center justify-center gap-3 p-4 sm:p-3 lg:p-3 rounded-lg transition-all ${
+    className={`flex items-center justify-center gap-3 p-3 md:p-2 lg:p-3 rounded-lg transition-all ${
       isSelected
         ? "bg-primary text-white"
         : "bg-secondary text-text hover:bg-secondary/70"
     }`}
     onClick={onClick}
   >
-    <Icon className="w-8 h-8 lg:w-7 lg:h-7" />
-    <span className="text-lg font-medium tracking-wide">{label}</span>
+    <Icon className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-8 2xl:h-8" />
+    <span className="text-base 2xl:text-lg font-medium tracking-wide">
+      {label}
+    </span>
   </button>
 );
 
@@ -110,7 +112,7 @@ const Reports = () => {
         }}
       >
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 m-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 m-4 2xl:m-8">
             {tabOptions.map((tab) => (
               <TabButton
                 key={tab.id}
@@ -122,7 +124,7 @@ const Reports = () => {
             ))}
           </div>
           <div
-            className="bg-primary/25 rounded-lg p-4 xl:p-8 lg:p-4 sm:m-8 my-4 mx-2"
+            className="bg-primary/25 rounded-lg p-2 2xl:p-4 m-4 2xl:m-8"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}

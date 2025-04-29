@@ -11,10 +11,10 @@ const DatePickerForm = ({
 }) => (
   <div className="grid sm:grid-cols-2 gap-8 h-full">
     <div className="sm:flex items-center justify-start hidden">
-      <img src={ReportAmico} alt="" className="w-8/12 ml-4" />
+      <img src={ReportAmico} alt="" className="md:w-9/12 md:ml-8" />
     </div>
     <div className="flex flex-col items-center justify-center h-full py-5 px-4 sm:pl-0 sm:pr-16 sm:pt-16">
-      <div className="space-y-10 w-full sm:w-10/12">
+      <div className="space-y-6 md:space-y-8 w-full sm:w-10/12">
         <h2 className="text-2xl text-center font-bold text-text">
           Select Date Range
         </h2>

@@ -58,7 +58,7 @@ const Navbar = () => {
         location.pathname === "/" ? "bg-transparent" : "bg-background"
       } fixed w-full z-20 top-0 start-0 shadow-md`}
     >
-      <div className="max-w-screen flex flex-wrap items-center justify-between mx-8 md:mx-6 2xl:mx-8 px-4 md:px-2 2xl:px-4 py-3 md:py-2 2xl:py-3 rtl:space-x-reverse">
+      <div className="max-w-screen flex flex-wrap items-center justify-between mx-4 md:mx-6 2xl:mx-8 px-2 md:px-2 2xl:px-4 py-3 md:py-2 2xl:py-3 rtl:space-x-reverse">
         <Link
           to="https://www.xyma.in/"
           className="flex items-center space-x-3 px-8 md:px-6 2xl:px-8 py-2 md:py-1.5 2xl:py-2"
@@ -79,7 +79,8 @@ const Navbar = () => {
                   }}
                 >
                   <span className="sr-only">Open user menu</span>
-                  <HiOutlineUser className="h-10 md:h-8 2xl:h-10 w-6 md:w-5 2xl:w-6" />
+
+                  <HiOutlineUser className="h-6 md:h-8 2xl:h-10 w-5 md:w-5 2xl:w-6" />
                 </button>
                 {/* dropdown menu */}
                 <div
@@ -132,7 +133,7 @@ const Navbar = () => {
                 type="button"
                 className="text-text bg-secondary px-4 py-2 text-center flex items-center justify-center rounded-lg relative"
               >
-                <IoIosNotificationsOutline className="h-10 md:h-8 2xl:h-10 w-6 md:w-5 2xl:w-6" />
+                <IoIosNotificationsOutline className="h-6 md:h-8 2xl:h-10 w-5 md:w-5 2xl:w-6" />
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   2
                 </span>
