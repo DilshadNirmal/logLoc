@@ -1,180 +1,158 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 
-const Gauge = ({
-  value = 0,
-  min = -10,
-  max = 10,
-  label = "",
-  units = "mV",
-  colorScheme = ["#1330f4cc", "#409fff"],
-}) => {
+const Gauge = ({ value = 0, min = -10, max = 10, label = "", units = "" }) => {
   const svgRef = useRef(null);
 
   useEffect(() => {
     if (!svgRef.current) return;
 
-    // Clear previous content
+    // Clear any existing SVG content
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Set dimensions
-    const width = svgRef.current.clientWidth;
-    const height = svgRef.current.clientHeight;
-    const radius = (Math.min(width, height) / 2) * 0.8;
+    // Set up dimensions
+    const width = 200;
+    const height = 200;
+    const margin = 20;
+    const radius = Math.min(width, height) / 2 - margin;
 
     // Create SVG
     const svg = d3
       .select(svgRef.current)
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet");
-
-    // Create gauge group
-    const g = svg
+      .attr("width", width)
+      .attr("height", height)
       .append("g")
-      .attr("transform", `translate(${width / 2}, ${height / 2})`);
+      .attr("transform", `translate(${width / 2},${height / 2})`);
 
-    // Define gauge parameters
-    const startAngle = -225;
-    const endAngle = 45;
-    const angleRange = endAngle - startAngle;
+    // Create scale for angle conversion
+    const angleScale = d3
+      .scaleLinear()
+      .domain([min, max])
+      .range([-Math.PI / 1.2, Math.PI / 1.2]);
 
-    // Scale for the gauge
-    const scale = d3.scaleLinear().domain([min, max]).range([0, 1]);
-
-    // Calculate the value as a percentage of the range
-    const valuePercent = scale(value);
-
-    // Create arc generators
-    const backgroundArc = d3
+    // Create arc generator
+    const arc = d3
       .arc()
-      .innerRadius(radius * 0.6)
+      .innerRadius(radius - 20)
       .outerRadius(radius)
-      .startAngle(startAngle * (Math.PI / 180))
-      .endAngle(endAngle * (Math.PI / 180));
+      .startAngle(-Math.PI / 1.2)
+      .endAngle(Math.PI / 1.2);
 
-    const valueArc = d3
+    // Background arc
+    svg
+      .append("path")
+      .datum({ endAngle: Math.PI / 1.2, startAngle: -Math.PI / 1.2 })
+      .style("fill", "#133044")
+      .attr("d", arc);
+
+    // Foreground arc (value indicator)
+    const foregroundArc = d3
       .arc()
-      .innerRadius(radius * 0.6)
+      .innerRadius(radius - 20)
       .outerRadius(radius)
-      .startAngle(startAngle * (Math.PI / 180))
-      .endAngle((startAngle + valuePercent * angleRange) * (Math.PI / 180));
+      .startAngle(-Math.PI / 1.2)
+      .endAngle(angleScale(value));
 
-    // Draw background arc
-    g.append("path").attr("d", backgroundArc).attr("fill", colorScheme[0]);
+    svg.append("path").style("fill", "#409fff").attr("d", foregroundArc);
 
-    // Draw value arc
-    g.append("path").attr("d", valueArc).attr("fill", colorScheme[1]);
+    // Add needle
+    const needleLength = radius - 25;
+    const angle = angleScale(value);
 
-    // Add ticks
-    const tickCount = 9;
-    const tickData = Array.from(
-      { length: tickCount },
-      (_, i) => (i * (max - min)) / (tickCount - 1) + min
-    );
+    // Create needle shape
+    const needlePath = `M -2 0 L ${needleLength * Math.sin(angle)} ${
+      -needleLength * Math.cos(angle)
+    } L 2 0`;
 
-    tickData.forEach((tick) => {
-      const tickPercent = scale(tick);
-      const tickAngle = startAngle + tickPercent * angleRange;
-      const tickRadians = tickAngle * (Math.PI / 180);
-      const innerPoint = [
-        Math.cos(tickRadians) * radius * 0.6,
-        Math.sin(tickRadians) * radius * 0.6,
-      ];
-      const outerPoint = [
-        Math.cos(tickRadians) * radius * 1.05,
-        Math.sin(tickRadians) * radius * 1.05,
-      ];
-
-      // Draw tick line
-      g.append("line")
-        .attr("x1", innerPoint[0])
-        .attr("y1", innerPoint[1])
-        .attr("x2", outerPoint[0])
-        .attr("y2", outerPoint[1])
-        .attr("stroke", "#e9ebed")
-        .attr("stroke-width", 1.5);
-
-      // Draw tick label
-      g.append("text")
-        .attr("x", Math.cos(tickRadians) * radius * 1.2)
-        .attr("y", Math.sin(tickRadians) * radius * 1.2)
-        .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "middle")
-        .attr("fill", "#e9ebed")
-        .attr("font-size", `${radius * 0.12}px`)
-        .text(tick);
-    });
-
-    // Add pointer
-    const pointerAngle = startAngle + valuePercent * angleRange;
-    const pointerLength = radius * 0.8;
-    const pointerWidth = radius * 0.04;
-    const pointerRadians = pointerAngle * (Math.PI / 180);
-
-    const pointerPath = `
-      M ${-pointerWidth} 0
-      L 0 ${-pointerLength}
-      L ${pointerWidth} 0
-      Z
-    `;
-
-    g.append("line")
-      .attr("x1", 0)
-      .attr("y1", 0)
-      .attr("x2", Math.cos(pointerRadians) * radius * 0.8)
-      .attr("y2", Math.sin(pointerRadians) * radius * 0.8)
-      .attr("stroke", "#ff3333")
-      .attr("stroke-width", 2.5)
-      .attr("stroke-linecap", "round");
-
-    // g.append("path")
-    //   .attr("d", pointerPath)
-    //   .attr("fill", "#e9ebed")
-    //   .attr("transform", `rotate(${pointerAngle})`);
-
-    // Add center circle
-    g.append("circle")
-      .attr("r", radius * 0.08)
-      .attr("fill", "#409fff")
-      .attr("stroke", "#e9ebed")
+    svg
+      .append("path")
+      .attr("d", needlePath)
+      .attr("fill", "none")
+      .attr("stroke", "#ffffff")
       .attr("stroke-width", 2);
 
+    // Add center circle
+    svg
+      .append("circle")
+      .attr("r", 4)
+      .attr("fill", "#409fff")
+      .attr("stroke", "#ffffff")
+      .attr("stroke-width", 1);
+
     // Add value text
-    g.append("text")
-      .attr("y", radius * 0.3)
+    svg
+      .append("text")
+      .attr("y", 0)
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
-      .attr("fill", "#409fff")
-      .attr("font-size", `${radius * 0.25}px`)
+      .attr("fill", "#ffffff")
+      .attr("font-size", "24px")
       .attr("font-weight", "bold")
       .text(`${value.toFixed(2)}`);
 
     // Add units text
-    g.append("text")
-      .attr("y", radius * 0.5)
+    svg
+      .append("text")
+      .attr("y", 25)
       .attr("text-anchor", "middle")
       .attr("dominant-baseline", "middle")
-      .attr("fill", "#e9ebed")
-      .attr("font-size", `${radius * 0.15}px`)
+      .attr("fill", "#ffffff")
+      .attr("font-size", "14px")
       .text(units);
 
     // Add label text if provided
     if (label) {
-      g.append("text")
-        .attr("y", -radius * 0.3)
+      svg
+        .append("text")
+        .attr("y", -25)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .attr("fill", "#e9ebed")
-        .attr("font-size", `${radius * 0.15}px`)
+        .attr("fill", "#ffffff")
+        .attr("font-size", "16px")
         .text(label);
     }
-  }, [value, min, max, label, units, colorScheme]);
+
+    // Add min and max ticks and labels outside the gauge
+    svg
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("transform", `translate(${-radius * 0.9}, ${radius * 0.7})`)
+      .style("font-size", "12px")
+      .style("fill", "#ffffff")
+      .text(min + units);
+
+    svg
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("transform", `translate(${radius * 0.9}, ${radius * 0.7})`)
+      .style("font-size", "12px")
+      .style("fill", "#ffffff")
+      .text(max + units);
+
+    // Add small tick marks
+    const tickLength = 8;
+    svg
+      .append("line")
+      .attr("x1", -radius * Math.cos(Math.PI / 1.2))
+      .attr("y1", radius * Math.sin(Math.PI / 1.2))
+      .attr("x2", -(radius + tickLength) * Math.cos(Math.PI / 1.2))
+      .attr("y2", (radius + tickLength) * Math.sin(Math.PI / 1.2))
+      .style("stroke", "#ffffff")
+      .style("stroke-width", 1);
+
+    svg
+      .append("line")
+      .attr("x1", radius * Math.cos(Math.PI / 1.2))
+      .attr("y1", radius * Math.sin(Math.PI / 1.2))
+      .attr("x2", (radius + tickLength) * Math.cos(Math.PI / 1.2))
+      .attr("y2", (radius + tickLength) * Math.sin(Math.PI / 1.2))
+      .style("stroke", "#ffffff")
+      .style("stroke-width", 1);
+  }, [value, min, max, label, units]);
 
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <svg ref={svgRef} className="w-full h-full" />
+      <svg ref={svgRef}></svg>
     </div>
   );
 };

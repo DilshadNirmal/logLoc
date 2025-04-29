@@ -181,7 +181,7 @@ const Dashboard = () => {
         <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-2">
           {/* A side */}
           <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-xs 2xl:text-sm">
+            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
               A side
             </legend>
 
@@ -205,7 +205,7 @@ const Dashboard = () => {
 
           {/* B side */}
           <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-xs 2xl:text-sm">
+            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
               B side
             </legend>
 
