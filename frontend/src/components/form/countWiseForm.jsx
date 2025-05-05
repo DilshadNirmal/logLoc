@@ -2,7 +2,7 @@ import { DownloadButton, FormInput } from "./FormElements";
 import ReportAmico from "../../assets/images/report_amico.png";
 
 const CheckboxOption = ({ label, checked, onChange }) => (
-  <label className="flex items-center justify-between md:gap-3 cursor-pointer text-text w-10/12 md:w-6/12 mt-8">
+  <label className="flex items-center justify-between md:gap-3 cursor-pointer text-text w-10/12 md:w-8/12 mt-8">
     <div className="relative">
       <input
         type="checkbox"
@@ -86,7 +86,7 @@ const CountWiseForm = ({
           )}
         </div>
 
-        <div className="flex justify-center items-center mt-10 md:mt-22 pb-8 w-11/12">
+        <div className="flex justify-center items-center mt-10 md:mt-16 pb-8 w-11/12">
           <DownloadButton onClick={onDownload} />
         </div>
       </div>

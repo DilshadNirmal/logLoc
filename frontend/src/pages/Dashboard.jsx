@@ -1,6 +1,7 @@
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import axiosInstance from "../lib/axios";
+import ReactSpeedometer from "react-d3-speedometer";
 
 import ThreedModel from "../canvas/ThreedModel";
 import Chart from "../components/Chart";
@@ -190,7 +191,7 @@ const Dashboard = () => {
             <legend className="text-xs md:text-[8px] 2xl:text-xs px-2 md:px-1 2xl:px-2 text-primary">
               A Side
             </legend>
-            <StatusBarThings data={voltageDataA} />
+            <StatusBarThings data={voltageDataA} side={"A"} />
           </fieldset>
 
           <fieldset className="border border-primary/75 rounded">
@@ -215,23 +216,56 @@ const Dashboard = () => {
             </legend>
 
             <div className="flex flex-col md:flex-row items-center justify-around h-full">
-              <div className="h-[85%] w-[45%]">
-                <Gauge
+              <div className="h-[55%] w-[40%]">
+                {/* <Gauge
                   value={getMinVoltage(voltageDataA.voltages)}
                   min={-10}
                   max={10}
                   label="Min"
                   units="mV"
                   // colorScheme={["#133044", "#ff4d4d"]}
+                /> */}
+                <ReactSpeedometer
+                  value={getMinVoltage(voltageDataA.voltages)}
+                  minValue={-10}
+                  maxValue={10}
+                  width={150}
+                  height={120}
+                  needleHeightRatio={0.7}
+                  needleColor="#1e88e5"
+                  startColor="#3f51b5"
+                  endColor="#ff4081"
+                  segments={5}
+                  ringWidth={15}
+                  textColor="#ffffff"
+                  valueFormat=".1f"
+                  currentValueText="Min: ${value} mV"
+                  fluidWidth={false}
+                  valueTextFontSize="12"
+                  valueTextFontWeight="semibold"
+                  labelFontSize="10"
                 />
               </div>
-              <div className="h-[85%] w-[45%]">
-                <Gauge
+              <div className="h-[55%] w-[40%]">
+                <ReactSpeedometer
                   value={getMaxVoltage(voltageDataA.voltages)}
-                  min={-10}
-                  max={10}
-                  label="Max"
-                  units="mV"
+                  minValue={-10}
+                  maxValue={10}
+                  width={150}
+                  height={120}
+                  needleHeightRatio={0.7}
+                  needleColor="#1e88e5"
+                  startColor="#3f51b5"
+                  endColor="#ff4081"
+                  segments={5}
+                  ringWidth={15}
+                  textColor="#ffffff"
+                  valueFormat=".1f"
+                  currentValueText="Max: ${value} mV"
+                  valueTextFontSize="12"
+                  labelFontSize="10"
+                  valueTextFontWeight="semibold"
+                  fluidWidth={false}
                 />
               </div>
             </div>
@@ -243,24 +277,49 @@ const Dashboard = () => {
               B side
             </legend>
 
-            <div className=" flex flex-col md:flex-row items-center justify-center gap-2 h-full">
-              <div className="h-[85%] w-[45%]">
-                <Gauge
+            <div className=" flex flex-col md:flex-row items-center justify-center gap-1.5 h-full">
+              <div className="h-[55%] w-[40%]">
+                <ReactSpeedometer
                   value={getMinVoltage(voltageDataB.voltages)}
-                  min={-10}
-                  max={10}
-                  label="Min"
-                  units="mV"
-                  // colorScheme={["#133044", "#ff4d4d"]}
+                  minValue={-10}
+                  maxValue={10}
+                  width={150}
+                  height={120}
+                  needleHeightRatio={0.7}
+                  needleColor="#1e88e5"
+                  startColor="#3f51b5"
+                  endColor="#ff4081"
+                  segments={5}
+                  ringWidth={15}
+                  textColor="#ffffff"
+                  valueFormat=".1f"
+                  currentValueText="Min: ${value} mV"
+                  valueTextFontSize="12"
+                  valueTextFontWeight="semibold"
+                  labelFontSize="10"
+                  fluidWidth={false}
                 />
               </div>
-              <div className="h-[85%] w-[45%]">
-                <Gauge
+              <div className="h-[55%] w-[40%]">
+                <ReactSpeedometer
                   value={getMaxVoltage(voltageDataB.voltages)}
-                  min={-10}
-                  max={10}
-                  label="Max"
-                  units="mV"
+                  minValue={-10}
+                  maxValue={10}
+                  width={150}
+                  height={120}
+                  needleHeightRatio={0.7}
+                  needleColor="#1e88e5"
+                  startColor="#3f51b5"
+                  endColor="#ff4081"
+                  segments={5}
+                  ringWidth={15}
+                  textColor="#ffffff"
+                  valueFormat=".1f"
+                  currentValueText="Max: ${value} mV"
+                  valueTextFontSize="12"
+                  valueTextFontWeight="semibold"
+                  labelFontSize="10"
+                  fluidWidth={false}
                 />
               </div>
             </div>

@@ -27,7 +27,7 @@ const ThreedModel = () => {
   return (
     <Canvas
       camera={{
-        position: [0, 2, 10], // Moved camera back and up
+        position: [0, 0, 25], // Moved camera back and up
         fov: 45,
       }}
       style={{ height: "100%" }}
@@ -43,8 +43,8 @@ const ThreedModel = () => {
           enableRotate={true}
           minPolarAngle={Math.PI / 4}
           maxPolarAngle={Math.PI / 1.5}
-          minDistance={15} // Prevent zooming too close
-          maxDistance={30} // Limit max zoom out
+          minDistance={30} // Prevent zooming too close
+          maxDistance={40} // Limit max zoom out
         />
       </Suspense>
     </Canvas>

@@ -328,6 +328,9 @@ async function getDateData(configuration, dateRange, excelWriter) {
           excelFilePath: excelWriter.filePath,
           mongoUri: mongoUri,
         },
+        resourceLimits: {
+          maxOldGenerationSizeMb: 4096,
+        },
       });
 
       // Track progress

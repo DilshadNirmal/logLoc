@@ -1,6 +1,9 @@
 const { parentPort, workerData } = require("worker_threads");
 const mongoose = require("mongoose");
 const ExcelJS = require("exceljs");
+const fs = require("fs");
+const stream = require("stream");
+const { promisify } = require("util");
 
 // Define VoltageData schema for the worker
 const VoltageDataSchema = new mongoose.Schema({
@@ -61,19 +64,34 @@ async function processData() {
       query.sensorGroup = workerData.sensorGroup;
     }
 
-    // Create Excel workbook
-    const workbook = new ExcelJS.Workbook();
+    // Create Excel workbook with streaming options
+    const options = {
+      filename: workerData.excelFilePath,
+      useStyles: true,
+      useSharedStrings: false,
+    };
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter(options);
     const worksheet = workbook.addWorksheet("Data");
 
     // Add headers
-    worksheet.addRow(["Date", "Timestamp", "Sensor ID", "Value", "Status"]);
+    worksheet.columns = [
+      { header: "Date", key: "date", width: 15 },
+      { header: "Timestamp", key: "timestamp", width: 20 },
+      { header: "Sensor ID", key: "sensorId", width: 15 },
+      { header: "Value", key: "value", width: 15 },
+      { header: "Status", key: "status", width: 15 },
+    ];
 
     // Process in smaller batches to avoid memory issues
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 10;
     let totalProcessed = 0;
     let totalRows = 0;
     let hasMoreData = true;
     let lastId = null;
+
+    // Collect rows in batches to add to Excel
+    const rowBatch = [];
+    const ROWS_PER_WRITE = 500;
 
     // Use _id-based pagination instead of skip/limit for better performance
     while (hasMoreData) {
@@ -86,7 +104,8 @@ async function processData() {
       // Get a batch of documents
       const batch = await VoltageData.find(batchQuery)
         .sort({ _id: 1 })
-        .limit(BATCH_SIZE);
+        .limit(BATCH_SIZE)
+        .lean();
 
       // If we got fewer documents than batch size, we've reached the end
       if (batch.length < BATCH_SIZE) {
@@ -105,7 +124,7 @@ async function processData() {
           const recordDate = new Date(record.timestamp);
           const dateString = recordDate.toISOString().split("T")[0];
 
-          for (const [sensorKey, value] of record.voltages.entries()) {
+          for (const [sensorKey, value] of Object.entries(record.voltages)) {
             if (value !== null && !isNaN(value)) {
               const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
 
@@ -126,6 +145,20 @@ async function processData() {
               totalRows++;
             }
           }
+
+          //   periodically commit rows to file to free memeory
+          if (rowBatch.length >= ROWS_PER_WRITE || !hasMoreData) {
+            for (const row of rowBatch) {
+              worksheet.addRow(row).commit();
+            }
+            rowBatch.length = 0;
+
+            // forcing garbage collection
+            if (global.gc) {
+              console.log("forcing gc");
+              global.gc();
+            }
+          }
         }
 
         // Report progress
@@ -137,13 +170,21 @@ async function processData() {
           });
 
           // Allow garbage collection
+          batch.length = 0;
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
     }
 
-    // Save the Excel file
-    await workbook.xlsx.writeFile(workerData.excelFilePath);
+    // Add any remaining rows
+    if (rowBatch.length > 0) {
+      for (const row of rowBatch) {
+        worksheet.addRow(row).commit();
+      }
+    }
+
+    // Write the workbook to file
+    await workbook.commit();
 
     // Send completion message
     parentPort.postMessage({
