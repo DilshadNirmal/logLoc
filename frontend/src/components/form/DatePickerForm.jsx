@@ -1,4 +1,3 @@
-import React from "react";
 import { FormInput, DownloadButton } from "./FormElements";
 import ReportAmico from "../../assets/images/report_amico.png";
 
@@ -25,7 +24,15 @@ const DatePickerForm = ({
             onChange={(e) => setConfiguration(e.target.value)}
             className="w-full p-2 bg-transparent text-text outline-none"
           >
-            <option value="">Select configuration</option>
+            <option value="" className="bg-background/95">
+              Select configuration
+            </option>
+            <option value="A" className="bg-background/95">
+              A Side
+            </option>
+            <option value="B" className="bg-background/95">
+              B Side
+            </option>
           </select>
         </FormInput>
 

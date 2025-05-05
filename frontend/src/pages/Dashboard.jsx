@@ -103,14 +103,43 @@ const Dashboard = () => {
     return "bg-secondary text-text";
   };
 
-  useEffect(() => {
-    fetchVoltages();
-    const interval = setInterval(fetchVoltages, 500);
-    return () => clearInterval(interval);
-  }, [selectedSensors, timeRange, voltageDataA, voltageDataB]);
+  const getMinVoltage = (voltages) => {
+    if (!voltages || Object.keys(voltages).lenght === 0) return 0;
+
+    const values = Object.values(voltages).filter(
+      (v) => v !== undefined && v !== null
+    );
+
+    if (values.length === 0) return 0;
+
+    return Math.min(...values);
+  };
+
+  const getMaxVoltage = (voltages) => {
+    if (!voltages || Object.keys(voltages).length == 0) return 0;
+
+    const values = Object.values(voltages).filter(
+      (v) => v !== undefined && v !== null
+    );
+
+    if (values.length === 0) return 0;
+
+    return Math.max(...values);
+  };
 
   useEffect(() => {
-    fetchChart();
+    fetchVoltages();
+    fetchChart(); // Initial fetch for chart data
+
+    // Set up intervals for both voltage and chart updates
+    const voltageInterval = setInterval(fetchVoltages, 2000);
+    const chartInterval = setInterval(fetchChart, 2000); // Update chart every second
+
+    // Cleanup both intervals when component unmounts
+    return () => {
+      clearInterval(voltageInterval);
+      clearInterval(chartInterval);
+    };
   }, [selectedSensors, timeRange]);
 
   useEffect(() => {
@@ -185,11 +214,10 @@ const Dashboard = () => {
               A side
             </legend>
 
-            <div className="flex items-center justify-around h-full">
+            <div className="flex flex-col md:flex-row items-center justify-around h-full">
               <div className="h-[85%] w-[45%]">
                 <Gauge
-                  // value={getMinVoltage(voltageDataA.voltages)}
-                  value={10}
+                  value={getMinVoltage(voltageDataA.voltages)}
                   min={-10}
                   max={10}
                   label="Min"
@@ -198,7 +226,13 @@ const Dashboard = () => {
                 />
               </div>
               <div className="h-[85%] w-[45%]">
-                <Gauge value={6} min={-10} max={10} label="Max" units="mV" />
+                <Gauge
+                  value={getMaxVoltage(voltageDataA.voltages)}
+                  min={-10}
+                  max={10}
+                  label="Max"
+                  units="mV"
+                />
               </div>
             </div>
           </fieldset>
@@ -209,11 +243,10 @@ const Dashboard = () => {
               B side
             </legend>
 
-            <div className=" flex items-center justify-center gap-2 h-full">
+            <div className=" flex flex-col md:flex-row items-center justify-center gap-2 h-full">
               <div className="h-[85%] w-[45%]">
                 <Gauge
-                  // value={getMinVoltage(voltageDataA.voltages)}
-                  value={-10}
+                  value={getMinVoltage(voltageDataB.voltages)}
                   min={-10}
                   max={10}
                   label="Min"
@@ -222,7 +255,13 @@ const Dashboard = () => {
                 />
               </div>
               <div className="h-[85%] w-[45%]">
-                <Gauge value={6} min={-10} max={10} label="Max" units="mV" />
+                <Gauge
+                  value={getMaxVoltage(voltageDataB.voltages)}
+                  min={-10}
+                  max={10}
+                  label="Max"
+                  units="mV"
+                />
               </div>
             </div>
           </fieldset>
@@ -230,11 +269,13 @@ const Dashboard = () => {
 
         {/* battery and Signal */}
         <div className="flex flex-col md:flex-row lg:flex-row gap-2">
-          <div className="w-full h-full sm:w-4/12 bg-secondary text-text rounded-lg p-1">
-            <h4 className=" mt-2 mb-3 sm:mb-2 ml-4 text-sm">battery Status</h4>
+          <div className="w-full h-[400px] sm:w-4/12 sm:h-full bg-secondary text-text rounded-lg p-1">
+            <h4 className="mt-4 md:mt-2 mb-5 sm:mb-2 ml-4 text-lg md:text-sm">
+              battery Status
+            </h4>
 
             {/* battery will be down here */}
-            <div className="w-full h-8/12 sm:h-9/12 flex sm:flex-col justify-around">
+            <div className="w-full h-10/12 sm:h-9/12 flex sm:flex-col mt-10 md:mt-0 justify-around">
               <BatteryRender
                 orient={windowWidth >= 1024 ? "height" : "width"}
                 value={voltageDataA.batteryStatus}
@@ -340,7 +381,7 @@ const Dashboard = () => {
                     sensorId={sensorId}
                     voltage={voltage}
                     isSelected={selectedSensors.includes(sensorId)}
-                    onClick={() => handleSensorSelection(sensorId)}
+                    // onClick={() => handleSensorSelection(sensorId)}
                   />
                 );
               })}
@@ -360,7 +401,7 @@ const Dashboard = () => {
                     sensorId={sensorId}
                     voltage={voltage}
                     isSelected={selectedSensors.includes(sensorId)}
-                    onClick={() => handleSensorSelection(sensorId)}
+                    // onClick={() => handleSensorSelection(sensorId)}
                   />
                 );
               })}
@@ -410,11 +451,7 @@ const Dashboard = () => {
           </div>
           <div className="chart-container">
             {chartData.length > 0 ? (
-              <Chart
-                ref={chartRef}
-                data={chartData}
-                key={`chart-${JSON.stringify(chartData)}`}
-              />
+              <Chart ref={chartRef} data={chartData} />
             ) : (
               <div className="h-full flex items-center justify-center text-text">
                 no voltage data to display chart...

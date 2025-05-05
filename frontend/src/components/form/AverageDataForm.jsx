@@ -27,7 +27,15 @@ const AverageDataForm = ({
             onChange={(e) => setConfiguration(e.target.value)}
             className="w-full p-2 bg-transparent text-text outline-none"
           >
-            <option value="">Select configuration</option>
+            <option value="" className="bg-background/95">
+              Select configuration
+            </option>
+            <option value="A" className="bg-background/95">
+              A Side
+            </option>
+            <option value="B" className="bg-background/95">
+              B Side
+            </option>
           </select>
         </FormInput>
 
@@ -54,11 +62,11 @@ const AverageDataForm = ({
           </FormInput>
         </div>
 
-        <div className="flex items-center justify-center gap-20">
-          <label className="text-text w-fit md:w-32 font-semibold">
+        <div className="flex items-center justify-center gap-12 md:gap-20">
+          <label className="text-text w-fit md:w-32 font-semibold tracking-wider">
             Average By:
           </label>
-          <div className="w-7/12 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-8">
+          <div className="w-9/12 md:w-7/12 flex flex-row items-center justify-center gap-2 md:gap-8">
             <RadioOption
               value="hour"
               checked={averageBy === "hour"}

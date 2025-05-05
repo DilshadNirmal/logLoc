@@ -1,11 +1,11 @@
-import React from "react";
 import { MdOutlineFileDownload } from "react-icons/md";
 
 export const FormInput = ({ label, children }) => (
   <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20">
     <label className="text-text w-fit md:w-32">{label}</label>
-    <div className="w-full md:w-7/12 bg-[#1d4873] border border-secondary rounded-lg px-2">
-      {children}
+    <div className="w-full md:w-7/12 bg-primary/50 border border-secondary rounded-lg px-2">
+      {" "}
+      {/*[#1d4873]*/} {children}
     </div>
   </div>
 );
@@ -44,7 +44,7 @@ export const DownloadButton = ({ onClick }) => (
     onClick={onClick}
     className="flex items-center justify-center gap-2 p-3 px-6 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
   >
-    <MdOutlineFileDownload className="w-5 h-5" />
+    <MdOutlineFileDownload className="w-6 h-6 md:w-5 md:h-5" />
     Download Excel
   </button>
 );

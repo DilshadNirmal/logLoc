@@ -1,9 +1,8 @@
-import React from "react";
-import { DownloadButton } from "./FormElements";
+import { DownloadButton, FormInput } from "./FormElements";
 import ReportAmico from "../../assets/images/report_amico.png";
 
 const CheckboxOption = ({ label, checked, onChange }) => (
-  <label className="flex items-center gap-3 cursor-pointer text-text mt-8">
+  <label className="flex items-center justify-between md:gap-3 cursor-pointer text-text w-10/12 md:w-6/12 mt-8">
     <div className="relative">
       <input
         type="checkbox"
@@ -19,18 +18,17 @@ const CheckboxOption = ({ label, checked, onChange }) => (
         {checked && <div className="w-3 h-3 bg-primary rounded"></div>}
       </div>
     </div>
-    <span>{label}</span>
+    <span className="text-center w-9/12 md:w-full">{label}</span>
   </label>
 );
 
-const CountWiseForm = ({ onDownload }) => {
-  const [selectedCounts, setSelectedCounts] = React.useState({
-    last100: true,
-    last500: false,
-    last1000: false,
-    custom: false,
-  });
-
+const CountWiseForm = ({
+  selectedCounts,
+  setSelectedCounts,
+  customCount,
+  setCustomCount,
+  onDownload,
+}) => {
   const handleCheckboxChange = (key) => {
     setSelectedCounts((prev) => ({
       ...Object.fromEntries(Object.entries(prev).map(([k]) => [k, false])),
@@ -71,9 +69,24 @@ const CountWiseForm = ({ onDownload }) => {
               onChange={() => handleCheckboxChange("custom")}
             />
           </div>
+
+          {selectedCounts.custom && (
+            <div className="mt-6">
+              <FormInput label="Count Value">
+                <input
+                  type="number"
+                  value={customCount}
+                  onChange={(e) => setCustomCount(e.target.value)}
+                  placeholder="Enter custom count"
+                  className="w-full p-2 bg-transparent text-text outline-none"
+                  min="1"
+                />
+              </FormInput>
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-center items-center mt-10 md:mt-22 pb-8 w-10/12">
+        <div className="flex justify-center items-center mt-10 md:mt-22 pb-8 w-11/12">
           <DownloadButton onClick={onDownload} />
         </div>
       </div>

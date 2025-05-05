@@ -1,4 +1,4 @@
-import { useRef, useEffect, forwardRef } from "react";
+import { useRef, useEffect, forwardRef, useState } from "react";
 import * as d3 from "d3";
 
 const Chart = forwardRef(({ data }, ref) => {
@@ -6,6 +6,8 @@ const Chart = forwardRef(({ data }, ref) => {
   const tooltipRef = useRef(null);
   const brushGroupRef = useRef(null);
   const brushRef = useRef(null);
+  const [isZoomActive, setIsZoomActive] = useState(false);
+  const [zoomState, setZoomState] = useState(null);
 
   useEffect(() => {
     if (!data || data.length === 0) return;
@@ -36,7 +38,7 @@ const Chart = forwardRef(({ data }, ref) => {
 
     const g = svg
       .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     // Adding clipPath to ensure lines don't extend beyond the chart area
     svg
@@ -73,6 +75,11 @@ const Chart = forwardRef(({ data }, ref) => {
       .scaleLinear()
       .domain([yMin - yPadding, yMax + yPadding])
       .range([innerHeight, 0]);
+
+    // If we have a saved zoom state, apply it
+    if (isZoomActive && zoomState) {
+      xScale.domain([zoomState.x0, zoomState.x1]);
+    }
 
     // Line generator
     const line = d3
@@ -128,7 +135,7 @@ const Chart = forwardRef(({ data }, ref) => {
         .attr("d", line);
     });
 
-    // Brush/zoom functionality - FIXED VERSION
+    // Brush/zoom functionality
     const brush = d3
       .brushX()
       .extent([
@@ -136,14 +143,14 @@ const Chart = forwardRef(({ data }, ref) => {
         [innerWidth, innerHeight],
       ])
       .on("end", function (event) {
-        if (!event.sourceEvent) return; // Skip programmatic events
+        if (!event.sourceEvent) return;
         brushed(event);
       });
 
     const brushGroup = g
       .append("g")
       .attr("class", "brush")
-      .style("display", "none") // Initially hidden
+      .style("display", isZoomActive ? "block" : "none") // Initially hidden
       .style("pointer-events", "all")
       .call(brush);
 
@@ -172,18 +179,22 @@ const Chart = forwardRef(({ data }, ref) => {
       if (!event.selection) {
         // Only reset if this was an explicit clear (like hitting Esc)
         if (event.sourceEvent && event.sourceEvent.type === "keydown") {
+          setIsZoomActive(false);
+          setZoomRange(null);
           resetZoom();
+          return;
         }
+
         return;
       }
-      console.log("Brushing:", event.selection);
 
       const [x0, x1] = event.selection.map(xScale.invert);
+      setIsZoomActive(true);
+      setZoomState({ x0, x1 });
       zoomToRange(x0, x1);
     }
 
     function zoomToRange(start, end) {
-      console.log("Zooming to range:", start, end);
       xScale.domain([start, end]);
 
       // Update chart elements
@@ -205,11 +216,11 @@ const Chart = forwardRef(({ data }, ref) => {
       });
 
       // Hide brush after successful zoom
-      brushGroup.style("display", "none");
+      // brushGroup.style("display", "none");
     }
 
     function resetZoom() {
-      console.log("Resetting zoom");
+      // setZoomState(null); // Clear zoom state
       xScale.domain(d3.extent(allTimestamps));
 
       xAxis
@@ -233,31 +244,29 @@ const Chart = forwardRef(({ data }, ref) => {
     // Store brush reference
     brushRef.current = brush;
 
-    // Add zoom controls - FIXED POSITIONING
+    // Add zoom controls
     const zoomButtons = svg
       .append("g")
       .attr("transform", `translate(${width - 90}, 5)`);
 
-    // Zoom button - FIXED CLICK AREA
+    // Zoom button
     const zoomBtn = zoomButtons
       .append("g")
       .attr("cursor", "pointer")
       .on("click", () => {
-        console.log("Zoom button clicked");
-        const brushGroup = brushGroupRef.current;
-        if (!brushGroup) return;
-        const brush = brushRef.current;
-        if (!brush) return;
-        // Toggle brush visibility
-        // Check if the brush is currently visible
-        // and toggle its display property
-        // to show or hide it
-        // This is a workaround for the issue with the brush not being displayed
-        const isVisible = brushGroup.style("display") === "block";
-        brushGroup.style("display", isVisible ? "none" : "block");
+        const newZoomState = !isZoomActive;
+        setIsZoomActive(newZoomState);
 
-        if (!isVisible) {
-          brushGroup.call(brush.move, null);
+        if (newZoomState) {
+          // Show brush
+          brushGroup.style("display", "block");
+        } else {
+          // Hide brush and reset zoom if active
+          brushGroup.style("display", "none");
+          if (zoomState) {
+            setZoomState(null);
+            resetZoom();
+          }
         }
       });
 
@@ -268,7 +277,7 @@ const Chart = forwardRef(({ data }, ref) => {
       .attr("width", 30)
       .attr("height", 24)
       .attr("rx", 6)
-      .attr("fill", "#2a3444")
+      .attr("fill", isZoomActive ? "#3b82f6" : "#2a3444")
       .attr("stroke", "#3b4559")
       .attr("stroke-width", 1);
 
@@ -281,89 +290,94 @@ const Chart = forwardRef(({ data }, ref) => {
       .attr("font-size", "14px")
       .text("🔍");
 
-    // Reset button - FIXED CLICK AREA
-    const resetBtn = zoomButtons
-      .append("g")
-      .attr("transform", "translate(35, 0)")
-      .attr("cursor", "pointer")
-      .on("click", () => {
-        resetZoom();
-      });
+    // Reset button
+    if (isZoomActive) {
+      const resetBtn = zoomButtons
+        .append("g")
+        .attr("transform", "translate(35, 0)")
+        .attr("cursor", "pointer")
+        .on("click", () => {
+          setIsZoomActive(false);
+          setZoomState(null);
+          resetZoom();
+          brushGroup.style("display", "none");
+        });
 
-    resetBtn
-      .append("rect")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("width", 50)
-      .attr("height", 24)
-      .attr("rx", 6)
-      .attr("fill", "#2a3444")
-      .attr("stroke", "#3b4559")
-      .attr("stroke-width", 1);
+      resetBtn
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 50)
+        .attr("height", 24)
+        .attr("rx", 6)
+        .attr("fill", "#2a3444")
+        .attr("stroke", "#3b4559")
+        .attr("stroke-width", 1);
 
-    resetBtn
-      .append("text")
-      .attr("x", 25)
-      .attr("y", 17)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#e9ebed")
-      .attr("font-size", "12px")
-      .text("Reset");
-
+      resetBtn
+        .append("text")
+        .attr("x", 25)
+        .attr("y", 17)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#e9ebed")
+        .attr("font-size", "12px")
+        .text("Reset");
+    }
     // Tooltip setup
-    const tooltip = d3.select(tooltipRef.current);
-    const tooltipLine = g
-      .append("line")
-      .attr("stroke", "#94a3b8")
-      .attr("stroke-width", 1)
-      .attr("y1", 0)
-      .attr("y2", innerHeight)
-      .style("opacity", 0);
+    if (!isZoomActive) {
+      const tooltip = d3.select(tooltipRef.current);
+      const tooltipLine = g
+        .append("line")
+        .attr("stroke", "#94a3b8")
+        .attr("stroke-width", 1)
+        .attr("y1", 0)
+        .attr("y2", innerHeight)
+        .style("opacity", 0);
 
-    const tooltipPoints = data.map((_, i) =>
-      g
-        .append("circle")
-        .attr("r", 4)
-        .attr("fill", colors[i % colors.length])
-        .style("opacity", 0)
-    );
+      const tooltipPoints = data.map((_, i) =>
+        g
+          .append("circle")
+          .attr("r", 4)
+          .attr("fill", colors[i % colors.length])
+          .style("opacity", 0)
+      );
 
-    // Hover interaction for tooltips
-    const hoverArea = g
-      .append("rect")
-      .attr("width", innerWidth)
-      .attr("height", innerHeight)
-      .attr("fill", "none")
-      .attr("pointer-events", "all")
-      .on("mousemove", function (event) {
-        const mouseX = d3.pointer(event)[0];
-        const x0 = xScale.invert(mouseX);
+      // Hover interaction for tooltips
+      const hoverArea = g
+        .append("rect")
+        .attr("width", innerWidth)
+        .attr("height", innerHeight)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .on("mousemove", function (event) {
+          const mouseX = d3.pointer(event)[0];
+          const x0 = xScale.invert(mouseX);
 
-        // Find closest data points
-        const points = data.map((sensor) => {
-          const bisect = d3.bisector((d) => new Date(d.timestamp)).left;
-          const i = bisect(sensor.data, x0);
-          return sensor.data[i];
-        });
+          // Find closest data points
+          const points = data.map((sensor) => {
+            const bisect = d3.bisector((d) => new Date(d.timestamp)).left;
+            const i = bisect(sensor.data, x0);
+            return sensor.data[i];
+          });
 
-        if (points.some((p) => !p)) return;
+          if (points.some((p) => !p)) return;
 
-        // Update tooltip line
-        tooltipLine.attr("x1", mouseX).attr("x2", mouseX).style("opacity", 1);
+          // Update tooltip line
+          tooltipLine.attr("x1", mouseX).attr("x2", mouseX).style("opacity", 1);
 
-        // Update tooltip points
-        points.forEach((point, i) => {
-          tooltipPoints[i]
-            .attr("cx", xScale(new Date(point.timestamp)))
-            .attr("cy", yScale(point.value))
-            .style("opacity", 1);
-        });
+          // Update tooltip points
+          points.forEach((point, i) => {
+            tooltipPoints[i]
+              .attr("cx", xScale(new Date(point.timestamp)))
+              .attr("cy", yScale(point.value))
+              .style("opacity", 1);
+          });
 
-        // Update tooltip content
-        tooltip
-          .style("opacity", 1)
-          .style("left", `${event.pageX - 1001}px`)
-          .style("top", `${event.pageY - 660}px`).html(`
+          // Update tooltip content
+          tooltip
+            .style("opacity", 1)
+            .style("left", `${event.pageX - 1001}px`)
+            .style("top", `${event.pageY - 660}px`).html(`
             <div style="background: rgba(26,34,52,0.9); padding: 6px; border-radius: 4px;">
               <div style="color: #e9ebed; font-size: 10px; opacity: 0.7;">
                 ${new Date(points[0].timestamp).toLocaleString()}
@@ -381,26 +395,29 @@ const Chart = forwardRef(({ data }, ref) => {
                 .join("")}
             </div>
           `);
-      })
-      .on("mouseleave", () => {
-        tooltipLine.style("opacity", 0);
-        tooltipPoints.forEach((point) => point.style("opacity", 0));
-        tooltip.style("opacity", 0);
-      });
+        })
+        .on("mouseleave", () => {
+          tooltipLine.style("opacity", 0);
+          tooltipPoints.forEach((point) => point.style("opacity", 0));
+          tooltip.style("opacity", 0);
+        });
 
-    // Bring tooltip elements to front
-    tooltipLine.raise();
-    tooltipPoints.forEach((point) => point.raise());
+      // Bring tooltip elements to front
+      tooltipLine.raise();
+      tooltipPoints.forEach((point) => point.raise());
+      hoverArea.raise();
+    }
+
     lines.forEach((line) => line.raise());
-    hoverArea.raise();
-    brushGroup.raise();
+    if (brushGroup) brushGroup.raise();
 
     // Keyboard support
     d3.select(document).on("keydown", function (event) {
-      if (event.key === "Escape") {
-        if (brushGroup.style("display") === "block") {
-          brushGroup.style("display", "none");
-        }
+      if (event.key === "Escape" && isZoomActive) {
+        setIsZoomActive(false);
+        setZoomRange(null);
+        resetZoom();
+        brushGroup.style("display", "none");
       }
     });
 
@@ -408,7 +425,7 @@ const Chart = forwardRef(({ data }, ref) => {
     return () => {
       d3.select(document).on("keydown", null);
     };
-  }, [data]);
+  }, [data, zoomState, isZoomActive]);
 
   return (
     <>

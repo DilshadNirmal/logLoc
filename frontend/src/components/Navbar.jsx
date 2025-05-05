@@ -96,7 +96,7 @@ const Navbar = () => {
                     <span className="block text-sm text-primary ">
                       {user.UserName}
                     </span>
-                    <span class="block text-sm md:text-xs 2xl:text-sm text-secondary/90 truncate">
+                    <span className="block text-sm md:text-xs 2xl:text-sm text-secondary/90 truncate">
                       {user.Email}
                     </span>
                   </div>

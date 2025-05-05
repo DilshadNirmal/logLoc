@@ -6,6 +6,7 @@ import AverageDataForm from "../components/form/AverageDataForm";
 import IntervalDataForm from "../components/form/IntervalDataForm";
 import DatePickerForm from "../components/form/DatePickerForm";
 import CountWiseForm from "../components/form/countWiseForm";
+import axiosInstance from "../lib/axios";
 
 const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
   <button
@@ -31,6 +32,13 @@ const Reports = () => {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [averageBy, setAverageBy] = useState("hour");
   const [interval, setInterval] = useState("hour");
+  const [selectedCounts, setSelectedCounts] = useState({
+    last100: true,
+    last500: false,
+    last1000: false,
+    custom: false,
+  });
+  const [customCount, setCustomCount] = useState("");
 
   const tabOptions = [
     { id: "average", label: "Average Data", icon: LuSigma },
@@ -53,8 +61,73 @@ const Reports = () => {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  const handleDownload = () => {
-    // TODO: Implement Excel download logic
+  const handleDownload = async () => {
+    try {
+      const payload = {
+        reportType: selectedTab,
+        configuration,
+        dateRange,
+      };
+
+      if (selectedTab === "average") {
+        payload.averageBy = averageBy;
+      } else if (selectedTab === "interval") {
+        payload.interval = interval;
+      } else if (selectedTab === "count") {
+        payload.selectedCounts = selectedCounts;
+        if (selectedCounts.custom) {
+          payload.customCount = customCount;
+        }
+      }
+
+      // requesting api to download excel file
+      const response = await axiosInstance.post(
+        "reports/export-excel",
+        payload,
+        {
+          responseType: "blob",
+        }
+      );
+
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+
+      let filename = "";
+
+      switch (selectedTab) {
+        case "average":
+          filename = `Average_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          break;
+        case "interval":
+          filename = `Interval_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          break;
+        case "date":
+          filename = `Date_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          break;
+        case "count":
+          filename = `Count_Data_${
+            new Date().toISOString().split("T")[0]
+          }.xlsx`;
+          break;
+        default:
+          filename = "report.xlsx";
+      }
+
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert(`Failed to download report: ${error.message}`);
+    }
   };
 
   const renderForm = () => {
@@ -94,7 +167,15 @@ const Reports = () => {
           />
         );
       case "count":
-        return <CountWiseForm onDownload={handleDownload} />;
+        return (
+          <CountWiseForm
+            selectedCounts={selectedCounts}
+            setSelectedCounts={setSelectedCounts}
+            customCount={customCount}
+            setCustomCount={setCustomCount}
+            onDownload={handleDownload}
+          />
+        );
       default:
         return null;
     }
@@ -124,7 +205,7 @@ const Reports = () => {
             ))}
           </div>
           <div
-            className="bg-primary/25 rounded-lg p-2 2xl:p-4 m-4 2xl:m-8"
+            className="bg-primary/25 rounded-lg p-4 2xl:p-4 m-4 2xl:m-8"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}

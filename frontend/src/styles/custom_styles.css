@@ -120,6 +120,12 @@ div.right > div:nth-child(2) {
     height: auto;
   }
 
+  .cont .left {
+    display: grid;
+    grid-template-rows: auto auto 1fr 1fr;
+    gap: 0.5rem;
+  }
+
   div.left,
   div.right {
     width: 100%;

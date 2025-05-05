@@ -22,7 +22,7 @@ const BatteryRender = ({ orient, value }) => {
           className={`${
             orient === "height"
               ? "w-full h-20 md:h-15 lg:h-12 2xl:h-20"
-              : "w-20 h-full"
+              : "w-20 h-9/12"
           } relative border border-text/75 rounded-lg`}
         >
           <div

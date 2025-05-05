@@ -9,9 +9,11 @@ const voltageRoutes = require("./routes/voltage");
 const alertRoutes = require("./routes/alerts");
 const otpRoutes = require("./routes/otp");
 const dataRoutes = require("./routes/data");
+const reportsRoutes = require("./routes/reports");
 
 const app = express();
 
+console.log(process.env.CLIENT_URL);
 // Middleware
 app.use(
   cors({
@@ -21,7 +23,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Authorization"],
     maxAge: 3600,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
   })
 );
 app.use(express.json());
@@ -39,6 +41,7 @@ app.use("/api", voltageRoutes);
 app.use("/api", alertRoutes);
 app.use("/api", otpRoutes);
 app.use("/api", dataRoutes);
+app.use("/api/reports", reportsRoutes);
 
 // Connect to MongoDB
 connectDB(process.env.MONGODB_URI)
