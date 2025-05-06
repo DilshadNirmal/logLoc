@@ -128,6 +128,20 @@ const Dashboard = () => {
     return Math.max(...values);
   };
 
+  const getGaugeSize = () => {
+    const currentWidth = window.innerWidth;
+
+    if (currentWidth < 768) {
+      return { width: 120, height: 90 };
+    } else if (currentWidth < 1024) {
+      return { width: 100, height: 80 };
+    } else if (currentWidth < 1440) {
+      return { width: 120, height: 80 };
+    } else {
+      return { width: 150, height: 80 };
+    }
+  };
+
   useEffect(() => {
     fetchVoltages();
     fetchChart(); // Initial fetch for chart data
@@ -155,6 +169,7 @@ const Dashboard = () => {
       const windowHeight = window.innerHeight;
       const wWidth = window.innerWidth;
       setWindowWidth(wWidth);
+      console.log(windowWidth);
       const margin = 20;
       const gridGaps = 48;
       if (window.innerWidth >= 1024) {
@@ -208,15 +223,15 @@ const Dashboard = () => {
         </div>
 
         {/* gauge for min and max */}
-        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-2">
+        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5">
           {/* A side */}
           <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
             <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
               A side
             </legend>
 
-            <div className="flex flex-col md:flex-row items-center justify-around h-full">
-              <div className="h-[55%] w-[40%]">
+            <div className="flex flex-col md:flex-row items-center justify-evenly h-full">
+              <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
                 {/* <Gauge
                   value={getMinVoltage(voltageDataA.voltages)}
                   min={-10}
@@ -229,41 +244,41 @@ const Dashboard = () => {
                   value={getMinVoltage(voltageDataA.voltages)}
                   minValue={-10}
                   maxValue={10}
-                  width={150}
-                  height={120}
-                  needleHeightRatio={0.7}
+                  width={getGaugeSize().width}
+                  height={getGaugeSize().height}
+                  needleHeightRatio={0.5}
                   needleColor="#1e88e5"
                   startColor="#3f51b5"
                   endColor="#ff4081"
                   segments={5}
-                  ringWidth={15}
+                  ringWidth={13}
                   textColor="#ffffff"
                   valueFormat=".1f"
                   currentValueText="Min: ${value} mV"
                   fluidWidth={false}
-                  valueTextFontSize="12"
+                  valueTextFontSize="10"
                   valueTextFontWeight="semibold"
-                  labelFontSize="10"
+                  labelFontSize="8"
                 />
               </div>
-              <div className="h-[55%] w-[40%]">
+              <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
                   value={getMaxVoltage(voltageDataA.voltages)}
                   minValue={-10}
                   maxValue={10}
-                  width={150}
-                  height={120}
-                  needleHeightRatio={0.7}
+                  width={getGaugeSize().width}
+                  height={getGaugeSize().height}
+                  needleHeightRatio={0.5}
                   needleColor="#1e88e5"
                   startColor="#3f51b5"
                   endColor="#ff4081"
                   segments={5}
-                  ringWidth={15}
+                  ringWidth={13}
                   textColor="#ffffff"
                   valueFormat=".1f"
                   currentValueText="Max: ${value} mV"
-                  valueTextFontSize="12"
-                  labelFontSize="10"
+                  valueTextFontSize="10"
+                  labelFontSize="8"
                   valueTextFontWeight="semibold"
                   fluidWidth={false}
                 />
@@ -277,48 +292,48 @@ const Dashboard = () => {
               B side
             </legend>
 
-            <div className=" flex flex-col md:flex-row items-center justify-center gap-1.5 h-full">
-              <div className="h-[55%] w-[40%]">
+            <div className=" flex flex-col md:flex-row items-center justify-evenly h-full">
+              <div className="h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
                   value={getMinVoltage(voltageDataB.voltages)}
                   minValue={-10}
                   maxValue={10}
-                  width={150}
-                  height={120}
-                  needleHeightRatio={0.7}
+                  width={getGaugeSize().width}
+                  height={getGaugeSize().height}
+                  needleHeightRatio={0.5}
                   needleColor="#1e88e5"
                   startColor="#3f51b5"
                   endColor="#ff4081"
                   segments={5}
-                  ringWidth={15}
+                  ringWidth={13}
                   textColor="#ffffff"
                   valueFormat=".1f"
                   currentValueText="Min: ${value} mV"
-                  valueTextFontSize="12"
+                  valueTextFontSize="10"
                   valueTextFontWeight="semibold"
-                  labelFontSize="10"
+                  labelFontSize="8"
                   fluidWidth={false}
                 />
               </div>
-              <div className="h-[55%] w-[40%]">
+              <div className="h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
                   value={getMaxVoltage(voltageDataB.voltages)}
                   minValue={-10}
                   maxValue={10}
-                  width={150}
-                  height={120}
-                  needleHeightRatio={0.7}
+                  width={getGaugeSize().width}
+                  height={getGaugeSize().height}
+                  needleHeightRatio={0.5}
                   needleColor="#1e88e5"
                   startColor="#3f51b5"
                   endColor="#ff4081"
                   segments={5}
-                  ringWidth={15}
+                  ringWidth={13}
                   textColor="#ffffff"
                   valueFormat=".1f"
                   currentValueText="Max: ${value} mV"
-                  valueTextFontSize="12"
+                  valueTextFontSize="10"
                   valueTextFontWeight="semibold"
-                  labelFontSize="10"
+                  labelFontSize="8"
                   fluidWidth={false}
                 />
               </div>
@@ -346,10 +361,10 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="bg-secondary text-text rounded-lg p-1 md:p-0.5 flex-1">
-            <h4 className=" mt-2 mb-3 md:mt-1.5 md:mb-2.5 2xl:mt-2 2xl:mb-3 ml-4 text-sm md:text-xs 2xl:text-sm">
+            <h4 className=" mt-2 mb-15 md:mt-1.5 md:mb-2.5 2xl:mt-2 2xl:mb-3 ml-4 text-sm md:text-xs 2xl:text-sm">
               Signal Strength
             </h4>
-            <div className="h-9/12 px-3 flex">
+            <div className="h-9/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
               <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
                 <div className="flex items-end justify-center gap-1">
                   {[1, 2, 3].map((bar) => (
@@ -370,7 +385,7 @@ const Dashboard = () => {
                   {voltageDataA.signalStrength}%
                 </span>
               </div>
-              <div className="w-[60%]">
+              <div className="w-[80%] md:w-[60%]">
                 <h5 className="text-base md:text-[10px] 2xl:text-sm text-text/85 font-normal tracking-wide mb-2 md:mb-1 2xl:mb-1">
                   Signal strength - 12 Hrs
                 </h5>

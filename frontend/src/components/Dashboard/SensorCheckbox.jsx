@@ -6,7 +6,7 @@ const SensorCheckbox = ({ sensorId, isChecked, onChange }) => (
       onChange={onChange}
       className="absolute opacity-0 cursor-pointer h-0 w-0"
     />
-    <span className="checkmark absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 md:h-1.5 md:w-1.5 bg-text/20 rounded transition-colors duration-200 hover:bg-text/30 peer-checked:bg-primary peer-checked:before:block"></span>
+    <span className="checkmark absolute left-0 top-1/2 -translate-y-1/2 h-3 w-3 md:h-1.5 md:w-1.5 bg-text/20 rounded transition-colors duration-200 hover:bg-text/30 peer-checked:bg-primary peer-checked:before:block"></span>
     <span>S{sensorId}</span>
   </label>
 );
