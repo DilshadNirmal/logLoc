@@ -1,16 +1,27 @@
 const ExcelJs = require("exceljs");
-
 const {
   addFrequencyChart,
   applyCommonStyles,
   applyStatusConditionalFormatting,
 } = require("../../utils/excel/formatting.js");
 
+/**
+ * Generates a worksheet with data based on the specified type
+ * @param {ExcelJs.Workbook} workbook - The Excel workbook
+ * @param {Array} data - The data to add to the worksheet
+ * @param {Object} options - Configuration options
+ */
 function generateWorkSheet(workbook, data, options = {}) {
   const { sheetName = "Data", type = "average", averageBy, interval } = options;
 
-  const worksheet = workbook.addWorksheet(sheetName);
+  // Create worksheet with consistent options
+  const worksheet = workbook.addWorksheet(sheetName, {
+    properties: { tabColor: { argb: "4167B8" } },
+    pageSetup: { fitToPage: true, orientation: "landscape" },
+    views: [{ state: "frozen", xSplit: 0, ySplit: 1 }],
+  });
 
+  // Define column configurations for different report types
   const configs = {
     average: {
       columns: [
@@ -81,56 +92,93 @@ function generateWorkSheet(workbook, data, options = {}) {
 
   worksheet.columns = config.columns;
 
-  //adding row
-  data.forEach((item) => {
-    worksheet.addRow(config.rowMapper(item));
-  });
+  // Process data in batches for better memory efficiency
+  const BATCH_SIZE = 1000;
+  for (let i = 0; i < data.length; i += BATCH_SIZE) {
+    const batch = data.slice(i, i + BATCH_SIZE);
+    batch.forEach((item) => {
+      worksheet.addRow(config.rowMapper(item));
+    });
+  }
 
   applyCommonStyles(worksheet);
 
-  // applying type-specific formatting
+  // Apply type-specific formatting
   if (type === "date") {
     applyStatusConditionalFormatting(worksheet);
-  } //else if (type === "count") {
-  //   addFrequencyChart(workbook, worksheet, data);
-  // }
+  } else if (type === "count" && data.length > 0) {
+    addFrequencyChart(workbook, worksheet, data);
+  }
+
+  return worksheet;
 }
 
-// Add this function to create an Excel writer for streaming
+/**
+ * Creates an Excel writer for streaming large datasets
+ * @param {string} reportType - The type of report
+ * @param {string} filePath - The file path to save the Excel file
+ * @returns {Object} Writer object with methods for streaming
+ */
 function createExcelWriter(reportType, filePath) {
   const workbook = new ExcelJs.Workbook();
-  const worksheet = workbook.addWorksheet("Data");
+  workbook.creator = "LogLoc System";
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet("Data", {
+    properties: { tabColor: { argb: "4167B8" } },
+    pageSetup: { fitToPage: true, orientation: "landscape" },
+    views: [{ state: "frozen", xSplit: 0, ySplit: 1 }],
+  });
 
   // Configure worksheet based on report type
-  if (reportType === "date") {
-    // Apply formatting for date data
-    worksheet.columns = [
+  const columnConfigs = {
+    date: [
       { header: "Date", key: "date", width: 15 },
       { header: "Timestamp", key: "timestamp", width: 20 },
       { header: "Sensor ID", key: "sensorId", width: 15 },
-      { header: "Value", key: "value", width: 10 },
-      { header: "Status", key: "status", width: 10 },
-    ];
-  }
+      { header: "Value (mV)", key: "value", width: 15 },
+      { header: "Status", key: "status", width: 15 },
+    ],
+    // Add other report types as needed
+  };
+
+  worksheet.columns = columnConfigs[reportType] || [];
 
   // Create a writer object with methods for streaming
   const writer = {
     worksheet,
     workbook,
     filePath,
+    rowCount: 0,
+    batchSize: 100,
+    rowBuffer: [],
 
-    // Add headers to the worksheet
-    async addHeaders(headers) {
-      // Headers are already set in the columns definition
+    // Add a row to the worksheet with buffering
+    addRow(rowData) {
+      this.rowBuffer.push(rowData);
+      this.rowCount++;
+
+      if (this.rowBuffer.length >= this.batchSize) {
+        this.flushBuffer();
+      }
     },
 
-    // Add a row to the worksheet
-    addRow(rowData) {
-      this.worksheet.addRow(rowData);
+    // Flush the buffer to the worksheet
+    flushBuffer() {
+      if (this.rowBuffer.length === 0) return;
+
+      this.rowBuffer.forEach((rowData) => {
+        this.worksheet.addRow(rowData);
+      });
+
+      this.rowBuffer = [];
     },
 
     // Finalize and save the workbook
     async finalize() {
+      // Flush any remaining rows
+      this.flushBuffer();
+
       // Apply formatting to the worksheet
       applyCommonStyles(this.worksheet);
 
@@ -141,19 +189,33 @@ function createExcelWriter(reportType, filePath) {
 
       // Save the workbook to the file
       await this.workbook.xlsx.writeFile(this.filePath);
+
+      return {
+        rowCount: this.rowCount,
+        filePath: this.filePath,
+      };
     },
   };
 
   return writer;
 }
 
-function generateExcelFile(reportType, data, options) {
-  // creating excel workbook
+/**
+ * Generates an Excel file with the provided data
+ * @param {Array} data - The data to include in the Excel file
+ * @param {string} reportType - The type of report
+ * @param {string} filePath - The file path to save the Excel file
+ * @param {Object} options - Additional options
+ * @returns {Promise<void>}
+ */
+async function generateExcelFile(data, reportType, filePath, options = {}) {
+  // Create Excel workbook with metadata
   const workbook = new ExcelJs.Workbook();
   workbook.creator = "LogLoc System";
   workbook.created = new Date();
+  workbook.modified = new Date();
 
-  //   generate worksheet based on report type
+  // Generate worksheet based on report type
   switch (reportType) {
     case "average":
       generateWorkSheet(workbook, data, {
@@ -181,12 +243,21 @@ function generateExcelFile(reportType, data, options) {
         type: "count",
       });
       break;
-
     default:
       throw new Error(`Invalid report type: ${reportType}`);
   }
 
-  return workbook;
+  // Write the file
+  await workbook.xlsx.writeFile(filePath);
+
+  return {
+    filePath,
+    rowCount: data.length,
+  };
 }
 
-module.exports = { generateWorkSheet, generateExcelFile, createExcelWriter };
+module.exports = {
+  generateWorkSheet,
+  generateExcelFile,
+  createExcelWriter,
+};

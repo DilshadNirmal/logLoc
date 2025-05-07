@@ -134,11 +134,11 @@ const Dashboard = () => {
     if (currentWidth < 768) {
       return { width: 120, height: 90 };
     } else if (currentWidth < 1024) {
-      return { width: 100, height: 80 };
+      return { width: 100, height: 90 };
     } else if (currentWidth < 1440) {
-      return { width: 120, height: 80 };
+      return { width: 120, height: 90 };
     } else {
-      return { width: 150, height: 80 };
+      return { width: 150, height: 100 };
     }
   };
 
@@ -169,7 +169,6 @@ const Dashboard = () => {
       const windowHeight = window.innerHeight;
       const wWidth = window.innerWidth;
       setWindowWidth(wWidth);
-      console.log(windowWidth);
       const margin = 20;
       const gridGaps = 48;
       if (window.innerWidth >= 1024) {

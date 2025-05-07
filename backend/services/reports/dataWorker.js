@@ -1,44 +1,38 @@
-const { parentPort, workerData } = require("worker_threads");
+const { workerData, parentPort } = require("worker_threads");
 const mongoose = require("mongoose");
 const ExcelJS = require("exceljs");
+const VoltageDataSchema = require("../../models/VoltageData").schema;
 const fs = require("fs");
-const stream = require("stream");
-const { promisify } = require("util");
 
-// Define VoltageData schema for the worker
-const VoltageDataSchema = new mongoose.Schema({
-  timestamp: Date,
-  deviceId: String,
-  sensorGroup: String,
-  voltages: Map,
-});
+// Helper function for MongoDB connection with retry
+async function connectWithRetry(uri) {
+  const MAX_RETRIES = 5;
+  let retries = 0;
 
-// Connect to MongoDB with retry logic
-async function connectWithRetry(uri, options = {}, retries = 5, delay = 5000) {
-  try {
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 30000, // Longer server selection timeout
-      socketTimeoutMS: 45000, // Longer socket timeout
-      connectTimeoutMS: 30000, // Longer connection timeout
-      heartbeatFrequencyMS: 10000, // More frequent heartbeats
-      ...options,
-    });
-    console.log("Worker connected to MongoDB");
-    return mongoose;
-  } catch (err) {
-    if (retries === 0) {
-      console.log("Max retries reached. Giving up connecting to MongoDB");
-      throw err;
+  while (retries < MAX_RETRIES) {
+    try {
+      await mongoose.connect(uri, {
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 30000,
+      });
+      console.log("Connected to MongoDB in worker thread");
+      return mongoose.connection;
+    } catch (err) {
+      retries++;
+      console.error(
+        `MongoDB connection attempt ${retries} failed:`,
+        err.message
+      );
+      if (retries >= MAX_RETRIES) throw err;
+      // Wait before retrying (exponential backoff)
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, retries))
+      );
     }
-    console.log(
-      `Connection failed, retrying in ${delay}ms... (${retries} attempts left)`
-    );
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    return connectWithRetry(uri, options, retries - 1, delay);
   }
 }
 
-// Process data function
 async function processData() {
   let db;
   try {
@@ -64,36 +58,61 @@ async function processData() {
       query.sensorGroup = workerData.sensorGroup;
     }
 
-    // Create Excel workbook with streaming options
+    // Create Excel workbook with optimized streaming options
     const options = {
       filename: workerData.excelFilePath,
       useStyles: true,
       useSharedStrings: false,
+      zip: {
+        compressionOptions: {
+          level: 1, // Fastest compression
+        },
+      },
+      workbookView: {
+        activeTab: 0,
+        autoFilterDateGrouping: true,
+        firstSheet: 0,
+        visibility: "visible",
+      },
     };
-    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter(options);
-    const worksheet = workbook.addWorksheet("Data");
 
-    // Add headers
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter(options);
+    const worksheet = workbook.addWorksheet("Data", {
+      properties: { tabColor: { argb: "4167B8" } },
+      pageSetup: { fitToPage: true, orientation: "landscape" },
+      views: [{ state: "frozen", xSplit: 0, ySplit: 1 }],
+    });
+
+    // Add headers with consistent styling
     worksheet.columns = [
       { header: "Date", key: "date", width: 15 },
       { header: "Timestamp", key: "timestamp", width: 20 },
       { header: "Sensor ID", key: "sensorId", width: 15 },
-      { header: "Value", key: "value", width: 15 },
+      { header: "Value (mV)", key: "value", width: 15 },
       { header: "Status", key: "status", width: 15 },
     ];
 
-    // Process in smaller batches to avoid memory issues
-    const BATCH_SIZE = 10;
+    // Style header row
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFF" } };
+    worksheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "4167B8" },
+    };
+
+    // Commit the header row immediately
+    await worksheet.getRow(1).commit();
+
+    // Optimize batch processing
+    const BATCH_SIZE = 5; // Slightly increased but still small
+    const ROWS_PER_WRITE = 100; // Increased for better throughput
     let totalProcessed = 0;
     let totalRows = 0;
     let hasMoreData = true;
     let lastId = null;
+    let rowBuffer = [];
 
-    // Collect rows in batches to add to Excel
-    const rowBatch = [];
-    const ROWS_PER_WRITE = 500;
-
-    // Use _id-based pagination instead of skip/limit for better performance
+    // Use _id-based pagination for better performance
     while (hasMoreData) {
       // Modify query to use _id for pagination
       let batchQuery = { ...query };
@@ -101,13 +120,13 @@ async function processData() {
         batchQuery._id = { $gt: lastId };
       }
 
-      // Get a batch of documents
+      // Get a batch of documents with lean() for better performance
       const batch = await VoltageData.find(batchQuery)
         .sort({ _id: 1 })
         .limit(BATCH_SIZE)
         .lean();
 
-      // If we got fewer documents than batch size, we've reached the end
+      // Check if we've reached the end
       if (batch.length < BATCH_SIZE) {
         hasMoreData = false;
       }
@@ -121,69 +140,79 @@ async function processData() {
         for (const record of batch) {
           totalProcessed++;
 
+          if (!record || !record.timestamp) {
+            continue; // Skip invalid records silently
+          }
+
           const recordDate = new Date(record.timestamp);
           const dateString = recordDate.toISOString().split("T")[0];
 
-          for (const [sensorKey, value] of Object.entries(record.voltages)) {
-            if (value !== null && !isNaN(value)) {
-              const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
+          // Check if voltages exists and is an object
+          if (record.voltages && typeof record.voltages === "object") {
+            const entries =
+              record.voltages instanceof Map
+                ? Array.from(record.voltages.entries())
+                : Object.entries(record.voltages || {});
 
-              // Determine status based on value
-              let status = "Normal";
-              if (value < 3) status = "Low";
-              if (value > 7) status = "High";
+            // Process each voltage reading
+            for (const [sensorKey, value] of entries) {
+              if (value !== null && value !== undefined && !isNaN(value)) {
+                try {
+                  const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
 
-              // Add row to Excel
-              worksheet.addRow([
-                dateString,
-                new Date(record.timestamp).toLocaleString(),
-                `Sensor ${sensorId}`,
-                parseFloat(value.toFixed(2)),
-                status,
-              ]);
+                  // Determine status based on value
+                  let status = "Normal";
+                  if (value < 3) status = "Low";
+                  if (value > 7) status = "High";
 
-              totalRows++;
+                  // Add to row buffer instead of immediate commit
+                  rowBuffer.push({
+                    date: dateString,
+                    timestamp: new Date(record.timestamp).toLocaleString(),
+                    sensorId: `Sensor ${sensorId}`,
+                    value: parseFloat(value.toFixed(2)),
+                    status: status,
+                  });
+
+                  totalRows++;
+
+                  // Flush buffer when it reaches ROWS_PER_WRITE
+                  if (rowBuffer.length >= ROWS_PER_WRITE) {
+                    await flushRowBuffer(worksheet, rowBuffer);
+                    rowBuffer = [];
+
+                    // Report progress after each buffer flush
+                    parentPort.postMessage({
+                      type: "progress",
+                      totalProcessed,
+                      totalRows,
+                    });
+                  }
+                } catch (err) {
+                  continue; // Skip problematic entries silently
+                }
+              }
             }
           }
 
-          //   periodically commit rows to file to free memeory
-          if (rowBatch.length >= ROWS_PER_WRITE || !hasMoreData) {
-            for (const row of rowBatch) {
-              worksheet.addRow(row).commit();
-            }
-            rowBatch.length = 0;
-
-            // forcing garbage collection
-            if (global.gc) {
-              console.log("forcing gc");
-              global.gc();
-            }
-          }
+          // Clear record from memory
+          record.voltages = null;
         }
 
-        // Report progress
-        if (totalProcessed % 100 === 0 || !hasMoreData) {
-          parentPort.postMessage({
-            type: "progress",
-            totalProcessed,
-            totalRows,
-          });
+        // Clear batch from memory
+        batch.length = 0;
 
-          // Allow garbage collection
-          batch.length = 0;
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
+        // Allow time for garbage collection
+        global.gc && global.gc();
       }
     }
 
-    // Add any remaining rows
-    if (rowBatch.length > 0) {
-      for (const row of rowBatch) {
-        worksheet.addRow(row).commit();
-      }
+    // Flush any remaining rows
+    if (rowBuffer.length > 0) {
+      await flushRowBuffer(worksheet, rowBuffer);
     }
 
-    // Write the workbook to file
+    // Final commit to ensure all data is written
     await workbook.commit();
 
     // Send completion message
@@ -207,5 +236,27 @@ async function processData() {
   }
 }
 
-// Start processing
-processData();
+// Helper function to flush row buffer to worksheet
+async function flushRowBuffer(worksheet, rowBuffer) {
+  for (const rowData of rowBuffer) {
+    if (rowData) {
+      // Add a check to ensure rowData is not null or undefined
+      try {
+        worksheet.addRow(rowData);
+      } catch (err) {
+        console.error("Error adding row:", err.message);
+        // Continue with other rows instead of failing the entire batch
+      }
+    }
+  }
+  await worksheet.commit();
+}
+
+// Start processing when the worker is initialized
+processData().catch((err) => {
+  parentPort.postMessage({
+    type: "error",
+    error: err.message,
+    stack: err.stack,
+  });
+});

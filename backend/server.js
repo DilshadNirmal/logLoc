@@ -21,7 +21,12 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
-    exposedHeaders: ["Authorization"],
+    exposedHeaders: [
+      "Authorization",
+      "Content-Dispositon",
+      "Content-Type",
+      "Content-Length",
+    ],
     maxAge: 3600,
     optionsSuccessStatus: 200,
   })

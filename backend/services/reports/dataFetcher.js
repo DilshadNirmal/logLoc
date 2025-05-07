@@ -1,10 +1,29 @@
 const mongoose = require("mongoose");
 const { Worker } = require("worker_threads");
 const path = require("path");
+const os = require("os");
 
 const VoltageData = require("../../models/VoltageData.js");
-// helper functions
+
+// Cache for time periods to avoid recalculation
+const timePeriodCache = new Map();
+
+/**
+ * Generates time periods based on date range and aggregation level
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @param {string} averageBy - Aggregation level (hour, day, week, month)
+ * @returns {Array} Array of time period objects
+ */
 function generateTimePeriods(startDate, endDate, averageBy) {
+  // Create cache key
+  const cacheKey = `${startDate.toISOString()}_${endDate.toISOString()}_${averageBy}`;
+
+  // Return from cache if available
+  if (timePeriodCache.has(cacheKey)) {
+    return timePeriodCache.get(cacheKey);
+  }
+
   const periods = [];
   let currentDate = new Date(startDate);
 
@@ -12,18 +31,27 @@ function generateTimePeriods(startDate, endDate, averageBy) {
     let periodEndTime;
     const periodKey = getPeriodKey(currentDate, averageBy);
 
-    if (averageBy === "hour") {
-      periodEndTime = new Date(currentDate);
-      periodEndTime.setHours(currentDate.getHours() + 1);
-    } else if (averageBy === "day") {
-      periodEndTime = new Date(currentDate);
-      periodEndTime.setDate(currentDate.getDate() + 1);
-    } else if (averageBy === "week") {
-      periodEndTime = new Date(currentDate);
-      periodEndTime.setDate(currentDate.getDate() + 7);
-    } else if (averageBy === "month") {
-      periodEndTime = new Date(currentDate);
-      periodEndTime.setMonth(currentDate.getMonth() + 1);
+    // Calculate end time based on aggregation level
+    switch (averageBy) {
+      case "hour":
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setHours(currentDate.getHours() + 1);
+        break;
+      case "day":
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setDate(currentDate.getDate() + 1);
+        break;
+      case "week":
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setDate(currentDate.getDate() + 7);
+        break;
+      case "month":
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setMonth(currentDate.getMonth() + 1);
+        break;
+      default:
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setHours(currentDate.getHours() + 1);
     }
 
     // Cap end time to the overall end date
@@ -41,82 +69,114 @@ function generateTimePeriods(startDate, endDate, averageBy) {
     currentDate = new Date(periodEndTime);
   }
 
+  // Store in cache for future use
+  timePeriodCache.set(cacheKey, periods);
+
+  // Limit cache size to prevent memory leaks
+  if (timePeriodCache.size > 100) {
+    const oldestKey = timePeriodCache.keys().next().value;
+    timePeriodCache.delete(oldestKey);
+  }
+
   return periods;
 }
 
+/**
+ * Gets a unique key for a time period
+ * @param {Date} date - The date
+ * @param {string} averageBy - Aggregation level
+ * @returns {string} Unique key for the period
+ */
 function getPeriodKey(date, averageBy) {
-  if (averageBy === "hour") {
-    return `${date.getFullYear()}-${
-      date.getMonth() + 1
-    }-${date.getDate()}-${date.getHours()}`;
-  } else if (averageBy === "day") {
-    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-  } else if (averageBy === "week") {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-    const weekNum = Math.ceil(
-      (pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7
-    );
-    return `${date.getFullYear()}-W${weekNum}`;
-  } else if (averageBy === "month") {
-    return `${date.getFullYear()}-${date.getMonth() + 1}`;
+  switch (averageBy) {
+    case "hour":
+      return `${date.getFullYear()}-${
+        date.getMonth() + 1
+      }-${date.getDate()}-${date.getHours()}`;
+    case "day":
+      return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    case "week":
+      const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+      const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+      const weekNum = Math.ceil(
+        (pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7
+      );
+      return `${date.getFullYear()}-W${weekNum}`;
+    case "month":
+      return `${date.getFullYear()}-${date.getMonth() + 1}`;
+    default:
+      return "";
   }
-  return "";
 }
 
+/**
+ * Formats a period label for display
+ * @param {Date} date - The date
+ * @param {string} averageBy - Aggregation level
+ * @returns {string} Formatted label
+ */
 function formatPeriodLabel(date, averageBy) {
-  if (averageBy === "hour") {
-    return `${date.toLocaleDateString()} ${date.getHours()}:00`;
-  } else if (averageBy === "day") {
-    return date.toLocaleDateString();
-  } else if (averageBy === "week") {
-    const endDate = new Date(date);
-    endDate.setDate(date.getDate() + 6);
-    return `Week of ${date.toLocaleDateString()}`;
-  } else if (averageBy === "month") {
-    return `${date.toLocaleString("default", {
-      month: "long",
-    })} ${date.getFullYear()}`;
+  switch (averageBy) {
+    case "hour":
+      return `${date.toLocaleDateString()} ${date.getHours()}:00`;
+    case "day":
+      return date.toLocaleDateString();
+    case "week":
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 6);
+      return `Week of ${date.toLocaleDateString()}`;
+    case "month":
+      return `${date.toLocaleString("default", {
+        month: "long",
+      })} ${date.getFullYear()}`;
+    default:
+      return date.toLocaleDateString();
   }
-  return date.toLocaleDateString();
 }
 
-// more of a controller
+/**
+ * Determines sensor group based on configuration
+ * @param {string} configuration - Configuration identifier
+ * @returns {string|null} Sensor group or null
+ */
+function getSensorGroup(configuration) {
+  return configuration === "A"
+    ? "1-20"
+    : configuration === "B"
+    ? "21-40"
+    : null;
+}
+
+/**
+ * Gets average data for the specified parameters
+ * @param {string} configuration - Configuration identifier
+ * @param {Object} dateRange - Date range with from and to properties
+ * @param {string} averageBy - Aggregation level
+ * @returns {Promise<Array>} Promise resolving to array of data points
+ */
 async function getAverageData(configuration, dateRange, averageBy) {
   try {
     const startDate = new Date(dateRange.from);
     const endDate = new Date(dateRange.to);
-    console.log("Date range:", { from: startDate, to: endDate });
 
-    // Parse configuration to determine which sensors to include
-    const sensorGroup =
-      configuration === "A" ? "1-20" : configuration === "B" ? "21-40" : null;
-    console.log("Using sensor group:", sensorGroup);
+    // Get sensor group and build query
+    const sensorGroup = getSensorGroup(configuration);
+    const query = { timestamp: { $gte: startDate, $lte: endDate } };
+    if (sensorGroup) query.sensorGroup = sensorGroup;
 
-    const query = {
-      timestamp: { $gte: startDate, $lte: endDate },
-    };
-
-    if (sensorGroup) {
-      query.sensorGroup = sensorGroup;
-    }
-
-    console.log("MongoDB query:", JSON.stringify(query));
-
-    const voltageHistory = await VoltageData.find(query).sort({ timestamp: 1 });
-    console.log("Query returned records:", voltageHistory.length);
+    // Execute query with lean() for better performance
+    const voltageHistory = await VoltageData.find(query)
+      .sort({ timestamp: 1 })
+      .lean();
 
     if (voltageHistory.length === 0) {
-      console.log(
-        "No data found for the specified date range and configuration"
-      );
       return [];
     }
 
+    // Generate time periods and initialize data structure
     const allTimePeriods = generateTimePeriods(startDate, endDate, averageBy);
-    console.log(`Generated ${allTimePeriods.length} time periods`);
-
     const timePeriodsData = {};
+
     allTimePeriods.forEach((period) => {
       timePeriodsData[period.key] = {
         startTime: period.startTime,
@@ -126,38 +186,47 @@ async function getAverageData(configuration, dateRange, averageBy) {
       };
     });
 
-    // processing data based on averageBy parameter
-    const groupedData = {};
+    // Process data in batches for better memory efficiency
+    const BATCH_SIZE = 1000;
+    for (let i = 0; i < voltageHistory.length; i += BATCH_SIZE) {
+      const batch = voltageHistory.slice(i, i + BATCH_SIZE);
 
-    voltageHistory.forEach((record) => {
-      const recordDate = new Date(record.timestamp);
-      let periodKey = getPeriodKey(recordDate, averageBy);
+      batch.forEach((record) => {
+        const recordDate = new Date(record.timestamp);
+        const periodKey = getPeriodKey(recordDate, averageBy);
 
-      if (!timePeriodsData[periodKey]) return;
+        if (!timePeriodsData[periodKey]) return;
 
-      for (const [sensorKey, value] of record.voltages.entries()) {
-        if (value !== null && !isNaN(value)) {
-          timePeriodsData[periodKey].totalValue += value;
-          timePeriodsData[periodKey].count += 1;
+        // Process voltage entries
+        if (record.voltages) {
+          const entries =
+            record.voltages instanceof Map
+              ? Array.from(record.voltages.entries())
+              : Object.entries(record.voltages);
+
+          for (const [, value] of entries) {
+            if (value !== null && !isNaN(value)) {
+              timePeriodsData[periodKey].totalValue += value;
+              timePeriodsData[periodKey].count += 1;
+            }
+          }
         }
-      }
-    });
+      });
 
-    const result = [];
-    for (const [periodKey, data] of Object.entries(timePeriodsData)) {
-      // Only include periods that have data
-      if (data.count > 0) {
-        result.push({
-          timestamp: data.startTime,
-          value: parseFloat((data.totalValue / data.count).toFixed(2)),
-          aggregation: averageBy,
-          // Include a label that's more descriptive of the time period
-          label: formatPeriodLabel(data.startTime, averageBy),
-        });
-      }
+      // Clear batch from memory
+      batch.length = 0;
     }
 
-    console.log(`Returning ${result.length} aggregated data points`);
+    // Generate result array
+    const result = Object.entries(timePeriodsData)
+      .filter(([, data]) => data.count > 0)
+      .map(([, data]) => ({
+        timestamp: data.startTime,
+        value: parseFloat((data.totalValue / data.count).toFixed(2)),
+        aggregation: averageBy,
+        label: formatPeriodLabel(data.startTime, averageBy),
+      }));
+
     return result;
   } catch (error) {
     console.error("Error getting average data:", error);
@@ -165,27 +234,31 @@ async function getAverageData(configuration, dateRange, averageBy) {
   }
 }
 
+/**
+ * Gets interval data for the specified parameters
+ * @param {string} configuration - Configuration identifier
+ * @param {Object} dateRange - Date range with from and to properties
+ * @param {string} interval - Interval type
+ * @returns {Promise<Array>} Promise resolving to array of interval data
+ */
 async function getIntervalData(configuration, dateRange, interval) {
   try {
     const startDate = new Date(dateRange.from);
     const endDate = new Date(dateRange.to);
 
-    // Parse configuration to determine which sensors to include
-    const sensorGroup =
-      configuration === "A" ? "1-20" : configuration === "B" ? "21-40" : null;
+    // Get sensor group and build query
+    const sensorGroup = getSensorGroup(configuration);
+    const query = { timestamp: { $gte: startDate, $lte: endDate } };
+    if (sensorGroup) query.sensorGroup = sensorGroup;
 
-    // Base query
-    const query = {
-      timestamp: { $gte: startDate, $lte: endDate },
-    };
+    // Execute query with lean() for better performance
+    const voltageHistory = await VoltageData.find(query)
+      .sort({ timestamp: 1 })
+      .lean();
 
-    // Add sensor group filter if specified
-    if (sensorGroup) {
-      query.sensorGroup = sensorGroup;
+    if (voltageHistory.length === 0) {
+      return [];
     }
-
-    // Get all voltage data in the date range
-    const voltageHistory = await VoltageData.find(query).sort({ timestamp: 1 });
 
     // Calculate interval duration in milliseconds
     let intervalMs;
@@ -200,11 +273,10 @@ async function getIntervalData(configuration, dateRange, interval) {
         intervalMs = 7 * 24 * 60 * 60 * 1000;
         break;
       case "month":
-        // Approximate - will be adjusted for actual month lengths
         intervalMs = 30 * 24 * 60 * 60 * 1000;
         break;
       default:
-        intervalMs = 60 * 60 * 1000; // Default to hour
+        intervalMs = 60 * 60 * 1000;
     }
 
     // Group data into intervals
@@ -229,27 +301,43 @@ async function getIntervalData(configuration, dateRange, interval) {
         currentIntervalEnd = new Date(endDate);
       }
 
-      // Filter records for this interval
-      const intervalRecords = voltageHistory.filter((record) => {
-        return (
-          record.timestamp >= currentIntervalStart &&
-          record.timestamp < currentIntervalEnd
-        );
-      });
-
-      // Process data for each sensor in this interval
+      // Process data for this interval in batches
       const sensorData = {};
 
-      intervalRecords.forEach((record) => {
-        for (const [sensorKey, value] of record.voltages.entries()) {
-          if (value !== null && !isNaN(value)) {
-            if (!sensorData[sensorKey]) {
-              sensorData[sensorKey] = [];
-            }
-            sensorData[sensorKey].push(value);
+      // Process in batches for better memory efficiency
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < voltageHistory.length; i += BATCH_SIZE) {
+        const batch = voltageHistory.slice(i, i + BATCH_SIZE);
+
+        batch.forEach((record) => {
+          const recordTimestamp = new Date(record.timestamp);
+
+          // Skip if record is outside current interval
+          if (
+            recordTimestamp < currentIntervalStart ||
+            recordTimestamp >= currentIntervalEnd
+          ) {
+            return;
           }
-        }
-      });
+
+          // Process voltage entries
+          if (record.voltages) {
+            const entries =
+              record.voltages instanceof Map
+                ? Array.from(record.voltages.entries())
+                : Object.entries(record.voltages);
+
+            for (const [sensorKey, value] of entries) {
+              if (value !== null && !isNaN(value)) {
+                if (!sensorData[sensorKey]) {
+                  sensorData[sensorKey] = [];
+                }
+                sensorData[sensorKey].push(value);
+              }
+            }
+          }
+        });
+      }
 
       // Create interval entries for each sensor
       for (const [sensorKey, values] of Object.entries(sensorData)) {
@@ -280,31 +368,29 @@ async function getIntervalData(configuration, dateRange, interval) {
   }
 }
 
+/**
+ * Gets date data for the specified parameters
+ * @param {string} configuration - Configuration identifier
+ * @param {Object} dateRange - Date range with from and to properties
+ * @param {Object} excelWriter - Excel writer object for streaming
+ * @returns {Promise<Object>} Promise resolving to result object
+ */
 async function getDateData(configuration, dateRange, excelWriter) {
   try {
     const startDate = new Date(dateRange.from);
     const endDate = new Date(dateRange.to);
 
-    console.log(startDate, "-", endDate);
+    // Get sensor group and build query
+    const sensorGroup = getSensorGroup(configuration);
+    const query = { timestamp: { $gte: startDate, $lte: endDate } };
+    if (sensorGroup) query.sensorGroup = sensorGroup;
 
-    // parse configuration to determine which sensors to include
-    const sensorGroup =
-      configuration === "A" ? "1-20" : configuration === "B" ? "21-40" : null;
-
-    // base query
+    // If no excelWriter, return sample data for API responses
     if (!excelWriter) {
-      // base query
-      const query = { timestamp: { $gte: startDate, $lte: endDate } };
-
-      // Add sensor group filter if specified
-      if (sensorGroup) {
-        query.sensorGroup = sensorGroup;
-      }
-
-      // Get a small sample of data for API responses
       const sampleData = await VoltageData.find(query)
         .sort({ timestamp: 1 })
-        .limit(100);
+        .limit(100)
+        .lean();
 
       return {
         success: true,
@@ -314,10 +400,17 @@ async function getDateData(configuration, dateRange, excelWriter) {
       };
     }
 
-    // For Excel export, use worker thread
+    // For Excel export, use worker thread with optimized memory settings
     return new Promise((resolve, reject) => {
       // Get MongoDB connection string
       const mongoUri = mongoose.connection.client.s.url;
+
+      // Calculate optimal resource limits based on available system memory
+      const systemMemory = os.totalmem();
+      const memoryLimit = Math.min(
+        Math.floor((systemMemory * 0.4) / (1024 * 1024)), // 40% of system memory
+        4096 // Max 4GB
+      );
 
       // Create worker with the necessary data
       const worker = new Worker(path.join(__dirname, "dataWorker.js"), {
@@ -329,7 +422,7 @@ async function getDateData(configuration, dateRange, excelWriter) {
           mongoUri: mongoUri,
         },
         resourceLimits: {
-          maxOldGenerationSizeMb: 4096,
+          maxOldGenerationSizeMb: memoryLimit,
         },
       });
 
@@ -382,9 +475,14 @@ async function getDateData(configuration, dateRange, excelWriter) {
   }
 }
 
-async function getCountData(selectedCounts, customCount) {
+/**
+ * Gets count data for the specified parameters
+ * @param {Object} options - Options containing selectedCounts and customCount
+ * @returns {Promise<Array>} Promise resolving to array of count data
+ */
+async function getCountData(options) {
   try {
-    console.log(selectedCounts);
+    const { selectedCounts, customCount } = options;
 
     // Determine how many voltage values we want to fetch
     let targetValueCount = 500; // Default to 500 values
@@ -405,10 +503,11 @@ async function getCountData(selectedCounts, customCount) {
     // Assuming each document has ~40 values (one per sensor)
     const estimatedDocsNeeded = Math.ceil(targetValueCount / 20);
 
-    // Get the most recent voltage data documents
+    // Get the most recent voltage data documents with lean() for better performance
     const voltageHistory = await VoltageData.find({})
       .sort({ timestamp: -1 }) // Sort by timestamp descending (newest first)
-      .limit(estimatedDocsNeeded);
+      .limit(estimatedDocsNeeded)
+      .lean();
 
     // Prepare data for Excel output
     const result = [];
@@ -416,41 +515,46 @@ async function getCountData(selectedCounts, customCount) {
 
     // Process each record
     for (const record of voltageHistory) {
+      // Skip if we've reached the target
+      if (totalValuesProcessed >= targetValueCount) {
+        break;
+      }
+
       // For each sensor reading in this record
-      for (const [sensorKey, value] of record.voltages.entries()) {
-        if (value !== null && !isNaN(value)) {
-          // Stop once we've reached the target number of values
+      if (record.voltages) {
+        const entries =
+          record.voltages instanceof Map
+            ? Array.from(record.voltages.entries())
+            : Object.entries(record.voltages);
+
+        for (const [sensorKey, value] of entries) {
+          // Skip if we've reached the target
           if (totalValuesProcessed >= targetValueCount) {
-            console.log(targetValueCount);
             break;
           }
 
-          totalValuesProcessed++;
+          if (value !== null && !isNaN(value)) {
+            totalValuesProcessed++;
 
-          // Extract sensor ID from the key (assuming keys are like 'v1', 'v2', etc.)
-          const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
+            // Extract sensor ID from the key (assuming keys are like 'v1', 'v2', etc.)
+            const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
 
-          // Add a row for this reading
-          result.push({
-            timestamp: new Date(record.timestamp).toLocaleString(),
-            deviceId: record.deviceId,
-            sensorGroup: record.sensorGroup,
-            sensorId: `Sensor ${sensorId}`,
-            value: parseFloat(value.toFixed(2)),
-          });
+            // Add a row for this reading
+            result.push({
+              timestamp: new Date(record.timestamp).toLocaleString(),
+              deviceId: record.deviceId,
+              sensorGroup: record.sensorGroup,
+              sensorId: `Sensor ${sensorId}`,
+              value: parseFloat(value.toFixed(2)),
+            });
+          }
         }
-      }
-
-      // Stop processing records if we've reached the target
-      if (totalValuesProcessed >= targetValueCount) {
-        break;
       }
     }
 
     console.log(
       `Processed ${totalValuesProcessed} voltage values from ${voltageHistory.length} documents`
     );
-
     return result;
   } catch (error) {
     console.error("Error getting count data:", error);
@@ -458,4 +562,9 @@ async function getCountData(selectedCounts, customCount) {
   }
 }
 
-module.exports = { getAverageData, getIntervalData, getDateData, getCountData };
+module.exports = {
+  getAverageData,
+  getIntervalData,
+  getDateData,
+  getCountData,
+};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
@@ -39,6 +39,7 @@ const Reports = () => {
     custom: false,
   });
   const [customCount, setCustomCount] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const tabOptions = [
     { id: "average", label: "Average Data", icon: LuSigma },
@@ -63,6 +64,9 @@ const Reports = () => {
 
   const handleDownload = async () => {
     try {
+      // Set loading state to true when download starts
+      setIsLoading(true);
+
       const payload = {
         reportType: selectedTab,
         configuration,
@@ -86,11 +90,15 @@ const Reports = () => {
         payload,
         {
           responseType: "blob",
+          headers: {
+            Accept:
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          },
         }
       );
 
       const blob = new Blob([response.data], {
-        type: response.headers["content-type"],
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -127,6 +135,9 @@ const Reports = () => {
     } catch (error) {
       console.error("Download error:", error);
       alert(`Failed to download report: ${error.message}`);
+    } finally {
+      // Set loading state to false when download completes or fails
+      setIsLoading(false);
     }
   };
 
