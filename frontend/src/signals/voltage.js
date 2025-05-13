@@ -21,8 +21,12 @@ export const selectedSide = signal("A");
 export const timeRange = signal("1h");
 export const chartData = signal([]);
 export const signalHistory = signal([]);
-export const averageBy = signal("minute")
-export const dateRange = signal({from: new Date(), to: new Date()})
+export const averageBy = signal("minute");
+export const dateRange = signal({ from: new Date(), to: new Date() });
+export const countOptions = signal("last100");
+export const customCount = signal(100);
+export const currentPage = signal("dashboard");
+export const selectedTabSignal = signal("average");
 
 // computed signals
 const calculateVoltage = (voltages, operation) => {
@@ -77,25 +81,59 @@ export const fetchVoltages = async () => {
   }
 };
 
-export const fetchChart = async () => {
+export const fetchChart = async (sourcePage) => {
   try {
     if (selectedSensors.value.length === 0) {
       chartData.value = [];
       return;
     }
 
-    const response = await axiosInstance.get("/voltage-data", {
-      params: {
-        sensorId: selectedSensors.value,
-        timeRange: parseInt(timeRange.value), // Convert "1h" to 1
-      },
-    });
+    const params = {
+      sensorId: selectedSensors.value,
+    };
+
+    // Determine which page is calling this function
+    const page = sourcePage || currentPage.value;
+
+    if (page === "dashboard") {
+      // For Dashboard page, use timeRange
+      if (timeRange.value) {
+        params.timeRange = parseInt(timeRange.value); // Convert "1h" to 1
+      }
+    } else if (page === "analytics") {
+      // For Analytics page, use dateRange
+      if (dateRange.value.from && dateRange.value.to) {
+        params.from = new Date(dateRange.value.from).toISOString();
+        params.to = new Date(dateRange.value.to).toISOString();
+
+        const selectedTab =
+          document.querySelector('[data-selected="true"]')?.id || "average";
+        params.mode = selectedTab;
+
+        if (selectedTab === "average" && averageBy.value) {
+          params.averageBy = averageBy.value;
+        } else if (selectedTab === "interval") {
+          params.interval = "hour"; // Default to hour, can be customized
+        } else if (selectedTab === "count") {
+          params.selectedCounts = JSON.stringify({
+            last100: countOptions.value === "last100",
+            last500: countOptions.value === "last500",
+            last1000: countOptions.value === "last1000",
+            custom: countOptions.value === "custom",
+          });
+          params.customCount = customCount.value;
+        }
+      }
+    }
+
+    const response = await axiosInstance.get("/voltage-data", { params });
 
     if (response.data && Array.isArray(response.data)) {
       // Filter out any sensors with empty data
       const validData = response.data.filter(
         (sensor) => sensor.data && sensor.data.length > 0
       );
+      console.log("validData:", validData); // Log the validData array
       chartData.value = [...validData];
     } else {
       chartData.value = [];

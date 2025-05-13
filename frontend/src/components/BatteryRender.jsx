@@ -1,6 +1,14 @@
-import React from "react";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const BatteryRender = ({ orient, value }) => {
+  useSignals();
+
+  // If value is a signal, access it with .value
+  const batteryValue =
+    typeof value === "object" && value.value !== undefined
+      ? value.value.batteryStatus
+      : value;
+
   return (
     <div className="px-5">
       {/* battery container */}
@@ -27,19 +35,19 @@ const BatteryRender = ({ orient, value }) => {
         >
           <div
             className={`absolute bottom-0 left-0 w-full h-full rounded-lg transition-all duration-300 ${
-              value > 50
+              batteryValue > 50
                 ? "bg-gradient-to-t md:bg-gradient-to-l 2xl:bg-gradient-to-l from-primary to-primary/90"
-                : value > 20
+                : batteryValue > 20
                 ? "bg-gradient-to-t md:bg-gradient-to-l 2xl:bg-gradient-to-l from-primary/50 to-primary/30"
                 : "bg-gradient-to-t md:bg-gradient-to-l 2xl:bg-gradient-to-l from-primary/30 to-primary/10"
             }`}
             style={{
-              width: orient === "height" ? `${value}%` : "100%",
-              height: orient === "height" ? "100%" : `${value}%`,
+              width: orient === "height" ? `${batteryValue}%` : "100%",
+              height: orient === "height" ? "100%" : `${batteryValue}%`,
             }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-text z-60">{value}&nbsp;%</span>
+            <span className="text-text z-60">{batteryValue}&nbsp;%</span>
           </div>
         </div>
       </div>

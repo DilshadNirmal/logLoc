@@ -4,7 +4,7 @@ import { useSignals } from "@preact/signals-react/runtime";
 
 const ChartContainer = ({ data }) => {
   useSignals();
-  
+
   if (data.value.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-text">
@@ -25,7 +25,7 @@ const Chart = forwardRef(({ data }, ref) => {
   const [zoomState, setZoomState] = useState(null);
 
   // adding key to force re-renders
-  const dataKey = JSON.stringify(data.value.map(item => item.sensorId));
+  const dataKey = JSON.stringify(data.value.map((item) => item.sensorId));
 
   useEffect(() => {
     if (!data.value || data.value.length === 0) return;
@@ -113,10 +113,21 @@ const Chart = forwardRef(({ data }, ref) => {
       xScale.domain([zoomState.x0, zoomState.x1]);
     }
 
+    const xValue = (d) => {
+      // Use timestamp if available, otherwise try to parse the label
+      if (d.timestamp) {
+        return new Date(d.timestamp);
+      } else if (d.label) {
+        // Try to parse the label as a date if it's in a standard format
+        return new Date(d.label);
+      }
+      return null;
+    };
+
     // Line generator
     const line = d3
       .line()
-      .x((d) => xScale(new Date(d.timestamp)))
+      .x((d) => xScale(xValue(d)))
       .y((d) => yScale(d.value))
       .defined((d) => d.value !== null && !isNaN(d.value))
       .curve(d3.curveMonotoneX);
@@ -241,7 +252,7 @@ const Chart = forwardRef(({ data }, ref) => {
         .call(d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(""));
 
       lines.forEach((linePath, i) => {
-        const validData = data[i].data.filter(
+        const validData = processedData[i].data.filter(
           (d) => d.value !== null && !isNaN(d.value)
         );
         linePath.transition().duration(750).attr("d", line(validData));
@@ -266,7 +277,8 @@ const Chart = forwardRef(({ data }, ref) => {
         .call(d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(""));
 
       lines.forEach((linePath, i) => {
-        const validData = data[i].data.filter(
+        // Fix: Use processedData instead of data
+        const validData = processedData[i].data.filter(
           (d) => d.value !== null && !isNaN(d.value)
         );
         linePath.transition().duration(750).attr("d", line(validData));
@@ -386,18 +398,21 @@ const Chart = forwardRef(({ data }, ref) => {
           const x0 = xScale.invert(mouseX);
 
           // Find closest data points
-          const points = []
+          const points = [];
           data.value.forEach((sensor, sensorIndex) => {
-            const bisect = d3.bisector(d => new Date(d.timestamp)).left;
+            const bisect = d3.bisector((d) => new Date(d.timestamp)).left;
             const index = bisect(sensor.data, x0);
-            
+
             // Get the points on either side of the cursor
             const d0 = sensor.data[index - 1];
             const d1 = sensor.data[index];
-            
+
             // If we have points on both sides, find the closest one
             if (d0 && d1) {
-              const point = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
+              const point =
+                x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0
+                  ? d1
+                  : d0;
               points.push({ point, index: sensorIndex });
             } else if (d0) {
               points.push({ point: d0, index: sensorIndex });
@@ -415,9 +430,9 @@ const Chart = forwardRef(({ data }, ref) => {
 
           // Update tooltip points
           points.forEach(({ point, index }) => {
-            const timestamp = new Date(point.point.timestamp);
-            const value = point.point.value;
-            
+            const timestamp = new Date(point.timestamp);
+            const value = point.value;
+
             tooltipPoints[index]
               .attr("cx", xScale(timestamp))
               .attr("cy", yScale(value))
@@ -427,9 +442,8 @@ const Chart = forwardRef(({ data }, ref) => {
           // Update tooltip content
           tooltip
             .style("opacity", 1)
-            .style("left", `${event.pageX}px`)
-            .style("top", `${event.pageY - 28}px`)
-            .html(`
+            .style("left", `${event.pageX - 994}px`)
+            .style("top", `${event.pageY - 750}px`).html(`
             <div style="background: rgba(26,34,52,0.9); padding: 6px; border-radius: 4px;">
               <div style="color: #e9ebed; font-size: 10px; opacity: 0.7;">
                 ${new Date(points[0].point.timestamp).toLocaleString()}
@@ -437,8 +451,10 @@ const Chart = forwardRef(({ data }, ref) => {
               ${points
                 .map(
                   ({ point, index }) => `
-                <div style="color: ${colors[index % colors.length]}; font-weight: bold;">
-                  S${data.value[index].sensorId}: ${point.point.value.toFixed(2)}mV
+                <div style="color: ${
+                  colors[index % colors.length]
+                }; font-weight: bold;">
+                  S${data.value[index].sensorId}: ${point.value.toFixed(2)}mV
                 </div>
               `
                 )
@@ -486,7 +502,7 @@ const Chart = forwardRef(({ data }, ref) => {
       />
       <div
         ref={tooltipRef}
-        className="absolute hidden bg-background/90 border border-primary/30 rounded-md p-2 text-xs pointer-events-none"
+        className="absolute bg-background/90 border border-primary/30 rounded-md p-2 text-xs pointer-events-none"
       />
     </>
   );
@@ -494,4 +510,4 @@ const Chart = forwardRef(({ data }, ref) => {
 
 Chart.displayName = "Chart";
 
-export default ChartContainer
+export default ChartContainer;

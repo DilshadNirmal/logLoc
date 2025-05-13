@@ -4,6 +4,11 @@ const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
 const auth = require("../middleware/auth.js");
 const VoltageData = require("../models/VoltageData.js");
 const { checkAndSendAlert } = require("../services/alertSender.js");
+const {
+  getCountData,
+  getIntervalData,
+  getAverageData,
+} = require("../services/reports/dataFetcher.js");
 
 const router = express.Router();
 
@@ -208,7 +213,17 @@ router.get("/voltage-chart", async (req, res) => {
 
 router.get("/voltage-data", auth, async (req, res) => {
   try {
-    const { sensorId, timeRange, from, to } = req.query;
+    const {
+      sensorId,
+      timeRange,
+      from,
+      to,
+      averageBy,
+      mode,
+      interval,
+      selectedCounts,
+      customCount,
+    } = req.query;
     const sensorIds = Array.isArray(sensorId)
       ? sensorId.map(Number)
       : [Number(sensorId)];
@@ -228,38 +243,107 @@ router.get("/voltage-data", auth, async (req, res) => {
       startDate = new Date(endDate - hours * 60 * 60 * 1000);
     }
 
-    // Query for documents that have any of the requested sensor voltages
-    const voltageHistory = await VoltageData.find({
-      timestamp: { $gte: startDate, $lte: endDate },
-      $or: [
-        { sensorGroup: "1-20", $and: [{ voltages: { $exists: true } }] },
-        { sensorGroup: "21-40", $and: [{ voltages: { $exists: true } }] },
-      ],
-    }).sort({ timestamp: 1 });
+    // Determine which mode to use based on the request
+    let chartData;
 
-    console.log("Found voltage records:", voltageHistory.length);
+    if (mode === "average" && averageBy) {
+      // Get average data
+      const sensorGroup = sensorIds[0] <= 20 ? "1-20" : "21-40";
+      const configuration = sensorIds[0] <= 20 ? "A" : "B";
 
-    const chartData = sensorIds
-      .map((id) => {
-        const sensorKey = `v${id}`;
-        const sensorData = voltageHistory
-          .map((record) => {
-            const voltage = record.voltages.get(sensorKey);
-            return {
-              timestamp: record.timestamp,
-              value: voltage !== undefined ? voltage : null,
-            };
-          })
-          .filter((data) => data.value !== null);
+      const averageData = await getAverageData(
+        configuration,
+        { from: startDate, to: endDate },
+        averageBy
+      );
 
-        console.log(`Sensor ${id} data points:`, sensorData.length);
+      // Format data for chart
+      chartData = sensorIds.map((id) => ({
+        sensorId: id,
+        data: averageData.map((item) => ({
+          timestamp: item.timestamp,
+          value: item.value,
+          label: item.label,
+        })),
+      }));
+    } else if (mode === "interval" && interval) {
+      // Get interval data
+      const configuration = sensorIds[0] <= 20 ? "A" : "B";
 
-        return {
-          sensorId: id,
-          data: sensorData,
-        };
-      })
-      .filter((sensor) => sensor.data.length > 0);
+      const intervalData = await getIntervalData(
+        configuration,
+        { from: startDate, to: endDate },
+        interval
+      );
+
+      // Filter and format data for the requested sensors
+      chartData = sensorIds.map((id) => ({
+        sensorId: id,
+        data: intervalData
+          .filter((item) => item.sensorId === id)
+          .map((item) => ({
+            timestamp: item.start,
+            value: item.value,
+            min: item.min,
+            max: item.max,
+          })),
+      }));
+    } else if (mode === "count") {
+      // Get count-based data
+      const countData = await getCountData({
+        selectedCounts: selectedCounts
+          ? JSON.parse(selectedCounts)
+          : { last100: true },
+        customCount: customCount ? parseInt(customCount) : 100,
+      });
+
+      // Filter and format data for the requested sensors
+      chartData = sensorIds.map((id) => ({
+        sensorId: id,
+        data: countData
+          .filter(
+            (item) => parseInt(item.sensorId.replace("Sensor ", "")) === id
+          )
+          .map((item) => ({
+            timestamp: new Date(item.timestamp),
+            value: item.value,
+          })),
+      }));
+    } else {
+      // Default behavior - raw voltage data
+      // Query for documents that have any of the requested sensor voltages
+      const voltageHistory = await VoltageData.find({
+        timestamp: { $gte: startDate, $lte: endDate },
+        $or: [
+          { sensorGroup: "1-20", $and: [{ voltages: { $exists: true } }] },
+          { sensorGroup: "21-40", $and: [{ voltages: { $exists: true } }] },
+        ],
+      }).sort({ timestamp: 1 });
+
+      console.log("Found voltage records:", voltageHistory.length);
+
+      chartData = sensorIds
+        .map((id) => {
+          const sensorKey = `v${id}`;
+          const sensorData = voltageHistory
+            .map((record) => {
+              const voltage = record.voltages.get(sensorKey);
+              return {
+                timestamp: record.timestamp,
+                value: voltage !== undefined ? voltage : null,
+              };
+            })
+            .filter((data) => data.value !== null);
+
+          console.log(`Sensor ${id} data points:`, sensorData.length);
+
+          return {
+            sensorId: id,
+            data: sensorData,
+          };
+        })
+        .filter((sensor) => sensor.data.length > 0);
+    }
 
     if (chartData.length === 0) {
       console.log("No data found for sensors:", sensorIds);

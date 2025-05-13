@@ -1,27 +1,32 @@
 import { useState, useEffect } from "react";
+import { effect } from "@preact/signals-react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
+import { IoIosArrowUp } from "react-icons/io";
 
-import axiosInstance from "../lib/axios";
 import {
   averageBy,
   chartData,
+  countOptions,
+  currentPage,
+  customCount,
   dateRange,
   fetchChart,
   fetchVoltages,
   selectedSensors,
-  timeRange,
+  selectedTabSignal,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
+import DateTimeRangePanel from "../components/form/DateTimeRangePanel";
+import TabGroup from "../components/TabGroup";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const Analytics = () => {
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [selectedSide, setSelectedSide] = useState("A");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const [selectedTab, setSelectedTab] = useState("average");
 
   const handleSensorClick = (sensor) => {
     if (selectedSensors.value.includes(sensor)) {
@@ -44,19 +49,19 @@ const Analytics = () => {
     fetchVoltages();
   }, []);
 
-  useEffect(() => {
-    const debounceTimeout = setTimeout(() => {
-      fetchChart();
-    }, 500);
+  // useEffect(() => {
+  //   const debounceTimeout = setTimeout(() => {
+  //     fetchChart();
+  //   }, 500);
 
-    return () => clearTimeout(debounceTimeout);
-  }, [
-    selectedSensors.value,
-    timeRange.value,
-    averageBy.value,
-    dateRange,
-    selectedTab,
-  ]);
+  //   return () => clearTimeout(debounceTimeout);
+  // }, [
+  //   selectedSensors.value,
+  //   timeRange.value,
+  //   averageBy.value,
+  //   dateRange,
+  //   selectedTab,
+  // ]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -102,17 +107,7 @@ const Analytics = () => {
         }}
       >
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 m-4 2xl:m-6 2xl:mb-0">
-            {tabOptions.map((tab) => (
-              <TabButton
-                key={tab.id}
-                isSelected={selectedTab === tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                icon={tab.icon}
-                label={tab.label}
-              />
-            ))}
-          </div>
+          <TabGroup tabOptions={tabOptions} />
           {/* main content */}
           <div className="grid grid-cols-4 gap-4 text-text m-4 2xl:m-6 2xl:mt-4">
             {/* Left Panel */}
@@ -139,7 +134,7 @@ const Analytics = () => {
                             : ""
                         }`}
                       >
-                        ▼
+                        <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
                       </span>
                     </div>
                     {selectedSide === "A" && isDropdownOpen && (
@@ -181,7 +176,7 @@ const Analytics = () => {
                             : ""
                         }`}
                       >
-                        ▼
+                        <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
                       </span>
                     </div>
                     {selectedSide === "B" && isDropdownOpen && (
@@ -191,7 +186,7 @@ const Analytics = () => {
                             <div
                               key={sensor}
                               className={`px-4 py-2 cursor-pointer text-sm border-b border-primary/10 last:border-b-0 ${
-                                selectedSensors.includes(sensor)
+                                selectedSensors.value.includes(sensor)
                                   ? "bg-primary/40 text-white"
                                   : "hover:bg-primary/25 text-white"
                               }`}
@@ -211,109 +206,17 @@ const Analytics = () => {
               </div>
 
               {/* Time Range Selection */}
-              <div className="bg-secondary text-white flex-1 p-4 rounded-lg">
-                <h3 className="text-lg text-center font-semibold tracking-wider mt-4 mb-4">
-                  Select Time Range
-                </h3>
-                <div className="mt-16 flex flex-col items-center gap-8">
-                  <div className="w-full flex justify-center items-center gap-4">
-                    <label htmlFor="from" className="w-16 capitalize">
-                      from
-                    </label>
-                    <input
-                      type="date"
-                      id="from"
-                      value={dateRange.from}
-                      onChange={(e) =>
-                        (dateRange.value = {
-                          ...dateRange,
-                          from: e.target.value,
-                        })
-                      }
-                      className="flex-1 max-w-[200px] bg-background/80 text-text/75 py-2 px-3 outline-none rounded"
-                    />
-                  </div>
-                  <div className="w-full flex justify-center items-center gap-4">
-                    <label htmlFor="to" className="w-16 capitalize">
-                      to
-                    </label>
-                    <input
-                      type="date"
-                      id="to"
-                      value={dateRange.to}
-                      onChange={(e) =>
-                        (dateRange.value = { ...dateRange, to: e.target.value })
-                      }
-                      className="flex-1 max-w-[200px] bg-background/80 text-text/75 py-2 px-3 outline-none rounded"
-                    />
-                  </div>
-                </div>
-
-                {/* Average By Radio Buttons */}
-                <div className="mt-12 flex items-start justify-center">
-                  <div className="w-4/5">
-                    <h3 className="font-semibold tracking-wider text-base mb-4">
-                      Average by
-                    </h3>
-                    <div className="flex justify-center items-center gap-12">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="average"
-                          value="minute"
-                          className="hidden"
-                          checked={averageBy.value === "minute"}
-                          onChange={(e) => (averageBy.value = e.target.value)}
-                        />
-                        <div className="w-5 h-5 border-2 border-primary rounded-full flex items-center justify-center">
-                          {averageBy.value === "minute" && (
-                            <div className="w-3 h-3 bg-primary rounded-full" />
-                          )}
-                        </div>
-                        <span>Minute</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="average"
-                          value="hour"
-                          className="hidden"
-                          checked={averageBy.value === "hour"}
-                          onChange={(e) => (averageBy.value = e.target.value)}
-                        />
-                        <div className="w-5 h-5 border-2 border-primary rounded-full flex items-center justify-center">
-                          {averageBy.value === "hour" && (
-                            <div className="w-3 h-3 bg-primary rounded-full" />
-                          )}
-                        </div>
-                        <span>Hour</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="average"
-                          value="day"
-                          className="hidden"
-                          checked={averageBy.value === "day"}
-                          onChange={(e) => (averageBy.value = e.target.value)}
-                        />
-                        <div className="w-5 h-5 border-2 border-primary rounded-full flex items-center justify-center">
-                          {averageBy.value === "day" && (
-                            <div className="w-3 h-3 bg-primary rounded-full" />
-                          )}
-                        </div>
-                        <span>Day</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={fetchChart}
-                  className="mt-4 bg-primary hover:bg-primary/8 text-white px-8 py-2 rounded-lg transition-colors"
-                >
-                  Plot Graph
-                </button>
-              </div>
+              <DateTimeRangePanel
+                mode={selectedTabSignal}
+                dateRange={dateRange}
+                averageBy={averageBy}
+                countOptions={countOptions}
+                customCount={customCount}
+                onPlotGraph={() => {
+                  currentPage.value = "analytics";
+                  fetchChart("analytics");
+                }}
+              />
             </div>
 
             {/* Right Panel - Chart */}

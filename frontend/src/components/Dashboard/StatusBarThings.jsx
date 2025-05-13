@@ -1,4 +1,7 @@
+import { useSignals } from "@preact/signals-react/runtime";
+
 const StatusBarThings = ({ data, side }) => {
+  useSignals();
   return (
     <div className="flex flex-col sm:flex-row gap-2 md:gap-1 2xl:gap-2 mx-2 md:mx-1 2xl:mx-2 items-center">
       <div className="flex gap-1">

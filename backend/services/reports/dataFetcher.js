@@ -33,6 +33,9 @@ function generateTimePeriods(startDate, endDate, averageBy) {
 
     // Calculate end time based on aggregation level
     switch (averageBy) {
+      case "minute":
+        periodEndTime = new Date(currentDate);
+        periodEndTime.setDate(currentDate.getMinutes() + 1);
       case "hour":
         periodEndTime = new Date(currentDate);
         periodEndTime.setHours(currentDate.getHours() + 1);
@@ -161,71 +164,112 @@ async function getAverageData(configuration, dateRange, averageBy) {
 
     // Get sensor group and build query
     const sensorGroup = getSensorGroup(configuration);
-    const query = { timestamp: { $gte: startDate, $lte: endDate } };
-    if (sensorGroup) query.sensorGroup = sensorGroup;
+    const matchStage = {
+      timestamp: { $gte: startDate, $lte: endDate },
+    };
 
-    // Execute query with lean() for better performance
-    const voltageHistory = await VoltageData.find(query)
-      .sort({ timestamp: 1 })
-      .lean();
+    if (sensorGroup) matchStage.sensorGroup = sensorGroup;
 
-    if (voltageHistory.length === 0) {
-      return [];
+    // time grouping based on averageBy params
+    let timeGrouping;
+    let dateFormat;
+
+    switch (averageBy) {
+      case "minute":
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+          hour: { $hour: "$timestamp" },
+          minute: { $minute: "$timestamp" },
+        };
+        dateFormat = "%Y-%m-%d %H:%M";
+        break;
+      case "hour":
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+          hour: { $hour: "$timestamp" },
+        };
+        dateFormat = "%Y-%m-%d %H:00";
+        break;
+      case "day":
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+        };
+        dateFormat = "%Y-%m-%d";
+        break;
+      case "week":
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          week: { $week: "$timestamp" },
+        };
+        dateFormat = "Week %V, %Y";
+        break;
+      case "month":
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+        };
+        dateFormat = "%B %Y";
+        break;
+      default:
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+          hour: { $hour: "$timestamp" },
+        };
+        dateFormat = "%Y-%m-%d %H:00";
     }
 
-    // Generate time periods and initialize data structure
-    const allTimePeriods = generateTimePeriods(startDate, endDate, averageBy);
-    const timePeriodsData = {};
-
-    allTimePeriods.forEach((period) => {
-      timePeriodsData[period.key] = {
-        startTime: period.startTime,
-        endTime: period.endTime,
-        totalValue: 0,
-        count: 0,
-      };
-    });
-
-    // Process data in batches for better memory efficiency
-    const BATCH_SIZE = 1000;
-    for (let i = 0; i < voltageHistory.length; i += BATCH_SIZE) {
-      const batch = voltageHistory.slice(i, i + BATCH_SIZE);
-
-      batch.forEach((record) => {
-        const recordDate = new Date(record.timestamp);
-        const periodKey = getPeriodKey(recordDate, averageBy);
-
-        if (!timePeriodsData[periodKey]) return;
-
-        // Process voltage entries
-        if (record.voltages) {
-          const entries =
-            record.voltages instanceof Map
-              ? Array.from(record.voltages.entries())
-              : Object.entries(record.voltages);
-
-          for (const [, value] of entries) {
-            if (value !== null && !isNaN(value)) {
-              timePeriodsData[periodKey].totalValue += value;
-              timePeriodsData[periodKey].count += 1;
-            }
-          }
-        }
-      });
-
-      // Clear batch from memory
-      batch.length = 0;
-    }
-
-    // Generate result array
-    const result = Object.entries(timePeriodsData)
-      .filter(([, data]) => data.count > 0)
-      .map(([, data]) => ({
-        timestamp: data.startTime,
-        value: parseFloat((data.totalValue / data.count).toFixed(2)),
-        aggregation: averageBy,
-        label: formatPeriodLabel(data.startTime, averageBy),
-      }));
+    // run aggregation pipeline
+    const result = await VoltageData.aggregate([
+      { $match: matchStage },
+      // unwinding the voltages map to get individual readings
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
+      // grouping by time period adn calculate averages
+      {
+        $group: {
+          _id: {
+            ...timeGrouping,
+          },
+          avgValue: { $avg: "$voltageEntries.v" },
+          count: { $sum: 1 },
+          minValue: { $min: "$voltageEntries.v" },
+          maxValue: { $max: "$voltageEntries.v" },
+          // storing the first timestamp in this group for display
+          timestamp: { $first: "$timestamp" },
+        },
+      },
+      // formatting the result
+      {
+        $project: {
+          _id: 0,
+          timestamp: "$timestamp",
+          value: { $round: ["$avgValue", 2] },
+          count: 1,
+          min: { $round: ["$minValue", 2] },
+          max: { $round: ["$maxValue", 2] },
+          label: { $dateToString: { format: dateFormat, date: "$timestamp" } },
+          aggregation: { $literal: averageBy },
+        },
+      },
+      // sorting by timestamp
+      {
+        $sort: {
+          timestamp: 1,
+        },
+      },
+    ]);
 
     return result;
   } catch (error) {
@@ -246,122 +290,132 @@ async function getIntervalData(configuration, dateRange, interval) {
     const startDate = new Date(dateRange.from);
     const endDate = new Date(dateRange.to);
 
-    // Get sensor group and build query
+    // Get sensor group and build match stage
     const sensorGroup = getSensorGroup(configuration);
-    const query = { timestamp: { $gte: startDate, $lte: endDate } };
-    if (sensorGroup) query.sensorGroup = sensorGroup;
+    const matchStage = {
+      timestamp: { $gte: startDate, $lte: endDate },
+    };
 
-    // Execute query with lean() for better performance
-    const voltageHistory = await VoltageData.find(query)
-      .sort({ timestamp: 1 })
-      .lean();
-
-    if (voltageHistory.length === 0) {
-      return [];
+    if (sensorGroup) {
+      matchStage.sensorGroup = sensorGroup;
     }
 
-    // Calculate interval duration in milliseconds
-    let intervalMs;
+    // Define time grouping based on interval parameter
+    let timeGrouping;
+
     switch (interval) {
       case "hour":
-        intervalMs = 60 * 60 * 1000;
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+          hour: { $hour: "$timestamp" },
+        };
         break;
       case "day":
-        intervalMs = 24 * 60 * 60 * 1000;
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+        };
         break;
       case "week":
-        intervalMs = 7 * 24 * 60 * 60 * 1000;
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          week: { $week: "$timestamp" },
+        };
         break;
       case "month":
-        intervalMs = 30 * 24 * 60 * 60 * 1000;
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+        };
         break;
       default:
-        intervalMs = 60 * 60 * 1000;
+        timeGrouping = {
+          year: { $year: "$timestamp" },
+          month: { $month: "$timestamp" },
+          day: { $dayOfMonth: "$timestamp" },
+          hour: { $hour: "$timestamp" },
+        };
     }
 
-    // Group data into intervals
-    const intervals = [];
-    let currentIntervalStart = new Date(startDate);
+    // Run aggregation pipeline
+    const result = await VoltageData.aggregate([
+      // Match documents in date range and sensor group
+      { $match: matchStage },
 
-    while (currentIntervalStart < endDate) {
-      let currentIntervalEnd;
+      // Sort by timestamp to ensure we get the first reading in each interval
+      { $sort: { timestamp: 1 } },
 
-      if (interval === "month") {
-        // Handle month intervals correctly
-        currentIntervalEnd = new Date(currentIntervalStart);
-        currentIntervalEnd.setMonth(currentIntervalEnd.getMonth() + 1);
-      } else {
-        currentIntervalEnd = new Date(
-          currentIntervalStart.getTime() + intervalMs
-        );
-      }
+      // Unwind the voltages map to get individual readings
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
 
-      // Cap the end date to the requested end date
-      if (currentIntervalEnd > endDate) {
-        currentIntervalEnd = new Date(endDate);
-      }
+      // Extract sensor ID from the key (e.g., "v1" -> 1)
+      {
+        $addFields: {
+          sensorId: {
+            $toInt: {
+              $substr: [
+                "$voltageEntries.k",
+                1,
+                { $strLenCP: "$voltageEntries.k" },
+              ],
+            },
+          },
+        },
+      },
 
-      // Process data for this interval in batches
-      const sensorData = {};
+      // Group by time period and sensor ID to get the first reading
+      {
+        $group: {
+          _id: {
+            ...timeGrouping,
+            sensorId: "$sensorId",
+          },
+          // Get the first value in this interval
+          value: { $first: "$voltageEntries.v" },
+          // Store the first timestamp in this group
+          start: { $first: "$timestamp" },
+          // Store the last timestamp in this group
+          end: { $last: "$timestamp" },
+          // Also collect all values for min/max calculation
+          allValues: { $push: "$voltageEntries.v" },
+        },
+      },
 
-      // Process in batches for better memory efficiency
-      const BATCH_SIZE = 1000;
-      for (let i = 0; i < voltageHistory.length; i += BATCH_SIZE) {
-        const batch = voltageHistory.slice(i, i + BATCH_SIZE);
+      // Calculate min and max values
+      {
+        $addFields: {
+          min: { $min: "$allValues" },
+          max: { $max: "$allValues" },
+        },
+      },
 
-        batch.forEach((record) => {
-          const recordTimestamp = new Date(record.timestamp);
+      // Format the result
+      {
+        $project: {
+          _id: 0,
+          start: 1,
+          end: 1,
+          sensorId: "$_id.sensorId",
+          value: { $round: ["$value", 2] },
+          min: { $round: ["$min", 2] },
+          max: { $round: ["$max", 2] },
+          count: { $size: "$allValues" },
+        },
+      },
 
-          // Skip if record is outside current interval
-          if (
-            recordTimestamp < currentIntervalStart ||
-            recordTimestamp >= currentIntervalEnd
-          ) {
-            return;
-          }
+      // Sort by timestamp and sensor ID
+      { $sort: { start: 1, sensorId: 1 } },
+    ]);
 
-          // Process voltage entries
-          if (record.voltages) {
-            const entries =
-              record.voltages instanceof Map
-                ? Array.from(record.voltages.entries())
-                : Object.entries(record.voltages);
-
-            for (const [sensorKey, value] of entries) {
-              if (value !== null && !isNaN(value)) {
-                if (!sensorData[sensorKey]) {
-                  sensorData[sensorKey] = [];
-                }
-                sensorData[sensorKey].push(value);
-              }
-            }
-          }
-        });
-      }
-
-      // Create interval entries for each sensor
-      for (const [sensorKey, values] of Object.entries(sensorData)) {
-        if (values.length > 0) {
-          const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
-          intervals.push({
-            start: new Date(currentIntervalStart),
-            end: new Date(currentIntervalEnd),
-            sensorId,
-            value: parseFloat(
-              (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
-            ),
-            min: Math.min(...values),
-            max: Math.max(...values),
-            count: values.length,
-          });
-        }
-      }
-
-      // Move to next interval
-      currentIntervalStart = currentIntervalEnd;
-    }
-
-    return intervals;
+    return result;
   } catch (error) {
     console.error("Error getting interval data:", error);
     throw error;
@@ -385,18 +439,54 @@ async function getDateData(configuration, dateRange, excelWriter) {
     const query = { timestamp: { $gte: startDate, $lte: endDate } };
     if (sensorGroup) query.sensorGroup = sensorGroup;
 
-    // If no excelWriter, return sample data for API responses
+    // If no excelWriter, return sample data for API responses using aggregation
     if (!excelWriter) {
-      const sampleData = await VoltageData.find(query)
-        .sort({ timestamp: 1 })
-        .limit(100)
-        .lean();
+      const sampleData = await VoltageData.aggregate([
+        { $match: matchStage },
+        { $sort: { timestamp: 1 } },
+        { $limit: 100 },
+        // Unwind the voltages map to get individual readings
+        {
+          $addFields: {
+            voltageEntries: { $objectToArray: "$voltages" },
+          },
+        },
+        { $unwind: "$voltageEntries" },
+        // Extract sensor ID from the key (e.g., "v1" -> 1)
+        {
+          $addFields: {
+            sensorId: {
+              $toInt: {
+                $substr: [
+                  "$voltageEntries.k",
+                  1,
+                  { $strLenCP: "$voltageEntries.k" },
+                ],
+              },
+            },
+          },
+        },
+        // Format the result
+        {
+          $project: {
+            _id: 0,
+            timestamp: 1,
+            deviceId: 1,
+            sensorGroup: 1,
+            sensorId: { $concat: ["Sensor ", { $toString: "$sensorId" }] },
+            value: { $round: ["$voltageEntries.v", 2] },
+          },
+        },
+        // Sort by timestamp and sensor ID
+        { $sort: { timestamp: 1, sensorId: 1 } },
+      ]);
 
       return {
         success: true,
-        message: "Sample data processed successfully",
+        message: "Sample data processed successfully using aggregation",
         totalProcessed: sampleData.length,
         totalRows: sampleData.length,
+        data: sampleData,
       };
     }
 
@@ -420,6 +510,7 @@ async function getDateData(configuration, dateRange, excelWriter) {
           sensorGroup: sensorGroup,
           excelFilePath: excelWriter.filePath,
           mongoUri: mongoUri,
+          useAggregation: true,
         },
         resourceLimits: {
           maxOldGenerationSizeMb: memoryLimit,

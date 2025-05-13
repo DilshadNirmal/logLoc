@@ -260,3 +260,144 @@ processData().catch((err) => {
     stack: err.stack,
   });
 });
+
+async function processDataWithAggregation() {
+  try {
+    // Connect to MongoDB
+    await mongoose.connect(workerData.mongoUri);
+
+    // Get the VoltageData model
+    const VoltageData = mongoose.model("VoltageData");
+
+    // Create match stage
+    const matchStage = {
+      timestamp: {
+        $gte: new Date(workerData.startDate),
+        $lte: new Date(workerData.endDate),
+      },
+    };
+
+    if (workerData.sensorGroup) {
+      matchStage.sensorGroup = workerData.sensorGroup;
+    }
+
+    // Create aggregation pipeline
+    const pipeline = [
+      { $match: matchStage },
+      { $sort: { timestamp: 1 } },
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
+      {
+        $addFields: {
+          sensorId: {
+            $toInt: {
+              $substr: [
+                "$voltageEntries.k",
+                1,
+                { $strLenCP: "$voltageEntries.k" },
+              ],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          deviceId: 1,
+          sensorGroup: 1,
+          sensorId: { $concat: ["Sensor ", { $toString: "$sensorId" }] },
+          value: { $round: ["$voltageEntries.v", 2] },
+        },
+      },
+    ];
+
+    // Create Excel workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Voltage Data");
+
+    // Add headers
+    worksheet.columns = [
+      { header: "Timestamp", key: "timestamp", width: 20 },
+      { header: "Device ID", key: "deviceId", width: 15 },
+      { header: "Sensor Group", key: "sensorGroup", width: 15 },
+      { header: "Sensor ID", key: "sensorId", width: 15 },
+      { header: "Value", key: "value", width: 10 },
+    ];
+
+    // Get cursor for the aggregation
+    const cursor = VoltageData.aggregate(pipeline).cursor();
+
+    // Process data in batches
+    const BATCH_SIZE = 1000;
+    let batch = [];
+    let totalProcessed = 0;
+    let totalRows = 0;
+
+    // Process each document
+    for await (const doc of cursor) {
+      batch.push({
+        timestamp: doc.timestamp,
+        deviceId: doc.deviceId,
+        sensorGroup: doc.sensorGroup,
+        sensorId: doc.sensorId,
+        value: doc.value,
+      });
+
+      totalRows++;
+
+      // When batch is full, write to Excel and clear batch
+      if (batch.length >= BATCH_SIZE) {
+        worksheet.addRows(batch);
+        totalProcessed++;
+
+        // Send progress update
+        parentPort.postMessage({
+          type: "progress",
+          totalProcessed,
+          totalRows,
+        });
+
+        // Clear batch
+        batch = [];
+      }
+    }
+
+    // Write any remaining rows
+    if (batch.length > 0) {
+      worksheet.addRows(batch);
+      totalProcessed++;
+    }
+
+    // Save workbook
+    await workbook.xlsx.writeFile(workerData.excelFilePath);
+
+    // Send completion message
+    parentPort.postMessage({
+      type: "complete",
+      totalProcessed,
+      totalRows,
+    });
+
+    // Close MongoDB connection
+    await mongoose.connection.close();
+  } catch (error) {
+    // Send error message
+    parentPort.postMessage({
+      type: "error",
+      error: error.message,
+      stack: error.stack,
+    });
+
+    // Close MongoDB connection if open
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+    }
+  }
+}
+
+processDataWithAggregation();

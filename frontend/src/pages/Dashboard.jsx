@@ -13,6 +13,7 @@ import TimeRangeSelector from "../components/Dashboard/TimeRangeSelector";
 import debounce from "lodash/debounce";
 import {
   chartData,
+  currentPage,
   fetchChart,
   fetchSignalHistory,
   fetchVoltages,
@@ -26,6 +27,7 @@ import {
   voltageDataB,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -63,9 +65,10 @@ const Dashboard = () => {
 
   effect(() => {
     if (selectedSensors.value.length > 0) {
-      fetchChart();
+      currentPage.value = "dashboard"
+      fetchChart("dashboard");
     } else {
-      chartData.value = []
+      chartData.value = [];
     }
   });
 
@@ -105,6 +108,8 @@ const Dashboard = () => {
       window.removeEventListener("resize", handleResize);
     };
   }, [navHeight]);
+
+  // useSignals();
 
   return (
     <section
@@ -263,11 +268,11 @@ const Dashboard = () => {
             <div className="w-full h-10/12 sm:h-9/12 flex sm:flex-col mt-10 md:mt-0 justify-around">
               <BatteryRender
                 orient={windowWidth >= 1024 ? "height" : "width"}
-                value={voltageDataA.value.batteryStatus}
+                value={voltageDataA}
               />
               <BatteryRender
                 orient={windowWidth >= 1024 ? "height" : "width"}
-                value={voltageDataB.value.batteryStatus}
+                value={voltageDataB}
               />
             </div>
           </div>
