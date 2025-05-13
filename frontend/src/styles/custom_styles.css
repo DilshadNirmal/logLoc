@@ -66,20 +66,29 @@ div.right > div:nth-child(2) {
 /* chart area */
 
 /* for custom radio checkbox in chart area */
+.container .checkmark {
+  @apply bg-text/20;
+}
+
+.container:hover .checkmark {
+  @apply bg-text/30;
+}
+
 .container input:checked ~ .checkmark {
   @apply bg-primary;
 }
 
-.container input:checked ~ .checkmark:before {
-  display: block;
-}
-
-.container:hover input ~ .checkmark {
-  @apply bg-text/30;
-}
-
 .container input:checked:hover ~ .checkmark {
   @apply bg-primary/80;
+}
+
+.container .checkmark:after {
+  content: "";
+  @apply absolute hidden;
+}
+
+.container input:checked ~ .checkmark:after {
+  @apply block;
 }
 
 /* chart container */

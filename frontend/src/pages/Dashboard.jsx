@@ -1,132 +1,38 @@
 import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useRef, useState } from "react";
-import axiosInstance from "../lib/axios";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { effect } from "@preact/signals-react";
 import ReactSpeedometer from "react-d3-speedometer";
 
 import ThreedModel from "../canvas/ThreedModel";
-import Chart from "../components/Chart";
 import BatteryRender from "../components/BatteryRender";
 import StatusBarThings from "../components/Dashboard/StatusBarThings";
 import SensorButton from "../components/Dashboard/SensorButton";
 import SideSelector from "../components/Dashboard/SideSelector";
 import SensorCheckbox from "../components/Dashboard/SensorCheckbox";
 import TimeRangeSelector from "../components/Dashboard/TimeRangeSelector";
-import Gauge from "../components/Gauge";
+import debounce from "lodash/debounce";
+import {
+  chartData,
+  fetchChart,
+  fetchSignalHistory,
+  fetchVoltages,
+  getMaxVoltage,
+  getMinVoltage,
+  selectedSensors,
+  selectedSide,
+  signalHistory,
+  timeRange,
+  voltageDataA,
+  voltageDataB,
+} from "../signals/voltage";
+import ChartContainer from "../components/Chart";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [voltageDataA, setVoltageDataA] = useState({
-    voltages: {},
-    batteryStatus: 0,
-    signalStrength: 0,
-    timestamp: null,
-  });
 
-  const [voltageDataB, setVoltageDataB] = useState({
-    voltages: {},
-    batteryStatus: 0,
-    signalStrength: 0,
-    timestamp: null,
-  });
-  // const [selectedSensor, setSelectedSensor] = useState(1);
-  const [selectedSensors, setSelectedSensors] = useState([1]);
-  const [selectedSide, setSelectedSide] = useState("A");
-  const [timeRange, setTimeRange] = useState("1h");
-  const [chartData, setChartData] = useState("");
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [windowWidth, setWindowWidth] = useState(0);
-  const chartRef = useRef();
-
-  const fetchVoltages = async () => {
-    try {
-      const response = await axiosInstance("/voltage-history");
-      if (response.data && response.data.length > 0) {
-        const group1Data = response.data.find((d) => d.sensorGroup === "1-20");
-        const group2Data = response.data.find((d) => d.sensorGroup === "21-40");
-
-        if (group1Data) {
-          setVoltageDataA({
-            voltages: group1Data.voltages || {},
-            batteryStatus: group1Data.batteryStatus || 0,
-            signalStrength: group1Data.signalStrength || -100,
-            timestamp: new Date(group1Data.timestamp || 0),
-          });
-        }
-
-        if (group2Data) {
-          setVoltageDataB({
-            voltages: group2Data.voltages || {},
-            batteryStatus: group2Data.batteryStatus || 0,
-            signalStrength: group2Data.signalStrength || -100,
-            timestamp: new Date(group2Data.timestamp || 0),
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching voltages:", error);
-    }
-  };
-
-  const fetchChart = async () => {
-    try {
-      if (selectedSensors.length === 0) {
-        setChartData([]);
-        return;
-      }
-
-      const response = await axiosInstance.get("/voltage-data", {
-        params: {
-          sensorId: selectedSensors,
-          timeRange: parseInt(timeRange), // Convert "1h" to 1
-        },
-      });
-
-      if (response.data && Array.isArray(response.data)) {
-        // Filter out any sensors with empty data
-        const validData = response.data.filter(
-          (sensor) => sensor.data && sensor.data.length > 0
-        );
-        setChartData(validData);
-      } else {
-        setChartData([]);
-      }
-    } catch (error) {
-      console.error("Error loading chart:", error);
-      setChartData([]);
-    }
-  };
-
-  const getVoltageClass = (value) => {
-    if (value === undefined) return "bg-secondary/20 text-text/50";
-    if (value >= 7) return "bg-secondary text-red-400";
-    if (value <= 3) return "bg-secondary text-blue-400";
-    return "bg-secondary text-text";
-  };
-
-  const getMinVoltage = (voltages) => {
-    if (!voltages || Object.keys(voltages).lenght === 0) return 0;
-
-    const values = Object.values(voltages).filter(
-      (v) => v !== undefined && v !== null
-    );
-
-    if (values.length === 0) return 0;
-
-    return Math.min(...values);
-  };
-
-  const getMaxVoltage = (voltages) => {
-    if (!voltages || Object.keys(voltages).length == 0) return 0;
-
-    const values = Object.values(voltages).filter(
-      (v) => v !== undefined && v !== null
-    );
-
-    if (values.length === 0) return 0;
-
-    return Math.max(...values);
-  };
 
   const getGaugeSize = () => {
     const currentWidth = window.innerWidth;
@@ -142,20 +48,26 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
+  effect(() => {
     fetchVoltages();
-    fetchChart(); // Initial fetch for chart data
+    fetchSignalHistory();
 
-    // Set up intervals for both voltage and chart updates
     const voltageInterval = setInterval(fetchVoltages, 2000);
-    const chartInterval = setInterval(fetchChart, 2000); // Update chart every second
+    const historyInterval = setInterval(fetchSignalHistory, 60000);
 
-    // Cleanup both intervals when component unmounts
     return () => {
       clearInterval(voltageInterval);
-      clearInterval(chartInterval);
+      clearInterval(historyInterval);
     };
-  }, [selectedSensors, timeRange]);
+  });
+
+  effect(() => {
+    if (selectedSensors.value.length > 0) {
+      fetchChart();
+    } else {
+      chartData.value = []
+    }
+  });
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -240,7 +152,7 @@ const Dashboard = () => {
                   // colorScheme={["#133044", "#ff4d4d"]}
                 /> */}
                 <ReactSpeedometer
-                  value={getMinVoltage(voltageDataA.voltages)}
+                  value={getMinVoltage(voltageDataA)}
                   minValue={-10}
                   maxValue={10}
                   width={getGaugeSize().width}
@@ -262,7 +174,7 @@ const Dashboard = () => {
               </div>
               <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
-                  value={getMaxVoltage(voltageDataA.voltages)}
+                  value={getMaxVoltage(voltageDataA)}
                   minValue={-10}
                   maxValue={10}
                   width={getGaugeSize().width}
@@ -294,7 +206,7 @@ const Dashboard = () => {
             <div className=" flex flex-col md:flex-row items-center justify-evenly h-full">
               <div className="h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
-                  value={getMinVoltage(voltageDataB.voltages)}
+                  value={getMinVoltage(voltageDataB)}
                   minValue={-10}
                   maxValue={10}
                   width={getGaugeSize().width}
@@ -316,7 +228,7 @@ const Dashboard = () => {
               </div>
               <div className="h-[55%] w-[40%] flex items-center justify-center">
                 <ReactSpeedometer
-                  value={getMaxVoltage(voltageDataB.voltages)}
+                  value={getMaxVoltage(voltageDataB)}
                   minValue={-10}
                   maxValue={10}
                   width={getGaugeSize().width}
@@ -351,11 +263,11 @@ const Dashboard = () => {
             <div className="w-full h-10/12 sm:h-9/12 flex sm:flex-col mt-10 md:mt-0 justify-around">
               <BatteryRender
                 orient={windowWidth >= 1024 ? "height" : "width"}
-                value={voltageDataA.batteryStatus}
+                value={voltageDataA.value.batteryStatus}
               />
               <BatteryRender
                 orient={windowWidth >= 1024 ? "height" : "width"}
-                value={voltageDataB.batteryStatus}
+                value={voltageDataB.value.batteryStatus}
               />
             </div>
           </div>
@@ -366,46 +278,44 @@ const Dashboard = () => {
             <div className="h-9/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
               <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
                 <div className="flex items-end justify-center gap-1">
-                  {[1, 2, 3].map((bar) => (
-                    <div
-                      key={bar}
-                      className="w-3.5 md:w-3 2xl:w-3.5 transition-all duration-300"
-                      style={{
-                        height: `${bar * 14}px`,
-                        backgroundColor:
-                          voltageDataA.signalStrength >= 25 * bar
-                            ? "#ffdd00"
-                            : "#3ff45f",
-                      }}
-                    />
-                  ))}
+                  {[1, 2, 3].map((bar) => {
+                    let barColor;
+                    const signalStrength = voltageDataA.value.signalStrength;
+
+                    if (signalStrength <= 33) {
+                      barColor = bar === 1 ? "#ff4d4d" : "#3f3f3f";
+                    } else if (signalStrength <= 66) {
+                      barColor = bar <= 2 ? "#ffa64d" : "#3f3f3f";
+                    } else {
+                      barColor = "#4dff4d";
+                    }
+
+                    return (
+                      <div
+                        key={bar}
+                        className="w-3.5 md:w-3 2xl:w-3.5 transition-all duration-300"
+                        style={{
+                          height: `${bar * 14}px`,
+                          backgroundColor: barColor,
+                          opacity: barColor === "#3f3f3f" ? 0.3 : 1,
+                        }}
+                      />
+                    );
+                  })}
                 </div>
                 <span className="text-3xl font-bold text-center">
-                  {voltageDataA.signalStrength}%
+                  {voltageDataA.value.signalStrength}%
                 </span>
               </div>
-              <div className="w-[80%] md:w-[60%]">
+              <div className="w-[80%] md:w-[60%] h-[90%]">
                 <h5 className="text-base md:text-[10px] 2xl:text-sm text-text/85 font-normal tracking-wide mb-2 md:mb-1 2xl:mb-1">
                   Signal strength - 12 Hrs
                 </h5>
                 <div className="grid grid-cols-4 2xl:grid-rows-3 gap-1">
-                  {[
-                    { time: "09:00 AM", strength: 2 },
-                    { time: "10:00 AM", strength: 4 },
-                    { time: "11:00 AM", strength: 2 },
-                    { time: "12:00 PM", strength: 4 },
-                    { time: "01:00 PM", strength: 1 },
-                    { time: "02:00 PM", strength: 2 },
-                    { time: "03:00 PM", strength: 3 },
-                    { time: "04:00 PM", strength: 4 },
-                    { time: "05:00 PM", strength: 4 },
-                    { time: "06:00 PM", strength: 3 },
-                    { time: "07:00 PM", strength: 1 },
-                    { time: "08:00 PM", strength: 2 },
-                  ].map((item, index) => (
+                  {signalHistory.value.map((item, index) => (
                     <div
                       key={index}
-                      className="bg-background/20 rounded-lg p-2 lg:p-1 lg:py-1.5 2xl:py-2 flex flex-col items-center justify-end"
+                      className="bg-background/20 rounded-lg p-1.5 lg:p-1 lg:py-1.5 2xl:p-2 flex flex-col items-center justify-end"
                     >
                       <div className="flex items-end mb-2 lg:mb-1 2xl:mb-2">
                         {[...Array(item.strength)].map((_, i) => (
@@ -447,14 +357,12 @@ const Dashboard = () => {
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-4 gap-1.5">
               {[...Array(20)].map((_, index) => {
                 const sensorId = index + 1;
-                const voltage = voltageDataA.voltages[`v${sensorId}`];
+                const voltage = voltageDataA.value.voltages[`v${sensorId}`];
                 return (
                   <SensorButton
                     key={sensorId}
                     sensorId={sensorId}
                     voltage={voltage}
-                    isSelected={selectedSensors.includes(sensorId)}
-                    // onClick={() => handleSensorSelection(sensorId)}
                   />
                 );
               })}
@@ -467,14 +375,12 @@ const Dashboard = () => {
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4  2xl:grid-cols-4 gap-1.5">
               {[...Array(20)].map((_, index) => {
                 const sensorId = index + 21;
-                const voltage = voltageDataB.voltages[`v${sensorId}`];
+                const voltage = voltageDataB.value.voltages[`v${sensorId}`];
                 return (
                   <SensorButton
                     key={sensorId}
                     sensorId={sensorId}
                     voltage={voltage}
-                    isSelected={selectedSensors.includes(sensorId)}
-                    // onClick={() => handleSensorSelection(sensorId)}
                   />
                 );
               })}
@@ -485,51 +391,14 @@ const Dashboard = () => {
         {/* chart */}
         <div className="bg-secondary p-2 rounded-lg">
           <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 mb-2">
-            <SideSelector
-              selectedSide={selectedSide}
-              selectedSensors={selectedSensors}
-              setSelectedSide={setSelectedSide}
-              setSelectedSensors={setSelectedSensors}
-            />
+            <SideSelector />
 
-            {selectedSide && (
-              <div className="grid grid-cols-10 place-items-center gap-1 md:gap-0.5 2xl:gap-1 p-2 md:p-1 2xl:p-2 rounded-lg">
-                {[...Array(20)].map((_, index) => {
-                  const sensorId =
-                    selectedSide === "A" ? index + 1 : index + 21;
-                  return (
-                    <SensorCheckbox
-                      key={sensorId}
-                      sensorId={sensorId}
-                      isChecked={selectedSensors.includes(sensorId)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedSensors([...selectedSensors, sensorId]);
-                        } else {
-                          setSelectedSensors(
-                            selectedSensors.filter((id) => id !== sensorId)
-                          );
-                        }
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            {selectedSide.value && <SensorCheckbox />}
 
-            <TimeRangeSelector
-              timeRange={timeRange}
-              setTimeRange={setTimeRange}
-            />
+            <TimeRangeSelector timeRange={timeRange} />
           </div>
           <div className="chart-container">
-            {chartData.length > 0 ? (
-              <Chart ref={chartRef} data={chartData} />
-            ) : (
-              <div className="h-full flex items-center justify-center text-text">
-                no voltage data to display chart...
-              </div>
-            )}
+            <ChartContainer data={chartData} />
           </div>
         </div>
       </div>

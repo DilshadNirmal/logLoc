@@ -1,4 +1,9 @@
-const SensorButton = ({ sensorId, voltage, isSelected, onClick }) => {
+import { useSignals } from "@preact/signals-react/runtime";
+import { selectedSensors } from "../../signals/voltage";
+
+const SensorButton = ({ sensorId, voltage }) => {
+  useSignals();
+
   const getVoltageClass = (value) => {
     if (value === undefined) return "bg-secondary/20 text-text/50";
     if (value >= 7) return "bg-secondary text-red-400";
@@ -6,12 +11,20 @@ const SensorButton = ({ sensorId, voltage, isSelected, onClick }) => {
     return "bg-secondary text-text";
   };
 
+  const handleClick = () => {
+    if (selectedSensors.value.includes(sensorId)) {
+      selectedSensors.value = selectedSensors.value.filter(id => id !== sensorId);
+    } else {
+      selectedSensors.value = [...selectedSensors.value, sensorId];
+    }
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={`${getVoltageClass(voltage)}
             p-1 rounded-lg transition-all hover:scale-105
-            ${isSelected ? "ring-1 ring-primary" : ""}`}
+            ${selectedSensors.value.includes(sensorId) ? "ring-1 ring-primary" : ""}`}
     >
       <div className="text-xs md:text-xs font-medium tracking-wider opacity-55 mb-0.5">
         S{sensorId}

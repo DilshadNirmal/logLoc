@@ -1,5 +1,20 @@
-import { useRef, useEffect, forwardRef, useState } from "react";
+import { useRef, useEffect, forwardRef, useState, memo } from "react";
 import * as d3 from "d3";
+import { useSignals } from "@preact/signals-react/runtime";
+
+const ChartContainer = ({ data }) => {
+  useSignals();
+  
+  if (data.value.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-text">
+        no voltage data to display chart...
+      </div>
+    );
+  }
+
+  return <Chart data={data} />;
+};
 
 const Chart = forwardRef(({ data }, ref) => {
   const svgRef = useRef(null);
@@ -9,8 +24,25 @@ const Chart = forwardRef(({ data }, ref) => {
   const [isZoomActive, setIsZoomActive] = useState(false);
   const [zoomState, setZoomState] = useState(null);
 
+  // adding key to force re-renders
+  const dataKey = JSON.stringify(data.value.map(item => item.sensorId));
+
   useEffect(() => {
-    if (!data || data.length === 0) return;
+    if (!data.value || data.value.length === 0) return;
+
+    // Implement data decimation for large datasets
+    const decimateData = (sensorData, threshold = 1000) => {
+      if (sensorData.length <= threshold) return sensorData;
+
+      const factor = Math.floor(sensorData.length / threshold);
+      return sensorData.filter((_, index) => index % factor === 0);
+    };
+
+    // Process data with decimation
+    const processedData = data.value.map((sensor) => ({
+      ...sensor,
+      data: decimateData(sensor.data),
+    }));
 
     // Get the container dimensions from the SVG element itself
     const svgElement = svgRef.current;
@@ -52,10 +84,10 @@ const Chart = forwardRef(({ data }, ref) => {
       .attr("y", 0);
 
     // Process data
-    const allTimestamps = data.flatMap((sensor) =>
+    const allTimestamps = processedData.flatMap((sensor) =>
       sensor.data.map((d) => new Date(d.timestamp))
     );
-    const allValues = data
+    const allValues = processedData
       .flatMap((sensor) => sensor.data.map((d) => d.value))
       .filter((v) => v !== null && !isNaN(v));
 
@@ -122,7 +154,7 @@ const Chart = forwardRef(({ data }, ref) => {
 
     // Draw lines
     const colors = ["#0ea5e9", "#f43f5e", "#22c55e", "#f59e0b", "#8b5cf6"];
-    const lines = data.map((sensor, i) => {
+    const lines = processedData.map((sensor, i) => {
       const validData = sensor.data.filter(
         (d) => d.value !== null && !isNaN(d.value)
       );
@@ -334,7 +366,7 @@ const Chart = forwardRef(({ data }, ref) => {
         .attr("y2", innerHeight)
         .style("opacity", 0);
 
-      const tooltipPoints = data.map((_, i) =>
+      const tooltipPoints = data.value.map((_, i) =>
         g
           .append("circle")
           .attr("r", 4)
@@ -354,10 +386,26 @@ const Chart = forwardRef(({ data }, ref) => {
           const x0 = xScale.invert(mouseX);
 
           // Find closest data points
-          const points = data.map((sensor) => {
-            const bisect = d3.bisector((d) => new Date(d.timestamp)).left;
-            const i = bisect(sensor.data, x0);
-            return sensor.data[i];
+          const points = []
+          data.value.forEach((sensor, sensorIndex) => {
+            const bisect = d3.bisector(d => new Date(d.timestamp)).left;
+            const index = bisect(sensor.data, x0);
+            
+            // Get the points on either side of the cursor
+            const d0 = sensor.data[index - 1];
+            const d1 = sensor.data[index];
+            
+            // If we have points on both sides, find the closest one
+            if (d0 && d1) {
+              const point = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
+              points.push({ point, index: sensorIndex });
+            } else if (d0) {
+              points.push({ point: d0, index: sensorIndex });
+            } else if (d1) {
+              points.push({ point: d1, index: sensorIndex });
+            } else {
+              points.push(null);
+            }
           });
 
           if (points.some((p) => !p)) return;
@@ -366,29 +414,31 @@ const Chart = forwardRef(({ data }, ref) => {
           tooltipLine.attr("x1", mouseX).attr("x2", mouseX).style("opacity", 1);
 
           // Update tooltip points
-          points.forEach((point, i) => {
-            tooltipPoints[i]
-              .attr("cx", xScale(new Date(point.timestamp)))
-              .attr("cy", yScale(point.value))
+          points.forEach(({ point, index }) => {
+            const timestamp = new Date(point.point.timestamp);
+            const value = point.point.value;
+            
+            tooltipPoints[index]
+              .attr("cx", xScale(timestamp))
+              .attr("cy", yScale(value))
               .style("opacity", 1);
           });
 
           // Update tooltip content
           tooltip
             .style("opacity", 1)
-            .style("left", `${event.pageX - 1001}px`)
-            .style("top", `${event.pageY - 660}px`).html(`
+            .style("left", `${event.pageX}px`)
+            .style("top", `${event.pageY - 28}px`)
+            .html(`
             <div style="background: rgba(26,34,52,0.9); padding: 6px; border-radius: 4px;">
               <div style="color: #e9ebed; font-size: 10px; opacity: 0.7;">
-                ${new Date(points[0].timestamp).toLocaleString()}
+                ${new Date(points[0].point.timestamp).toLocaleString()}
               </div>
               ${points
                 .map(
-                  (point, i) => `
-                <div style="color: ${
-                  colors[i % colors.length]
-                }; font-weight: bold;">
-                  S${data[i].sensorId}: ${point.value.toFixed(2)}mV
+                  ({ point, index }) => `
+                <div style="color: ${colors[index % colors.length]}; font-weight: bold;">
+                  S${data.value[index].sensorId}: ${point.point.value.toFixed(2)}mV
                 </div>
               `
                 )
@@ -425,7 +475,7 @@ const Chart = forwardRef(({ data }, ref) => {
     return () => {
       d3.select(document).on("keydown", null);
     };
-  }, [data, zoomState, isZoomActive]);
+  }, [data.value, dataKey, zoomState, isZoomActive]);
 
   return (
     <>
@@ -444,4 +494,4 @@ const Chart = forwardRef(({ data }, ref) => {
 
 Chart.displayName = "Chart";
 
-export default Chart;
+export default ChartContainer

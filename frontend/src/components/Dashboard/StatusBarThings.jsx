@@ -6,11 +6,11 @@ const StatusBarThings = ({ data, side }) => {
           Active:{" "}
           <span className="text-primary font-medium text-sm md:text-[9px] lg:text-[10px] 2xl:text-base ml-1">
             {side === "A"
-              ? Object.entries(data.voltages).filter(
+              ? Object.entries(data.value.voltages).filter(
                   ([key, value]) =>
                     parseInt(key.slice(1)) <= 20 && value !== undefined
                 ).length
-              : Object.entries(data.voltages).filter(
+              : Object.entries(data.value.voltages).filter(
                   ([key, value]) =>
                     parseInt(key.slice(1)) > 20 && value !== undefined
                 ).length}
@@ -20,11 +20,11 @@ const StatusBarThings = ({ data, side }) => {
           Inactive:{" "}
           <span className="text-primary font-medium text-sm md:text-[9px] lg:text-[10px] 2xl:text-base ml-1">
             {side === "A"
-              ? Object.entries(data.voltages).filter(
+              ? Object.entries(data.value.voltages).filter(
                   ([key, value]) =>
                     parseInt(key.slice(1)) <= 20 && value === undefined
                 ).length
-              : Object.entries(data.voltages).filter(
+              : Object.entries(data.value.voltages).filter(
                   ([key, value]) =>
                     parseInt(key.slice(1)) > 20 && value === undefined
                 ).length}
@@ -34,7 +34,7 @@ const StatusBarThings = ({ data, side }) => {
       <p className="text-sm md:text-[8px] lg:text-[10px] 2xl:text-sm">
         Lt.Upd:{" "}
         <span className="text-primary font-medium text-sm md:text-[8px] lg:text-[10px] 2xl:text-base ml-1">
-          {data.timestamp?.toLocaleString() || "--:--:--"}
+          {data.value.timestamp?.toLocaleString() || "--:--:--"}
         </span>{" "}
       </p>
     </div>

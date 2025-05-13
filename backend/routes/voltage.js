@@ -208,18 +208,25 @@ router.get("/voltage-chart", async (req, res) => {
 
 router.get("/voltage-data", auth, async (req, res) => {
   try {
-    const { sensorId, timeRange } = req.query;
+    const { sensorId, timeRange, from, to } = req.query;
     const sensorIds = Array.isArray(sensorId)
       ? sensorId.map(Number)
       : [Number(sensorId)];
 
-    const hours = parseInt(timeRange);
-    if (isNaN(hours)) {
-      throw new Error("Invalid time range");
-    }
+    let startDate, endDate;
 
-    const endDate = new Date();
-    const startDate = new Date(endDate - hours * 60 * 60 * 1000);
+    // Handle both date range and hour-based range
+    if (from && to) {
+      startDate = new Date(from);
+      endDate = new Date(to);
+    } else {
+      const hours = parseInt(timeRange);
+      if (isNaN(hours)) {
+        throw new Error("Invalid time range");
+      }
+      endDate = new Date();
+      startDate = new Date(endDate - hours * 60 * 60 * 1000);
+    }
 
     // Query for documents that have any of the requested sensor voltages
     const voltageHistory = await VoltageData.find({
@@ -264,6 +271,52 @@ router.get("/voltage-data", auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch voltage data",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+router.get("/voltage-history/signal", auth, async (req, res) => {
+  try {
+    const { hours = 12 } = req.query;
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - parseInt(hours));
+
+    // Get all records for the last 12 hours
+    const allHistory = await VoltageData.find(
+      { timestamp: { $gte: startTime } },
+      { timestamp: 1, signalStrength: 1, _id: 0 }
+    ).sort({ timestamp: 1 });
+
+    // Group data by hour and take first record of each hour
+    const hourlyData = [];
+    let currentHour = new Date(startTime);
+
+    for (let i = 0; i < parseInt(hours); i++) {
+      const nextHour = new Date(currentHour);
+      nextHour.setHours(nextHour.getHours() + 1);
+
+      // Find first record in this hour
+      const hourRecord = allHistory.find(
+        (record) =>
+          record.timestamp >= currentHour && record.timestamp < nextHour
+      );
+
+      if (hourRecord) {
+        hourlyData.push({
+          timestamp: hourRecord.timestamp,
+          signalStrength: hourRecord.signalStrength,
+        });
+      }
+
+      currentHour = nextHour;
+    }
+
+    res.json(hourlyData);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch signal history",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
