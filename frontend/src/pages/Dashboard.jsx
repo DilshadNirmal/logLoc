@@ -1,6 +1,5 @@
 import { useAuth } from "../contexts/AuthContext";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { effect } from "@preact/signals-react";
+import { useEffect, useState } from "react";
 import ReactSpeedometer from "react-d3-speedometer";
 
 import ThreedModel from "../canvas/ThreedModel";
@@ -50,7 +49,7 @@ const Dashboard = () => {
     }
   };
 
-  effect(() => {
+  useEffect(() => {
     fetchVoltages();
     fetchSignalHistory();
 
@@ -61,16 +60,16 @@ const Dashboard = () => {
       clearInterval(voltageInterval);
       clearInterval(historyInterval);
     };
-  });
+  }, []);
 
-  effect(() => {
+  useEffect(() => {
     if (selectedSensors.value.length > 0) {
-      currentPage.value = "dashboard"
+      currentPage.value = "dashboard";
       fetchChart("dashboard");
     } else {
       chartData.value = [];
     }
-  });
+  }, [selectedSensors.value]);
 
   useEffect(() => {
     const updateNavHeight = () => {

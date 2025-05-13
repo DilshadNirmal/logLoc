@@ -1,6 +1,8 @@
 import { useRef, useEffect, forwardRef, useState, memo } from "react";
 import * as d3 from "d3";
 import { useSignals } from "@preact/signals-react/runtime";
+import { effect } from "@preact/signals-react";
+import { chartData } from "../signals/voltage";
 
 const ChartContainer = ({ data }) => {
   useSignals();
@@ -269,7 +271,9 @@ const Chart = forwardRef(({ data }, ref) => {
       xAxis
         .transition()
         .duration(750)
-        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%H:%M")));
+        .call(
+          d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d-%B-%y %H:%M"))
+        );
 
       g.select(".x-grid")
         .transition()

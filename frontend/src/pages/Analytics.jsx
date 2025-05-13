@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { effect } from "@preact/signals-react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
@@ -20,7 +19,6 @@ import {
 import ChartContainer from "../components/Chart";
 import DateTimeRangePanel from "../components/form/DateTimeRangePanel";
 import TabGroup from "../components/TabGroup";
-import { useSignals } from "@preact/signals-react/runtime";
 
 const Analytics = () => {
   const [navHeight, setNavHeight] = useState(0);
@@ -234,21 +232,5 @@ const Analytics = () => {
     </section>
   );
 };
-
-const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
-  <button
-    className={`flex items-center justify-center gap-3 p-3 md:p-2 md:py-5 lg:p-3 lg:py-5 rounded-lg transition-all ${
-      isSelected
-        ? "bg-primary text-white"
-        : "bg-secondary text-text hover:bg-secondary/70"
-    }`}
-    onClick={onClick}
-  >
-    <Icon className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-8 2xl:h-8" />
-    <span className="text-base 2xl:text-lg font-medium tracking-wide">
-      {label}
-    </span>
-  </button>
-);
 
 export default Analytics;

@@ -439,6 +439,7 @@ async function getDateData(configuration, dateRange, excelWriter) {
     const query = { timestamp: { $gte: startDate, $lte: endDate } };
     if (sensorGroup) query.sensorGroup = sensorGroup;
 
+    // If no excelWriter, return sample data for API responses
     // If no excelWriter, return sample data for API responses using aggregation
     if (!excelWriter) {
       const sampleData = await VoltageData.aggregate([
@@ -510,7 +511,6 @@ async function getDateData(configuration, dateRange, excelWriter) {
           sensorGroup: sensorGroup,
           excelFilePath: excelWriter.filePath,
           mongoUri: mongoUri,
-          useAggregation: true,
         },
         resourceLimits: {
           maxOldGenerationSizeMb: memoryLimit,
@@ -575,7 +575,7 @@ async function getCountData(options) {
   try {
     const { selectedCounts, customCount } = options;
 
-    // Determine how many voltage values we want to fetch
+    // Determine how many voltage values we want to fetch per sensor
     let targetValueCount = 500; // Default to 500 values
 
     if (selectedCounts) {
@@ -590,61 +590,78 @@ async function getCountData(options) {
       }
     }
 
-    // Calculate how many documents we need to fetch
-    // Assuming each document has ~40 values (one per sensor)
-    const estimatedDocsNeeded = Math.ceil(targetValueCount / 20);
-
-    // Get the most recent voltage data documents with lean() for better performance
-    const voltageHistory = await VoltageData.find({})
-      .sort({ timestamp: -1 }) // Sort by timestamp descending (newest first)
-      .limit(estimatedDocsNeeded)
-      .lean();
-
-    // Prepare data for Excel output
-    const result = [];
-    let totalValuesProcessed = 0;
-
-    // Process each record
-    for (const record of voltageHistory) {
-      // Skip if we've reached the target
-      if (totalValuesProcessed >= targetValueCount) {
-        break;
-      }
-
-      // For each sensor reading in this record
-      if (record.voltages) {
-        const entries =
-          record.voltages instanceof Map
-            ? Array.from(record.voltages.entries())
-            : Object.entries(record.voltages);
-
-        for (const [sensorKey, value] of entries) {
-          // Skip if we've reached the target
-          if (totalValuesProcessed >= targetValueCount) {
-            break;
-          }
-
-          if (value !== null && !isNaN(value)) {
-            totalValuesProcessed++;
-
-            // Extract sensor ID from the key (assuming keys are like 'v1', 'v2', etc.)
-            const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
-
-            // Add a row for this reading
-            result.push({
-              timestamp: new Date(record.timestamp).toLocaleString(),
-              deviceId: record.deviceId,
-              sensorGroup: record.sensorGroup,
-              sensorId: `Sensor ${sensorId}`,
-              value: parseFloat(value.toFixed(2)),
-            });
+    // Use aggregation to get the most recent readings for each sensor
+    const result = await VoltageData.aggregate([
+      // Sort by timestamp descending (newest first)
+      { $sort: { timestamp: -1 } },
+      
+      // Unwind the voltages map to get individual readings
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
+      
+      // Extract sensor ID from the key (e.g., "v1" -> 1)
+      {
+        $addFields: {
+          sensorId: {
+            $toInt: {
+              $substr: [
+                "$voltageEntries.k",
+                1,
+                { $strLenCP: "$voltageEntries.k" },
+              ],
+            },
+          },
+        },
+      },
+      
+      // Group by sensor ID to get the most recent readings for each sensor
+      {
+        $group: {
+          _id: "$sensorId",
+          readings: {
+            $push: {
+              timestamp: "$timestamp",
+              deviceId: "$deviceId",
+              sensorGroup: "$sensorGroup",
+              value: "$voltageEntries.v"
+            }
           }
         }
-      }
-    }
+      },
+      
+      // Limit the number of readings per sensor
+      {
+        $project: {
+          _id: 0,
+          sensorId: "$_id",
+          readings: { $slice: ["$readings", targetValueCount] }
+        }
+      },
+      
+      // Unwind the readings to flatten the results
+      { $unwind: "$readings" },
+      
+      // Format the output
+      {
+        $project: {
+          timestamp: "$readings.timestamp",
+          deviceId: "$readings.deviceId",
+          sensorGroup: "$readings.sensorGroup",
+          sensorId: { $concat: ["Sensor ", { $toString: "$sensorId" }] },
+          value: { $round: ["$readings.value", 2] }
+        }
+      },
+      
+      // Sort by timestamp and sensor ID
+      { $sort: { timestamp: -1, sensorId: 1 } }
+    ]);
 
     console.log(
-      `Processed ${totalValuesProcessed} voltage values from ${voltageHistory.length} documents`
+      `Processed ${result.length} voltage values for the count-based report`
     );
     return result;
   } catch (error) {

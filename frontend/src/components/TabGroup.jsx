@@ -1,5 +1,4 @@
 import { useSignals } from "@preact/signals-react/runtime";
-import { effect } from "@preact/signals-react";
 import { chartData, selectedTabSignal } from "../signals/voltage";
 import TabButton from "./TabButton";
 
@@ -7,6 +6,7 @@ const TabGroup = ({ tabOptions }) => {
   useSignals();
   const handleTabClick = (tabId) => {
     selectedTabSignal.value = tabId;
+    chartData.value = [];
   };
 
   return (

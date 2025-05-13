@@ -106,15 +106,13 @@ export const fetchChart = async (sourcePage) => {
         params.from = new Date(dateRange.value.from).toISOString();
         params.to = new Date(dateRange.value.to).toISOString();
 
-        const selectedTab =
-          document.querySelector('[data-selected="true"]')?.id || "average";
-        params.mode = selectedTab;
+        params.mode = selectedTabSignal.value;
 
-        if (selectedTab === "average" && averageBy.value) {
+        if (selectedTabSignal.value === "average" && averageBy.value) {
           params.averageBy = averageBy.value;
-        } else if (selectedTab === "interval") {
+        } else if (selectedTabSignal.value === "interval") {
           params.interval = "hour"; // Default to hour, can be customized
-        } else if (selectedTab === "count") {
+        } else if (selectedTabSignal.value === "count") {
           params.selectedCounts = JSON.stringify({
             last100: countOptions.value === "last100",
             last500: countOptions.value === "last500",
