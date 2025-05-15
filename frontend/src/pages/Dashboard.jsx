@@ -197,7 +197,7 @@ const Dashboard = () => {
               A Side
             </legend>
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-4 gap-1.5">
-              {[...Array(20)].map((_, index) => {
+              {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 1;
                 // const voltage = voltageDataA.value.voltages[`v${sensorId}`];
                 return (
@@ -215,7 +215,7 @@ const Dashboard = () => {
               B Side
             </legend>
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4  2xl:grid-cols-4 gap-1.5">
-              {[...Array(20)].map((_, index) => {
+              {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 21;
                 // const voltage = voltageDataB.value.voltages[`v${sensorId}`];
                 return (
