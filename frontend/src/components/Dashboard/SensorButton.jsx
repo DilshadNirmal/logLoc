@@ -9,7 +9,7 @@ const SensorButton = ({ sensorId, voltage }) => {
     if (value >= 7) return "bg-secondary text-red-400";
     if (value <= 3) return "bg-secondary text-blue-400";
     return "bg-secondary text-text";
-  };
+  }
 
   const handleClick = () => {
     if (selectedSensors.value.includes(sensorId)) {
@@ -22,7 +22,7 @@ const SensorButton = ({ sensorId, voltage }) => {
   return (
     <button
       onClick={handleClick}
-      className={`${getVoltageClass(voltage)}
+      className={`${getVoltageClass(voltage.value.voltages[`v${sensorId}`])}
             p-1 rounded-lg transition-all hover:scale-105
             ${selectedSensors.value.includes(sensorId) ? "ring-1 ring-primary" : ""}`}
     >
@@ -30,7 +30,7 @@ const SensorButton = ({ sensorId, voltage }) => {
         S{sensorId}
       </div>
       <div className="text-sm md:text-xs 2xl:text-lg font-semibold tracking-wider mb-1">
-        {voltage?.toFixed(2) || "--"}
+        {voltage.value.voltages[`v${sensorId}`]?.toFixed(2) || "--"}
       </div>
       <div className="text-[10px] opacity-75">mV</div>
     </button>

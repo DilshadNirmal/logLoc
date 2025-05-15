@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
-import { IoIosArrowUp } from "react-icons/io";
 
 import {
   averageBy,
@@ -14,16 +13,18 @@ import {
   fetchChart,
   fetchVoltages,
   selectedSensors,
+  selectedSide,
   selectedTabSignal,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
 import DateTimeRangePanel from "../components/form/DateTimeRangePanel";
 import TabGroup from "../components/TabGroup";
+import SensorSelector from "../components/SensorSelector";
+import SensorCheckboxGrid from "../components/SensorCheckBoxGrid.";
 
 const Analytics = () => {
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [selectedSide, setSelectedSide] = useState("A");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleSensorClick = (sensor) => {
@@ -31,15 +32,6 @@ const Analytics = () => {
       selectedSensors.value = selectedSensors.value.filter((s) => s !== sensor);
     } else {
       selectedSensors.value = [...selectedSensors.value, sensor];
-    }
-  };
-
-  const handleSideChange = (side) => {
-    if (selectedSide === side) {
-      setIsDropdownOpen(!isDropdownOpen);
-    } else {
-      setSelectedSide(side);
-      setIsDropdownOpen(true);
     }
   };
 
@@ -111,97 +103,7 @@ const Analytics = () => {
             {/* Left Panel */}
             <div className="flex flex-col gap-4">
               {/* Sensor Selection */}
-              <div className="bg-secondary text-white p-4 px-6 rounded-lg flex items-center justify-between">
-                <p className="text-sm font-semibold tracking-widest leading-5">
-                  Select <br /> Sensor
-                </p>
-
-                <div className="flex gap-2">
-                  <div
-                    className={`dropdown-container relative bg-background rounded-lg px-4 py-2 cursor-pointer ${
-                      selectedSide === "A" ? "bg-primary" : "bg-background"
-                    }`}
-                    onClick={() => handleSideChange("A")}
-                  >
-                    <div className="flex items-center justify-between gap-2 w-24">
-                      <span>Side A</span>
-                      <span
-                        className={`transform transition-transform duration-200 ${
-                          selectedSide === "A" && isDropdownOpen
-                            ? "rotate-180"
-                            : ""
-                        }`}
-                      >
-                        <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
-                      </span>
-                    </div>
-                    {selectedSide === "A" && isDropdownOpen && (
-                      <div className="absolute left-0 top-full mt-1 w-full bg-background/95 backdrop-blur-sm rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 border border-primary/30">
-                        {Array.from({ length: 20 }, (_, i) => i + 1).map(
-                          (sensor) => (
-                            <div
-                              key={sensor}
-                              className={`px-4 py-2 cursor-pointer text-sm border-b border-primary/10 last:border-b-0 ${
-                                selectedSensors.value.includes(sensor)
-                                  ? "bg-primary/40 text-white"
-                                  : "hover:bg-primary/25 text-white"
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSensorClick(sensor);
-                              }}
-                            >
-                              Sensor {sensor}
-                            </div>
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    className={`dropdown-container relative bg-background rounded-lg px-4 py-2 cursor-pointer ${
-                      selectedSide === "B" ? "bg-primary" : "bg-background"
-                    }`}
-                    onClick={() => handleSideChange("B")}
-                  >
-                    <div className="flex items-center justify-between gap-2 w-24">
-                      <span>Side B</span>
-                      <span
-                        className={`transform transition-transform duration-200 ${
-                          selectedSide === "B" && isDropdownOpen
-                            ? "rotate-180"
-                            : ""
-                        }`}
-                      >
-                        <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
-                      </span>
-                    </div>
-                    {selectedSide === "B" && isDropdownOpen && (
-                      <div className="absolute left-0 top-full mt-1 w-full bg-background/95 backdrop-blur-sm rounded-lg shadow-lg max-h-48 overflow-y-auto z-50 border border-primary/30">
-                        {Array.from({ length: 20 }, (_, i) => i + 21).map(
-                          (sensor) => (
-                            <div
-                              key={sensor}
-                              className={`px-4 py-2 cursor-pointer text-sm border-b border-primary/10 last:border-b-0 ${
-                                selectedSensors.value.includes(sensor)
-                                  ? "bg-primary/40 text-white"
-                                  : "hover:bg-primary/25 text-white"
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSensorClick(sensor);
-                              }}
-                            >
-                              Sensor {sensor}
-                            </div>
-                          )
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <SensorSelector />
 
               {/* Time Range Selection */}
               <DateTimeRangePanel
@@ -219,12 +121,15 @@ const Analytics = () => {
 
             {/* Right Panel - Chart */}
             <div
-              className="col-span-3 bg-secondary rounded-lg p-4"
-              style={{ height: `${contentHeight - navHeight - 132}px` }}
+              className="col-span-3 flex flex-col bg-secondary rounded-lg p-4"
+              style={{ height: `${contentHeight - 200}px` }}
             >
-              <div className="h-full border border-primary/30 rounded-lg p-4">
+              <div className="h-full flex-1 border border-primary/30 rounded-lg p-4">
                 <ChartContainer data={chartData} />
               </div>
+
+              {/* Sensor Checkbox Grid */}
+              <SensorCheckboxGrid />
             </div>
           </div>
         </fieldset>
