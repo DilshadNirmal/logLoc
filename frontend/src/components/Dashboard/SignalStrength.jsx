@@ -47,7 +47,7 @@ const SignalStrength = ({ data, signalHistoryData }) => {
               className="bg-background/20 rounded-lg p-1.5 lg:p-1 lg:py-1.5 2xl:p-2 flex flex-col items-center justify-end"
             >
               <div className="flex items-end mb-2 lg:mb-1 2xl:mb-2">
-                {[...Array(item.strength)].map((_, i) => (
+                {Array.from({ length: item.strength || 0 }, (_, i) => (
                   <div
                     key={i}
                     className="w-0.5 2xl:w-1 mx-[1px]"
