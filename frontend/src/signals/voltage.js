@@ -38,9 +38,9 @@ const calculateVoltage = (voltages, operation) => {
 };
 
 // Computed signals with parameters
-export const getMinVoltage = (voltageData) =>
+export const getMinVoltage = (voltages) =>
   computed(() => {
-    const voltages = voltageData.value.voltages;
+    // const voltages = voltageData.value.voltages;
     return calculateVoltage(voltages, (values) => Math.min(...values));
   });
 

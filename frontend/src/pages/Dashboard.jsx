@@ -16,8 +16,6 @@ import {
   fetchChart,
   fetchSignalHistory,
   fetchVoltages,
-  getMaxVoltage,
-  getMinVoltage,
   selectedSensors,
   selectedSide,
   signalHistory,
@@ -27,8 +25,11 @@ import {
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
 import { useSignals } from "@preact/signals-react/runtime";
+import SignalStrength from "../components/Dashboard/SignalStrength";
+import GaugeDisplay from "../components/Dashboard/GaugeDisplay";
 
 const Dashboard = () => {
+  console.log(`re-rendering Dashboard`);
   const { user } = useAuth();
 
   const [navHeight, setNavHeight] = useState(0);
@@ -145,60 +146,7 @@ const Dashboard = () => {
               A side
             </legend>
 
-            <div className="flex flex-col md:flex-row items-center justify-evenly h-full">
-              <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
-                {/* <Gauge
-                  value={getMinVoltage(voltageDataA.voltages)}
-                  min={-10}
-                  max={10}
-                  label="Min"
-                  units="mV"
-                  // colorScheme={["#133044", "#ff4d4d"]}
-                /> */}
-                <ReactSpeedometer
-                  value={getMinVoltage(voltageDataA)}
-                  minValue={-10}
-                  maxValue={10}
-                  width={getGaugeSize().width}
-                  height={getGaugeSize().height}
-                  needleHeightRatio={0.5}
-                  needleColor="#1e88e5"
-                  startColor="#3f51b5"
-                  endColor="#ff4081"
-                  segments={5}
-                  ringWidth={13}
-                  textColor="#ffffff"
-                  valueFormat=".1f"
-                  currentValueText="Min: ${value} mV"
-                  fluidWidth={false}
-                  valueTextFontSize="10"
-                  valueTextFontWeight="semibold"
-                  labelFontSize="8"
-                />
-              </div>
-              <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
-                <ReactSpeedometer
-                  value={getMaxVoltage(voltageDataA)}
-                  minValue={-10}
-                  maxValue={10}
-                  width={getGaugeSize().width}
-                  height={getGaugeSize().height}
-                  needleHeightRatio={0.5}
-                  needleColor="#1e88e5"
-                  startColor="#3f51b5"
-                  endColor="#ff4081"
-                  segments={5}
-                  ringWidth={13}
-                  textColor="#ffffff"
-                  valueFormat=".1f"
-                  currentValueText="Max: ${value} mV"
-                  valueTextFontSize="10"
-                  labelFontSize="8"
-                  valueTextFontWeight="semibold"
-                  fluidWidth={false}
-                />
-              </div>
-            </div>
+            <GaugeDisplay data={voltageDataA} getGaugeSize={getGaugeSize} />
           </fieldset>
 
           {/* B side */}
@@ -207,52 +155,7 @@ const Dashboard = () => {
               B side
             </legend>
 
-            <div className=" flex flex-col md:flex-row items-center justify-evenly h-full">
-              <div className="h-[55%] w-[40%] flex items-center justify-center">
-                <ReactSpeedometer
-                  value={getMinVoltage(voltageDataB)}
-                  minValue={-10}
-                  maxValue={10}
-                  width={getGaugeSize().width}
-                  height={getGaugeSize().height}
-                  needleHeightRatio={0.5}
-                  needleColor="#1e88e5"
-                  startColor="#3f51b5"
-                  endColor="#ff4081"
-                  segments={5}
-                  ringWidth={13}
-                  textColor="#ffffff"
-                  valueFormat=".1f"
-                  currentValueText="Min: ${value} mV"
-                  valueTextFontSize="10"
-                  valueTextFontWeight="semibold"
-                  labelFontSize="8"
-                  fluidWidth={false}
-                />
-              </div>
-              <div className="h-[55%] w-[40%] flex items-center justify-center">
-                <ReactSpeedometer
-                  value={getMaxVoltage(voltageDataB)}
-                  minValue={-10}
-                  maxValue={10}
-                  width={getGaugeSize().width}
-                  height={getGaugeSize().height}
-                  needleHeightRatio={0.5}
-                  needleColor="#1e88e5"
-                  startColor="#3f51b5"
-                  endColor="#ff4081"
-                  segments={5}
-                  ringWidth={13}
-                  textColor="#ffffff"
-                  valueFormat=".1f"
-                  currentValueText="Max: ${value} mV"
-                  valueTextFontSize="10"
-                  valueTextFontWeight="semibold"
-                  labelFontSize="8"
-                  fluidWidth={false}
-                />
-              </div>
-            </div>
+            <GaugeDisplay data={voltageDataB} getGaugeSize={getGaugeSize} />
           </fieldset>
         </div>
 
@@ -279,75 +182,10 @@ const Dashboard = () => {
             <h4 className=" mt-2 mb-15 md:mt-1.5 md:mb-2.5 2xl:mt-2 2xl:mb-3 ml-4 text-sm md:text-xs 2xl:text-sm">
               Signal Strength
             </h4>
-            <div className="h-9/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
-              <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
-                <div className="flex items-end justify-center gap-1">
-                  {[1, 2, 3].map((bar) => {
-                    let barColor;
-                    const signalStrength = voltageDataA.value.signalStrength;
-
-                    if (signalStrength <= 33) {
-                      barColor = bar === 1 ? "#ff4d4d" : "#3f3f3f";
-                    } else if (signalStrength <= 66) {
-                      barColor = bar <= 2 ? "#ffa64d" : "#3f3f3f";
-                    } else {
-                      barColor = "#4dff4d";
-                    }
-
-                    return (
-                      <div
-                        key={bar}
-                        className="w-3.5 md:w-3 2xl:w-3.5 transition-all duration-300"
-                        style={{
-                          height: `${bar * 14}px`,
-                          backgroundColor: barColor,
-                          opacity: barColor === "#3f3f3f" ? 0.3 : 1,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-                <span className="text-3xl font-bold text-center">
-                  {voltageDataA.value.signalStrength}%
-                </span>
-              </div>
-              <div className="w-[80%] md:w-[60%] h-[90%]">
-                <h5 className="text-base md:text-[10px] 2xl:text-sm text-text/85 font-normal tracking-wide mb-2 md:mb-1 2xl:mb-1">
-                  Signal strength - 12 Hrs
-                </h5>
-                <div className="grid grid-cols-4 2xl:grid-rows-3 gap-1">
-                  {signalHistory.value.map((item, index) => (
-                    <div
-                      key={index}
-                      className="bg-background/20 rounded-lg p-1.5 lg:p-1 lg:py-1.5 2xl:p-2 flex flex-col items-center justify-end"
-                    >
-                      <div className="flex items-end mb-2 lg:mb-1 2xl:mb-2">
-                        {[...Array(item.strength)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-0.5 2xl:w-1 mx-[1px]"
-                            style={{
-                              height: `${(i + 1) * 4}px`,
-                              backgroundColor:
-                                item.strength === 1
-                                  ? "#ff4d4d"
-                                  : item.strength === 2
-                                  ? "#ffa64d"
-                                  : item.strength === 3
-                                  ? "#ffff4d"
-                                  : "#4dff4d",
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs lg:text-[7px] 2xl:text-[8px] text-text/75">
-                        {item.time}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SignalStrength
+              data={voltageDataA}
+              signalHistoryData={signalHistory}
+            />
           </div>
         </div>
       </div>
@@ -361,12 +199,12 @@ const Dashboard = () => {
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-4 gap-1.5">
               {[...Array(20)].map((_, index) => {
                 const sensorId = index + 1;
-                const voltage = voltageDataA.value.voltages[`v${sensorId}`];
+                // const voltage = voltageDataA.value.voltages[`v${sensorId}`];
                 return (
                   <SensorButton
                     key={sensorId}
                     sensorId={sensorId}
-                    voltage={voltage}
+                    voltage={voltageDataA}
                   />
                 );
               })}
@@ -379,12 +217,12 @@ const Dashboard = () => {
             <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4  2xl:grid-cols-4 gap-1.5">
               {[...Array(20)].map((_, index) => {
                 const sensorId = index + 21;
-                const voltage = voltageDataB.value.voltages[`v${sensorId}`];
+                // const voltage = voltageDataB.value.voltages[`v${sensorId}`];
                 return (
                   <SensorButton
                     key={sensorId}
                     sensorId={sensorId}
-                    voltage={voltage}
+                    voltage={voltageDataB}
                   />
                 );
               })}
