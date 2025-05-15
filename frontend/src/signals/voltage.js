@@ -131,7 +131,7 @@ export const fetchChart = async (sourcePage) => {
       const validData = response.data.filter(
         (sensor) => sensor.data && sensor.data.length > 0
       );
-      console.log("validData:", validData); // Log the validData array
+      // console.log("validData:", validData); // Log the validData array
       chartData.value = [...validData];
     } else {
       chartData.value = [];
