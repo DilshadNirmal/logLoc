@@ -24,12 +24,10 @@ import {
   voltageDataB,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
-import { useSignals } from "@preact/signals-react/runtime";
 import SignalStrength from "../components/Dashboard/SignalStrength";
 import GaugeDisplay from "../components/Dashboard/GaugeDisplay";
 
 const Dashboard = () => {
-  console.log(`re-rendering Dashboard`);
   const { user } = useAuth();
 
   const [navHeight, setNavHeight] = useState(0);
@@ -53,20 +51,27 @@ const Dashboard = () => {
   useEffect(() => {
     fetchVoltages();
     fetchSignalHistory();
+    fetchChart("dashboard");
 
     const voltageInterval = setInterval(fetchVoltages, 2000);
     const historyInterval = setInterval(fetchSignalHistory, 60000);
+    const debouncedFetchChart = debounce(() => fetchChart("dashboard"), 2000);
+    const unsubscribeSensors = selectedSensors.subscribe(debouncedFetchChart);
+    const unsubscribeSide = selectedSide.subscribe(debouncedFetchChart);
+    const unsubscribeTimeRange = timeRange.subscribe(debouncedFetchChart);
 
     return () => {
       clearInterval(voltageInterval);
       clearInterval(historyInterval);
+      debouncedFetchChart.cancel();
+      unsubscribeSensors();
+      unsubscribeSide();
+      unsubscribeTimeRange();
     };
   }, []);
 
   useEffect(() => {
     if (selectedSensors.value.length > 0) {
-      currentPage.value = "dashboard";
-      fetchChart("dashboard");
     } else {
       chartData.value = [];
     }
@@ -108,8 +113,6 @@ const Dashboard = () => {
       window.removeEventListener("resize", handleResize);
     };
   }, [navHeight]);
-
-  // useSignals();
 
   return (
     <section
@@ -235,7 +238,7 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 mb-2">
             <SideSelector />
 
-            {selectedSide.value && <SensorCheckbox />}
+            <SensorCheckbox />
 
             <TimeRangeSelector timeRange={timeRange} />
           </div>

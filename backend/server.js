@@ -13,11 +13,14 @@ const reportsRoutes = require("./routes/reports");
 
 const app = express();
 
-console.log(process.env.CLIENT_URL);
 // Middleware
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL, process.env.CLIENT_URL_2],
+    origin: [
+      process.env.CLIENT_URL,
+      process.env.CLIENT_URL_2,
+      "http://localhost:5173",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

@@ -1,8 +1,6 @@
 import { useRef, useEffect, forwardRef, useState, memo } from "react";
 import * as d3 from "d3";
 import { useSignals } from "@preact/signals-react/runtime";
-import { effect } from "@preact/signals-react";
-import { chartData } from "../signals/voltage";
 
 const ChartContainer = ({ data }) => {
   useSignals();
@@ -15,10 +13,10 @@ const ChartContainer = ({ data }) => {
     );
   }
 
-  return <Chart data={data} />;
+  return <Chart data={data} key={JSON.stringify(data.value.map(d => d.id))} />;
 };
 
-const Chart = forwardRef(({ data }, ref) => {
+const Chart = forwardRef(({ data }) => {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const brushGroupRef = useRef(null);
@@ -27,7 +25,13 @@ const Chart = forwardRef(({ data }, ref) => {
   const [zoomState, setZoomState] = useState(null);
 
   // adding key to force re-renders
-  const dataKey = JSON.stringify(data.value.map((item) => item.sensorId));
+  const dataKey = JSON.stringify(
+    data.value.map((item) => ({
+      id: item.sensorId,
+      // Include a sample of values to detect changes
+      values: item.data?.slice(0, 5).map((d) => d.value) || [],
+    }))
+  );
 
   useEffect(() => {
     if (!data.value || data.value.length === 0) return;

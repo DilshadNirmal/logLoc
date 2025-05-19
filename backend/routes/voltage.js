@@ -235,7 +235,11 @@ router.get("/voltage-data", auth, async (req, res) => {
       startDate = new Date(from);
       endDate = new Date(to);
     } else {
+      console.log(timeRange);
+      console.log(isNaN(timeRange));
+
       const hours = parseInt(timeRange);
+      console.log(hours);
       if (isNaN(hours)) {
         throw new Error("Invalid time range");
       }

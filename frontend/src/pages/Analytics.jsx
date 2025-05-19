@@ -36,24 +36,6 @@ const Analytics = () => {
   };
 
   useEffect(() => {
-    fetchVoltages();
-  }, []);
-
-  // useEffect(() => {
-  //   const debounceTimeout = setTimeout(() => {
-  //     fetchChart();
-  //   }, 500);
-
-  //   return () => clearTimeout(debounceTimeout);
-  // }, [
-  //   selectedSensors.value,
-  //   timeRange.value,
-  //   averageBy.value,
-  //   dateRange,
-  //   selectedTab,
-  // ]);
-
-  useEffect(() => {
     const updateDimensions = () => {
       const header = document.querySelector("header");
       if (header) setNavHeight(header.offsetHeight);
@@ -66,6 +48,15 @@ const Analytics = () => {
     window.addEventListener("resize", updateDimensions);
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
+
+  useEffect(() => {
+    if (selectedSensors.value.length > 0) {
+      currentPage.value = "analytics";
+      fetchChart("analytics");
+    } else {
+      chartData.value = [];
+    }
+  }, [selectedSensors.value]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

@@ -97,9 +97,8 @@ export const fetchChart = async (sourcePage) => {
 
     if (page === "dashboard") {
       // For Dashboard page, use timeRange
-      if (timeRange.value) {
-        params.timeRange = parseInt(timeRange.value); // Convert "1h" to 1
-      }
+      console.log(timeRange.value);
+      params.timeRange = timeRange.value;
     } else if (page === "analytics") {
       // For Analytics page, use dateRange
       if (dateRange.value.from && dateRange.value.to) {

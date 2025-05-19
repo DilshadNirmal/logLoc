@@ -54,7 +54,7 @@ router.post("/login", async (req, res) => {
     await clearPreviousUserSessions(user._id);
 
     const accessToken = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1d",
     });
     const refreshToken = jwt.sign(
       { _id: user._id },
