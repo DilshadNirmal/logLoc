@@ -1,9 +1,15 @@
-import { useRef, useEffect, forwardRef, useState, memo } from "react";
+import { useRef, useEffect, useState, memo } from "react";
 import * as d3 from "d3";
-import { useSignals } from "@preact/signals-react/runtime";
+import { useSignal, useSignals } from "@preact/signals-react/runtime";
 
 const ChartContainer = ({ data }) => {
   useSignals();
+
+  const dataVersion = useSignal(0)
+
+  useEffect(() => {
+    dataVersion.value = dataVersion.value + 1;
+  }, [data.value])
 
   if (data.value.length === 0) {
     return (
@@ -13,10 +19,12 @@ const ChartContainer = ({ data }) => {
     );
   }
 
-  return <Chart data={data} key={JSON.stringify(data.value.map(d => d.id))} />;
+  return <Chart data={data} key={`chart-${dataVersion}-${JSON.stringify(data.value.map(item => item.sensorId))}`} />;
 };
 
-const Chart = forwardRef(({ data }) => {
+const Chart = memo(({ data }) => {
+  useSignals();
+
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   const brushGroupRef = useRef(null);
@@ -28,8 +36,10 @@ const Chart = forwardRef(({ data }) => {
   const dataKey = JSON.stringify(
     data.value.map((item) => ({
       id: item.sensorId,
-      // Include a sample of values to detect changes
-      values: item.data?.slice(0, 5).map((d) => d.value) || [],
+      // Include length and timestamp range to better detect changes
+      dataLength: item.data?.length || 0,
+      firstTimestamp: item.data?.[0]?.timestamp,
+      lastTimestamp: item.data?.[item.data?.length - 1]?.timestamp,
     }))
   );
 

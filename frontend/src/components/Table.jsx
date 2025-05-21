@@ -33,38 +33,47 @@ const Table = ({
   }
 
   return (
-    <div className="bg-secondary/10 shadow rounded-lg overflow-hidden">
+    <div className="bg-background/70 shadow rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-secondary">
-        <thead className="bg-secondary">
+        <thead className="bg-primary/65">
           <tr>
+            <th className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider">
+              S.No
+            </th>
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider"
+                className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider"
               >
                 {column.header}
               </th>
             ))}
             {actions && (
-              <th className="px-6 py-3 text-left text-xs font-medium text-text uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider">
                 Actions
               </th>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-secondary">
-          {data.map((item) => (
-            <React.Fragment key={item._id}>
+        <tbody className="divide-y divide-secondary/45">
+          {data.map((item, index) =>{
+            const itemId = item._id || `row-${index}-${JSON.stringify(item)}`;
+            return (
+            <React.Fragment key={`fragment-${itemId}`}>
               <tr
+                key={`row-${itemId}`}
                 className={expandableContent ? "cursor-pointer" : ""}
                 onClick={
-                  expandableContent ? () => toggleRow(item._id) : undefined
+                  expandableContent ? () => toggleRow(itemId) : undefined
                 }
               >
+                <td className="px-6 py-4 whitespace-nowrap text-text/75">
+                  {index + 1}
+                </td>
                 {columns.map((column) => (
                   <td
-                    key={`${item._id}-${column.key}`}
-                    className="px-6 py-4 whitespace-nowrap text-text"
+                    key={`${itemId}-${column.key}`}
+                    className="px-6 py-4 whitespace-nowrap text-text/75"
                   >
                     {column.render
                       ? column.render(item[column.key], item)
@@ -72,20 +81,23 @@ const Table = ({
                   </td>
                 ))}
                 {actions && (
-                  <td className="px-6 py-4 whitespace-nowrap text-text">
+                  <td className="px-6 py-4 whitespace-nowrap text-text/65">
                     {actions(item)}
                   </td>
                 )}
               </tr>
-              {expandableContent && expandedRows[item._id] && (
+              {expandableContent && expandedRows[itemId] && (
                 <tr className="bg-secondary/5">
-                  <td colSpan={columns.length + (actions ? 1 : 0)}>
+                  <td
+                    colSpan={columns.length + 1}
+                    // colSpan={columns.length + (actions ? 1 : 0)}
+                  >
                     {expandableContent(item)}
                   </td>
                 </tr>
               )}
             </React.Fragment>
-          ))}
+          )})}
         </tbody>
       </table>
     </div>

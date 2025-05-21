@@ -10,7 +10,7 @@ const router = express.Router();
 router.post("/alert-config", auth, async (req, res) => {
   try {
     const { sensorId, high, low, emails, alertDelay } = req.body;
-    console.log(sensorId);
+    console.log(`sensorId: ${sensorId}`);
 
     const config = await AlertConfig.findOneAndUpdate(
       { sensorId },
@@ -43,7 +43,7 @@ router.get("/alert-config", auth, async (req, res) => {
   try {
     const configs = await AlertConfig.find({});
     const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
-    console.log(configs);
+    console.log(`configs: ${JSON.stringify(configs)}`);
 
     const response = configs.map((config) => ({
       ...config.toObject(),

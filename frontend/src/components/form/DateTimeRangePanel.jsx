@@ -22,26 +22,18 @@ const DateTimeRangePanel = ({
               Select Time Interval
             </h3>
             <div className="mt-12 flex flex-col items-center gap-6">
-              <InputBox
-                labelName={"from"}
-                type={"date"}
-                name={"from"}
-                signalObject={dateRange}
-                signalProperty={"from"}
-                className={`flex gap-4 items-center`}
-                labelClassName={`text-text font-medium tracking-wide capitalize w-14`}
-                inputClassName={`bg-background/65 w-full p-2 text-text/85 outline-none border border-secondary rounded`}
-              />
-              <InputBox
-                labelName={"to"}
-                type={"date"}
-                name={"to"}
-                signalObject={dateRange}
-                signalProperty={"to"}
-                className={`flex gap-4 items-center`}
-                labelClassName={`text-text font-medium tracking-wide capitalize w-14`}
-                inputClassName={`bg-background/65 w-full p-2 text-text/85 outline-none border border-secondary rounded`}
-              />
+              {["from", "to"].map((label) => (
+                <InputBox
+                  labelName={label}
+                  type={"date"}
+                  name={label}
+                  signalObject={dateRange}
+                  signalProperty={label}
+                  className={`flex gap-4 items-center`}
+                  labelClassName={`text-text font-medium tracking-wide capitalize w-14`}
+                  inputClassName={`bg-background/65 w-full p-2 text-text/85 outline-none border border-secondary rounded`}
+                />
+              ))}
             </div>
 
             <div className="mt-12 flex items-start justify-center">

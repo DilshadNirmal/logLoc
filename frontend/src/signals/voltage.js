@@ -28,6 +28,14 @@ export const customCount = signal(100);
 export const currentPage = signal("dashboard");
 export const selectedTabSignal = signal("average");
 
+// Add new signals for sensor selection
+export const selectedSidesSignal = signal({
+  A: false,
+  B: false,
+  ALL: false,
+});
+export const isOpenSignal = signal(false);
+
 // computed signals
 const calculateVoltage = (voltages, operation) => {
   if (!voltages || Object.keys(voltages).length === 0) return 0;

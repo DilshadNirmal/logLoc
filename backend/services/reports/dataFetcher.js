@@ -360,13 +360,20 @@ async function getIntervalData(configuration, dateRange, interval) {
       {
         $addFields: {
           sensorId: {
-            $toInt: {
-              $substr: [
-                "$voltageEntries.k",
-                1,
-                { $strLenCP: "$voltageEntries.k" },
-              ],
-            },
+            $concat: [
+              "Sensor ",
+              {
+                $toString: {
+                  $toInt: {
+                    $substr: [
+                      "$voltageEntries.k",
+                      1,
+                      { $strLenCP: "$voltageEntries.k" },
+                    ],
+                  },
+                },
+              },
+            ],
           },
         },
       },
@@ -594,7 +601,7 @@ async function getCountData(options) {
     const result = await VoltageData.aggregate([
       // Sort by timestamp descending (newest first)
       { $sort: { timestamp: -1 } },
-      
+
       // Unwind the voltages map to get individual readings
       {
         $addFields: {
@@ -602,7 +609,7 @@ async function getCountData(options) {
         },
       },
       { $unwind: "$voltageEntries" },
-      
+
       // Extract sensor ID from the key (e.g., "v1" -> 1)
       {
         $addFields: {
@@ -617,7 +624,7 @@ async function getCountData(options) {
           },
         },
       },
-      
+
       // Group by sensor ID to get the most recent readings for each sensor
       {
         $group: {
@@ -627,24 +634,24 @@ async function getCountData(options) {
               timestamp: "$timestamp",
               deviceId: "$deviceId",
               sensorGroup: "$sensorGroup",
-              value: "$voltageEntries.v"
-            }
-          }
-        }
+              value: "$voltageEntries.v",
+            },
+          },
+        },
       },
-      
+
       // Limit the number of readings per sensor
       {
         $project: {
           _id: 0,
           sensorId: "$_id",
-          readings: { $slice: ["$readings", targetValueCount] }
-        }
+          readings: { $slice: ["$readings", targetValueCount] },
+        },
       },
-      
+
       // Unwind the readings to flatten the results
       { $unwind: "$readings" },
-      
+
       // Format the output
       {
         $project: {
@@ -652,12 +659,12 @@ async function getCountData(options) {
           deviceId: "$readings.deviceId",
           sensorGroup: "$readings.sensorGroup",
           sensorId: { $concat: ["Sensor ", { $toString: "$sensorId" }] },
-          value: { $round: ["$readings.value", 2] }
-        }
+          value: { $round: ["$readings.value", 2] },
+        },
       },
-      
+
       // Sort by timestamp and sensor ID
-      { $sort: { timestamp: -1, sensorId: 1 } }
+      { $sort: { timestamp: -1, sensorId: 1 } },
     ]);
 
     console.log(

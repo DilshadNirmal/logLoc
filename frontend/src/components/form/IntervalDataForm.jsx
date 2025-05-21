@@ -1,6 +1,7 @@
 import React from "react";
 import { FormInput, RadioOption, DownloadButton } from "./FormElements";
 import ReportAmico from "../../assets/images/report_amico.png";
+import SensorSelectionComp from "./SensorSelectionComp";
 
 const IntervalDataForm = ({
   configuration,
@@ -22,23 +23,12 @@ const IntervalDataForm = ({
         </h2>
 
         {/* Same form inputs as AverageDataForm */}
-        <FormInput label="Configuration">
-          <select
-            value={configuration}
-            onChange={(e) => setConfiguration(e.target.value)}
-            className="w-full p-2 bg-transparent text-text outline-none"
-          >
-            <option value="" className="bg-background/95">
-              Select configuration
-            </option>
-            <option value="A" className="bg-background/95">
-              A Side
-            </option>
-            <option value="B" className="bg-background/95">
-              B Side
-            </option>
-          </select>
-        </FormInput>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20">
+          <label className="text-text w-fit md:w-32">Configuration</label>
+          <div className="w-full md:w-7/12 border border-secondary rounded-lg px-2">
+            <SensorSelectionComp />
+          </div>
+        </div>
 
         <div className="space-y-8">
           <FormInput label="From">
