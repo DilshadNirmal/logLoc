@@ -120,7 +120,7 @@ const Dashboard = () => {
       style={{ marginTop: `${navHeight}px` }}
     >
       <div className="left">
-        <div className="bg-secondary rounded flex flex-col md:flex-row xl:flex-row justify-around gap-2 md:gap-1 2xl:gap-2 text-text md:p-[4px_!important] lg:!p-[5px] 2xl:p-[5px]">
+        <div className="bg-secondary rounded flex flex-col md:flex-row xl:flex-row justify-around gap-2 md:gap-1 2xl:gap-2 text-text md:p-[3px_!important] lg:!p-[5px] 2xl:p-[5px]">
           <fieldset className="border border-primary/75 rounded">
             <legend className="text-xs md:text-[8px] 2xl:text-xs px-2 md:px-1 2xl:px-2 text-primary">
               A Side
@@ -142,10 +142,10 @@ const Dashboard = () => {
         </div>
 
         {/* gauge for min and max */}
-        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5">
+        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5 md:gap-1 xl:gap-1.5">
           {/* A side */}
           <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-[10px] 2xl:text-sm">
               A side
             </legend>
 
@@ -154,7 +154,7 @@ const Dashboard = () => {
 
           {/* B side */}
           <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-[10px] 2xl:text-sm">
               B side
             </legend>
 
@@ -194,12 +194,12 @@ const Dashboard = () => {
       </div>
       <div className="right">
         {/* voltage grid */}
-        <div className="bg-secondary/50 text-text rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-2 gap-4">
-          <fieldset className="border border-primary/75 rounded-lg p-2 h-fit">
+        <div className="bg-secondary/50 text-text rounded-lg p-2 md:p-1 xl:p-2 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-2 gap-4 md:gap-1 2xl:gap-4">
+          <fieldset className="border border-primary/75 rounded-lg p-2 md:p-1 xl:p-2 h-fit">
             <legend className="px-2 text-primary text-base md:text-xs font-medium tracking-wider">
               A Side
             </legend>
-            <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 md:grid-cols-5 2xl:grid-cols-4 gap-1.5 md:gap-1 xl:gap-1.5">
               {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 1;
                 // const voltage = voltageDataA.value.voltages[`v${sensorId}`];
@@ -213,11 +213,11 @@ const Dashboard = () => {
               })}
             </div>
           </fieldset>
-          <fieldset className="border border-primary rounded-lg p-2 h-fit">
+          <fieldset className="border border-primary rounded-lg p-2 md:p-1 xl:p-2 h-fit">
             <legend className="px-2 text-primary text-base md:text-xs font-medium tracking-wider">
               B Side
             </legend>
-            <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4  2xl:grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 md:grid-cols-5 2xl:grid-cols-4 gap-1.5 md:gap-1 xl:gap-1.5">
               {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 21;
                 // const voltage = voltageDataB.value.voltages[`v${sensorId}`];
@@ -234,8 +234,8 @@ const Dashboard = () => {
         </div>
 
         {/* chart */}
-        <div className="bg-secondary p-2 rounded-lg">
-          <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 mb-2">
+        <div className="bg-secondary p-2 md:p-1.5 xl:p-2 rounded-lg">
+          <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 md:gap-1 xl:gap-3 mb-2 md:mb-1 xl:mb-2">
             <SideSelector />
 
             <SensorCheckbox />

@@ -8,7 +8,7 @@ const GaugeDisplay = ({ data, getGaugeSize }) => {
   useSignals();
   return (
     <div className="flex flex-col md:flex-row items-center justify-evenly h-full">
-      <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
+      <div className="h-[65%] md:h-[45%] w-[40%] md:w-[30%] xl:w-[40%] flex items-center justify-center">
         <ReactSpeedometer
           value={getMinVoltage(data.value.voltages)}
           minValue={0}
@@ -30,7 +30,7 @@ const GaugeDisplay = ({ data, getGaugeSize }) => {
           labelFontSize="8"
         />
       </div>
-      <div className="h-[65%] md:h-[55%] w-[40%] flex items-center justify-center">
+      <div className="h-[65%] md:h-[45%] w-[40%] md:w-[30%] xl:w-[40%] flex items-center justify-center">
         <ReactSpeedometer
           value={getMaxVoltage(data)}
           minValue={0}

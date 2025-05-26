@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post("/alert-config", auth, async (req, res) => {
   try {
-    const { sensorId, high, low, emails, alertDelay } = req.body;
+    const { sensorId, high, low, alertDelay, users } = req.body;
     console.log(`sensorId: ${sensorId}`);
 
     const config = await AlertConfig.findOneAndUpdate(
@@ -18,10 +18,15 @@ router.post("/alert-config", auth, async (req, res) => {
       { upsert: true, new: true }
     );
 
+    const updateData = {};
+    if (Array.isArray(users)) {
+      updateData.users = users;
+    }
+
     // Save global email configuration
     await GlobalEmailConfig.findOneAndUpdate(
       { _id: "global" },
-      { emails },
+      updateData,
       { upsert: true }
     );
 
@@ -42,7 +47,8 @@ router.post("/alert-config", auth, async (req, res) => {
 router.get("/alert-config", auth, async (req, res) => {
   try {
     const configs = await AlertConfig.find({});
-    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
+    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" })
+      .populate('users', 'UserName Email Role phoneNumber');
     console.log(`configs: ${JSON.stringify(configs)}`);
 
     const response = configs.map((config) => ({
@@ -58,8 +64,14 @@ router.get("/alert-config", auth, async (req, res) => {
 
 router.get("/global-email-config", auth, async (req, res) => {
   try {
-    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" });
-    res.json(globalConfig?.emails || []);
+    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" })
+      .populate('users', 'UserName Email Role phoneNumber');
+      
+    res.json({
+      emails: globalConfig?.emails || [],
+      users: globalConfig?.users || [],
+      alertDelay: globalConfig?.alertDelay || 5
+    });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -71,20 +83,30 @@ router.get("/global-email-config", auth, async (req, res) => {
 
 router.post("/global-email-config", auth, async (req, res) => {
   try {
-    const { emails } = req.body;
+    const { emails, users, alertDelay } = req.body;
 
-    if (!Array.isArray(emails)) {
-      return res.status(400).json({
-        success: false,
-        message: "Emails must be an array",
-      });
+    const updateData = {};
+    
+    // Add emails array if provided
+    if (Array.isArray(emails)) {
+      updateData.emails = emails;
+    }
+    
+    // Add users array if provided
+    if (Array.isArray(users)) {
+      updateData.users = users;
+    }
+    
+    // Add alertDelay if provided
+    if (alertDelay !== undefined) {
+      updateData.alertDelay = alertDelay;
     }
 
     const config = await GlobalEmailConfig.findOneAndUpdate(
       { _id: "global" },
-      { emails },
+      updateData,
       { upsert: true, new: true }
-    );
+    ).populate('users', 'UserName Email Role phoneNumber');
 
     res.json({
       success: true,

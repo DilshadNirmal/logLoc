@@ -82,7 +82,7 @@ const Analytics = () => {
       style={{ marginTop: `${navHeight}px` }}
     >
       <div
-        className="max-w-screen mx-auto px-4 sm:px-6 lg:px-8 py-8"
+        className="max-w-screen mx-auto px-4 md:px-4 xl:px-8 py-4 md:py-3 2xl:py-8"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
@@ -90,9 +90,9 @@ const Analytics = () => {
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
           <TabGroup tabOptions={tabOptions} />
           {/* main content */}
-          <div className="grid grid-cols-4 gap-4 text-text m-4 2xl:m-6 2xl:mt-4">
+          <div className="grid grid-cols-4 gap-4 md:gap-2.5 2xl:gap-4 text-text m-4 md:m-2.5 2xl:m-6 2xl:mt-4">
             {/* Left Panel */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:gap-2.5">
               {/* Sensor Selection */}
               <SensorSelector />
 
@@ -112,10 +112,16 @@ const Analytics = () => {
 
             {/* Right Panel - Chart */}
             <div
-              className="col-span-3 flex flex-col bg-secondary rounded-lg p-4"
-              style={{ height: `${contentHeight - 200}px` }}
+              className="col-span-3 flex flex-col bg-secondary rounded-lg p-4 md:p-2 2xl:p-4"
+              style={{
+                height: `${
+                  window.innerWidth > 1024
+                    ? contentHeight - 200
+                    : contentHeight - 100
+                }px`,
+              }}
             >
-              <div className="h-full flex-1 border border-primary/30 rounded-lg p-4">
+              <div className="h-full flex-1 border border-primary/30 rounded-lg p-4 md:p-2 2xl:p-4">
                 <ChartContainer data={chartData} />
               </div>
 

@@ -7,27 +7,15 @@ import IntervalDataForm from "../components/form/IntervalDataForm";
 import DatePickerForm from "../components/form/DatePickerForm";
 import CountWiseForm from "../components/form/countWiseForm";
 import axiosInstance from "../lib/axios";
-
-const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
-  <button
-    className={`flex items-center justify-center gap-3 p-3 md:p-2 lg:p-3 rounded-lg transition-all ${
-      isSelected
-        ? "bg-primary text-white"
-        : "bg-secondary text-text hover:bg-secondary/70"
-    }`}
-    onClick={onClick}
-  >
-    <Icon className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-8 2xl:h-8" />
-    <span className="text-base 2xl:text-lg font-medium tracking-wide">
-      {label}
-    </span>
-  </button>
-);
+import TabGroup from "../components/TabGroup";
+import { selectedTabSignal } from "../signals/commonSignals";
+import { useSignals } from "@preact/signals-react/runtime";
+import { selectedSensors } from "../signals/voltage";
 
 const Reports = () => {
+  useSignals();
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [selectedTab, setSelectedTab] = useState("average");
   const [configuration, setConfiguration] = useState("");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [averageBy, setAverageBy] = useState("hour");
@@ -68,16 +56,17 @@ const Reports = () => {
       setIsLoading(true);
 
       const payload = {
-        reportType: selectedTab,
+        reportType: selectedTabSignal.value,
         configuration,
         dateRange,
+        selectedSensors: selectedSensors.value,
       };
 
-      if (selectedTab === "average") {
+      if (selectedTabSignal.value === "average") {
         payload.averageBy = averageBy;
-      } else if (selectedTab === "interval") {
+      } else if (selectedTabSignal.value === "interval") {
         payload.interval = interval;
-      } else if (selectedTab === "count") {
+      } else if (selectedTabSignal.value === "count") {
         payload.selectedCounts = selectedCounts;
         if (selectedCounts.custom) {
           payload.customCount = customCount;
@@ -107,7 +96,7 @@ const Reports = () => {
 
       let filename = "";
 
-      switch (selectedTab) {
+      switch (selectedTabSignal.value) {
         case "average":
           filename = `Average_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
           break;
@@ -142,7 +131,7 @@ const Reports = () => {
   };
 
   const renderForm = () => {
-    switch (selectedTab) {
+    switch (selectedTabSignal.value) {
       case "average":
         return (
           <AverageDataForm
@@ -204,25 +193,25 @@ const Reports = () => {
         }}
       >
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 m-4 2xl:m-8">
-            {tabOptions.map((tab) => (
-              <TabButton
-                key={tab.id}
-                isSelected={selectedTab === tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                icon={tab.icon}
-                label={tab.label}
-              />
-            ))}
-          </div>
+          <TabGroup tabOptions={tabOptions} />
           <div
-            className="bg-primary/25 rounded-lg p-4 2xl:p-4 m-4 2xl:m-8"
+            className="bg-primary/25 rounded-lg p-4 2xl:p-4 m-4 2xl:m-6"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}
           </div>
         </fieldset>
       </div>
+
+      {/* Loading Modal */}
+    {isLoading && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="p-6 rounded-lg shadow-xl text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text/75">Generating Excel file...</p>
+        </div>
+      </div>
+    )}
     </section>
   );
 };

@@ -10,6 +10,8 @@ const alertRoutes = require("./routes/alerts");
 const otpRoutes = require("./routes/otp");
 const dataRoutes = require("./routes/data");
 const reportsRoutes = require("./routes/reports");
+const reportConfigRoutes = require("./routes/reportConfig");
+const { initReportScheduler } = require("./services/reportScheduler");
 
 const app = express();
 
@@ -50,6 +52,7 @@ app.use("/api", alertRoutes);
 app.use("/api", otpRoutes);
 app.use("/api", dataRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api", reportConfigRoutes);
 
 // Connect to MongoDB
 connectDB(process.env.MONGODB_URI)
@@ -65,4 +68,6 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
+  // Initialize the report scheduler
+  initReportScheduler();
 });

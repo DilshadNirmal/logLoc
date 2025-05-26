@@ -36,6 +36,7 @@ const PrivateRoute = ({ children }) => {
   }
 
   if (!user.cookieConsent && location.pathname !== "/cookie-consent") {
+    console.log(user, "path to cookie consent");
     return <Navigate to="/cookie-consent" />;
   }
 
@@ -76,8 +77,23 @@ const AppContent = () => {
             </PublicRoute>
           }
         />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/cookie-consent" element={<CookieConsent />} />
+        <Route
+          path="/cookie-consent"
+          element={
+            <PrivateRoute>
+              <CookieConsent />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/verify-otp"
+          element={
+            <PrivateRoute>
+              <VerifyOtp />
+            </PrivateRoute>
+          }
+        />
+
         {/* Protected Routes */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route

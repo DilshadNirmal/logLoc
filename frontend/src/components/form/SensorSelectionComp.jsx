@@ -1,7 +1,6 @@
 import { useSignals } from "@preact/signals-react/runtime";
 import { selectedSensors, selectedSidesSignal, isOpenSignal } from "../../signals/voltage";
 import InputCheck from "./InputCheck";
-import { signal } from "@preact/signals-react";
 
 const SensorSelectionComp = () => {
   useSignals();
@@ -42,6 +41,15 @@ const SensorSelectionComp = () => {
 
       // Keep only the sensors that are still available
       selectedSensors.value = selectedSensors.value.filter(id => availableSensors.includes(id));
+
+      if (!newSelectedSides.A && !newSelectedSides.B) {
+        newSelectedSides.ALL = false;
+      } else {
+        // Otherwise, check if all available sensors are selected
+        const allSelected = availableSensors.length > 0 && 
+          availableSensors.every(id => selectedSensors.value.includes(id));
+        newSelectedSides.ALL = allSelected;
+      }
     }
 
     selectedSidesSignal.value = newSelectedSides;
@@ -64,7 +72,7 @@ const SensorSelectionComp = () => {
 
     // Update ALL state based on whether all available sensors are selected
     const availableSensors = getAvailableSensors();
-    const allSelected = availableSensors.every(id => newSelectedSensors.includes(id));
+    const allSelected = availableSensors.length > 0 && availableSensors.every(id => newSelectedSensors.includes(id));
     
     selectedSidesSignal.value = {
       ...selectedSidesSignal.value,

@@ -14,8 +14,8 @@ const checkAndSendAlert = async (sensorId, value) => {
       return;
     }
 
-    const globalConfig = await GlobalEmailConfig.findById("global");
-    if (!globalConfig || !globalConfig.emails.length) {
+    const globalConfig = await GlobalEmailConfig.findById("global").populate('users', 'UserName Email Role phoneNumber');
+    if (!globalConfig || !globalConfig.users?.length) {
       console.error("No email recipients configured");
       return;
     }
@@ -93,9 +93,16 @@ const sendGroupedAlerts = async () => {
   try {
     if (pendingAlerts.length === 0) return;
 
-    const globalConfig = await GlobalEmailConfig.findById("global");
-    if (!globalConfig || !globalConfig.emails.length) {
+    const globalConfig = await GlobalEmailConfig.findById("global").populate('users', 'UserName Email Role phoneNumber');
+    if (!globalConfig || !globalConfig.users?.length) {
       console.error("No email recipients configured");
+      return;
+    }
+
+    const emailRecipients = globalConfig.users.map(user => user.Email).filter(email => email);
+    
+    if (emailRecipients.length === 0) {
+      console.error("No valid email addresses found in user configuration");
       return;
     }
 
@@ -136,7 +143,7 @@ const sendGroupedAlerts = async () => {
     `;
 
     await sendEmail({
-      to: globalConfig.emails,
+      to: emailRecipients,
       subject: `Voltage Alerts: ${pendingAlerts.length} Sensors Exceeded Thresholds`,
       html: htmlContent,
     });

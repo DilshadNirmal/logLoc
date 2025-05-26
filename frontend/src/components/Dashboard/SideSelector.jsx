@@ -35,7 +35,7 @@ const SideSelector = () => {
         <button
           key={button.value}
           onClick={button.action}
-          className={`px-4 md:px-2 py-2 rounded-lg text-sm md:text-[10px] 2xl:text-sm outline-none ${
+          className={`px-4 md:px-2 py-2 md:py-1 rounded-lg text-sm md:text-[8px] 2xl:text-sm outline-none ${
             (button.value === "A" && selectedSide.value === "A") ||
             (button.value === "A" &&
               selectedSensors.value.some((id) => id <= 20)) ||

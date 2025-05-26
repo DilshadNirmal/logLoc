@@ -152,4 +152,54 @@ div.right > div:nth-child(2) {
   .chart-container {
     height: 300px;
   }
+
+  .cont {
+    padding: 1rem 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .cont .left {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+
+    display: grid;
+    grid-template-rows: auto 1fr 1fr 1fr;
+    gap: 0.2rem;
+  }
+
+  .cont .right {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 0.2rem;
+  }
+
+  div.left > div:nth-child(1) {
+    /* display: flex;
+    justify-content: center;
+    align-items: center; */
+    padding: 0.15rem;
+
+    height: fit-content;
+  }
+
+  div.left > div:nth-child(2) {
+    padding: 0.25rem;
+  }
+
+  div.left > div:nth-child(3) {
+    padding: 0.25rem;
+  }
+
+  div.right > div:nth-child(1) {
+    height: fit-content;
+  }
+
+  div.right > div:nth-child(2) {
+    height: 100%;
+  }
 }

@@ -99,7 +99,7 @@ const Login = () => {
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
       </div>
 
-      <div className="w-4/5 h-[70dvh] sm:h-auto flex bg-background border border-secondary rounded-2xl shadow-lg max-w-3xl sm:p-5 py-5 mx-4 z-10">
+      <div className="w-4/5 h-[70dvh] md:h-[85dvh] xl:h-[70dvh] sm:h-auto flex bg-background border border-secondary rounded-2xl shadow-lg max-w-3xl sm:p-5 py-5 mx-4 z-10">
         {/* form */}
         <div className="w-full sm:w-1/2 px-8 md:px-16 flex flex-col justify-center gap-2">
           <div className="text-center mb-8">

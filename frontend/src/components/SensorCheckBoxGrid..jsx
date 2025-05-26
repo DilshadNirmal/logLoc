@@ -22,9 +22,11 @@ const SensorCheckboxGrid = () => {
       : Array.from({ length: 20 }, (_, i) => i + 1); // Sensors 1-20 for Side A
 
   return (
-    <div className="bg-secondary rounded-lg p-4 mt-4">
-      <h3 className="text-text font-medium mb-3">Select Individual Sensors</h3>
-      <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+    <div className="bg-secondary rounded-lg p-4 md:p-2 2xl:p-4 mt-4 md:mt-2 2xl:mt-3">
+      <h3 className="text-text font-medium md:text-xs md:font-normal 2xl:text-sm 2xl:font-medium mb-3 md:mb-1.5 2xl:mb-2.5 tracking-wider">
+        Select Individual Sensors
+      </h3>
+      <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-1.5 2xl:gap-2">
         {sensorRange.map((sensorId) => (
           <InputCheck
             key={sensorId}

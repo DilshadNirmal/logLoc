@@ -1,5 +1,6 @@
 import { signal, computed } from "@preact/signals-react";
 import axiosInstance from "../lib/axios";
+import { selectedTabSignal, currentPage } from "./commonSignals";
 
 export const voltageDataA = signal({
   voltages: {},
@@ -25,8 +26,9 @@ export const averageBy = signal("minute");
 export const dateRange = signal({ from: new Date(), to: new Date() });
 export const countOptions = signal("last100");
 export const customCount = signal(100);
-export const currentPage = signal("dashboard");
-export const selectedTabSignal = signal("average");
+
+// Re-export common signals for backward compatibility
+export { selectedTabSignal, currentPage };
 
 // Add new signals for sensor selection
 export const selectedSidesSignal = signal({
@@ -35,6 +37,12 @@ export const selectedSidesSignal = signal({
   ALL: false,
 });
 export const isOpenSignal = signal(false);
+
+// new signals for threshold configuration
+export const thresholdValues = signal({
+  max: 7.0,
+  min: 3.0,
+});
 
 // computed signals
 const calculateVoltage = (voltages, operation) => {
@@ -57,6 +65,29 @@ export const getMaxVoltage = (voltageData) =>
     const voltages = voltageData.value.voltages;
     return calculateVoltage(voltages, (values) => Math.max(...values));
   });
+
+// computed signals for voltage status
+export const getVoltageStatus = (value) => {
+  if (value === undefined || value === null)
+    return "bg-secondary/20 text-text/50";
+  if (value >= thresholdValues.value.max) return "bg-secondary text-red-400";
+  if (value <= thresholdValues.value.min) return "bg-secondary text-blue-400";
+
+  return "bg-secondary text-text";
+};
+
+export const getStatusColor = (status) => {
+  switch (status) {
+    case "high":
+      return "bg-secondary text-red-400";
+    case "low":
+      return "bg-secondary text-green-200";
+    case "normal":
+      return "bg-secondary text-text";
+    default:
+      return "bg-secondary/20 text-text/50";
+  }
+};
 
 // API Functions
 export const fetchVoltages = async () => {
@@ -105,7 +136,6 @@ export const fetchChart = async (sourcePage) => {
 
     if (page === "dashboard") {
       // For Dashboard page, use timeRange
-      console.log(timeRange.value);
       params.timeRange = timeRange.value;
     } else if (page === "analytics") {
       // For Analytics page, use dateRange
@@ -138,7 +168,6 @@ export const fetchChart = async (sourcePage) => {
       const validData = response.data.filter(
         (sensor) => sensor.data && sensor.data.length > 0
       );
-      // console.log("validData:", validData); // Log the validData array
       chartData.value = [...validData];
     } else {
       chartData.value = [];

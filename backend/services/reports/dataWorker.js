@@ -58,6 +58,10 @@ async function processData() {
       query.sensorGroup = workerData.sensorGroup;
     }
 
+    const selectedSensors = new Set(workerData.selectedSensors || []);
+    console.log(selectedSensors)
+    const hasSelectedSensors = selectedSensors.size > 0;
+
     // Create Excel workbook with optimized streaming options
     const options = {
       filename: workerData.excelFilePath,
@@ -104,27 +108,64 @@ async function processData() {
     await worksheet.getRow(1).commit();
 
     // Optimize batch processing
-    const BATCH_SIZE = 5; // Slightly increased but still small
-    const ROWS_PER_WRITE = 100; // Increased for better throughput
+    const BATCH_SIZE = 25; // Slightly increased but still small
+    const ROWS_PER_WRITE = 500; // Increased for better throughput
     let totalProcessed = 0;
     let totalRows = 0;
     let hasMoreData = true;
     let lastId = null;
     let rowBuffer = [];
 
+    const pipeline = [
+      { $match: query },
+      { $sort: { _id: 1 } },
+      { $limit: BATCH_SIZE },
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
+      {
+        $addFields: {
+          sensorId: {
+            $toInt: {
+              $substr: [
+                "$voltageEntries.k",
+                1,
+                { $strLenCP: "$voltageEntries.k" },
+              ],
+            },
+          },
+          value: "$voltageEntries.v",
+        },
+      },
+
+      // adding match stage for selected sensors if needed
+      ...(hasSelectedSensors
+        ? [
+            {
+              $match: {
+                $expr: {
+                  $in: [
+                    "$sensorId", // Use numeric sensorId directly
+                    Array.from(selectedSensors),
+                  ],
+                },
+              },
+            },
+          ]
+        : []),
+    ];
+
     // Use _id-based pagination for better performance
     while (hasMoreData) {
-      // Modify query to use _id for pagination
-      let batchQuery = { ...query };
       if (lastId) {
-        batchQuery._id = { $gt: lastId };
+        pipeline[0].$match._id = { $gt: lastId };
       }
 
       // Get a batch of documents with lean() for better performance
-      const batch = await VoltageData.find(batchQuery)
-        .sort({ _id: 1 })
-        .limit(BATCH_SIZE)
-        .lean();
+      const batch = await VoltageData.aggregate(pipeline).exec();
 
       // Check if we've reached the end
       if (batch.length < BATCH_SIZE) {
@@ -137,66 +178,43 @@ async function processData() {
         lastId = batch[batch.length - 1]._id;
 
         // Process each document
-        for (const record of batch) {
+        for (const doc of batch) {
           totalProcessed++;
 
-          if (!record || !record.timestamp) {
-            continue; // Skip invalid records silently
-          }
+          if (!doc || !doc.timestamp) continue;
 
-          const recordDate = new Date(record.timestamp);
-          const dateString = recordDate.toISOString().split("T")[0];
+          const sensorId = doc.sensorId;
+          const value = doc.voltageEntries.v;
 
-          // Check if voltages exists and is an object
-          if (record.voltages && typeof record.voltages === "object") {
-            const entries =
-              record.voltages instanceof Map
-                ? Array.from(record.voltages.entries())
-                : Object.entries(record.voltages || {});
+          if (value !== null && value !== undefined && !isNaN(value)) {
+            const recordDate = new Date(doc.timestamp);
+            const dateString = recordDate.toISOString().split("T")[0];
 
-            // Process each voltage reading
-            for (const [sensorKey, value] of entries) {
-              if (value !== null && value !== undefined && !isNaN(value)) {
-                try {
-                  const sensorId = parseInt(sensorKey.substring(1)); // Remove 'v' prefix
+            // Determine status based on value
+            let status = "Normal";
+            if (value < 3) status = "Low";
+            if (value > 7) status = "High";
 
-                  // Determine status based on value
-                  let status = "Normal";
-                  if (value < 3) status = "Low";
-                  if (value > 7) status = "High";
+            rowBuffer.push({
+              date: dateString,
+              timestamp: recordDate.toLocaleString(),
+              sensorId: `Sensor ${sensorId}`,
+              value: parseFloat(value.toFixed(2)),
+              status: status,
+            });
 
-                  // Add to row buffer instead of immediate commit
-                  rowBuffer.push({
-                    date: dateString,
-                    timestamp: new Date(record.timestamp).toLocaleString(),
-                    sensorId: `Sensor ${sensorId}`,
-                    value: parseFloat(value.toFixed(2)),
-                    status: status,
-                  });
+            totalRows++;
 
-                  totalRows++;
-
-                  // Flush buffer when it reaches ROWS_PER_WRITE
-                  if (rowBuffer.length >= ROWS_PER_WRITE) {
-                    await flushRowBuffer(worksheet, rowBuffer);
-                    rowBuffer = [];
-
-                    // Report progress after each buffer flush
-                    parentPort.postMessage({
-                      type: "progress",
-                      totalProcessed,
-                      totalRows,
-                    });
-                  }
-                } catch (err) {
-                  continue; // Skip problematic entries silently
-                }
-              }
+            if (rowBuffer.length >= ROWS_PER_WRITE) {
+              await flushRowBuffer(worksheet, rowBuffer);
+              rowBuffer = [];
+              parentPort.postMessage({
+                type: "progress",
+                totalProcessed,
+                totalRows,
+              });
             }
           }
-
-          // Clear record from memory
-          record.voltages = null;
         }
 
         // Clear batch from memory
@@ -244,7 +262,7 @@ async function flushRowBuffer(worksheet, rowBuffer) {
       try {
         worksheet.addRow(rowData);
       } catch (err) {
-        console.error("Error adding row:", err.message);
+        // console.error("Error adding row:", err.message);
         // Continue with other rows instead of failing the entire batch
       }
     }
@@ -260,144 +278,3 @@ processData().catch((err) => {
     stack: err.stack,
   });
 });
-
-async function processDataWithAggregation() {
-  try {
-    // Connect to MongoDB
-    await mongoose.connect(workerData.mongoUri);
-
-    // Get the VoltageData model
-    const VoltageData = mongoose.model("VoltageData");
-
-    // Create match stage
-    const matchStage = {
-      timestamp: {
-        $gte: new Date(workerData.startDate),
-        $lte: new Date(workerData.endDate),
-      },
-    };
-
-    if (workerData.sensorGroup) {
-      matchStage.sensorGroup = workerData.sensorGroup;
-    }
-
-    // Create aggregation pipeline
-    const pipeline = [
-      { $match: matchStage },
-      { $sort: { timestamp: 1 } },
-      {
-        $addFields: {
-          voltageEntries: { $objectToArray: "$voltages" },
-        },
-      },
-      { $unwind: "$voltageEntries" },
-      {
-        $addFields: {
-          sensorId: {
-            $toInt: {
-              $substr: [
-                "$voltageEntries.k",
-                1,
-                { $strLenCP: "$voltageEntries.k" },
-              ],
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          timestamp: 1,
-          deviceId: 1,
-          sensorGroup: 1,
-          sensorId: { $concat: ["Sensor ", { $toString: "$sensorId" }] },
-          value: { $round: ["$voltageEntries.v", 2] },
-        },
-      },
-    ];
-
-    // Create Excel workbook and worksheet
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Voltage Data");
-
-    // Add headers
-    worksheet.columns = [
-      { header: "Timestamp", key: "timestamp", width: 20 },
-      { header: "Device ID", key: "deviceId", width: 15 },
-      { header: "Sensor Group", key: "sensorGroup", width: 15 },
-      { header: "Sensor ID", key: "sensorId", width: 15 },
-      { header: "Value", key: "value", width: 10 },
-    ];
-
-    // Get cursor for the aggregation
-    const cursor = VoltageData.aggregate(pipeline).cursor();
-
-    // Process data in batches
-    const BATCH_SIZE = 1000;
-    let batch = [];
-    let totalProcessed = 0;
-    let totalRows = 0;
-
-    // Process each document
-    for await (const doc of cursor) {
-      batch.push({
-        timestamp: doc.timestamp,
-        deviceId: doc.deviceId,
-        sensorGroup: doc.sensorGroup,
-        sensorId: doc.sensorId,
-        value: doc.value,
-      });
-
-      totalRows++;
-
-      // When batch is full, write to Excel and clear batch
-      if (batch.length >= BATCH_SIZE) {
-        worksheet.addRows(batch);
-        totalProcessed++;
-
-        // Send progress update
-        parentPort.postMessage({
-          type: "progress",
-          totalProcessed,
-          totalRows,
-        });
-
-        // Clear batch
-        batch = [];
-      }
-    }
-
-    // Write any remaining rows
-    if (batch.length > 0) {
-      worksheet.addRows(batch);
-      totalProcessed++;
-    }
-
-    // Save workbook
-    await workbook.xlsx.writeFile(workerData.excelFilePath);
-
-    // Send completion message
-    parentPort.postMessage({
-      type: "complete",
-      totalProcessed,
-      totalRows,
-    });
-
-    // Close MongoDB connection
-    await mongoose.connection.close();
-  } catch (error) {
-    // Send error message
-    parentPort.postMessage({
-      type: "error",
-      error: error.message,
-      stack: error.stack,
-    });
-
-    // Close MongoDB connection if open
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close();
-    }
-  }
-}
-
-processDataWithAggregation();
