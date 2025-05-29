@@ -82,7 +82,7 @@ const Analytics = () => {
       style={{ marginTop: `${navHeight}px` }}
     >
       <div
-        className="max-w-screen mx-auto px-4 md:px-4 xl:px-8 py-4 md:py-3 2xl:py-8"
+        className="max-w-screen mx-auto px-4 md:px-4 xl:px-8 py-4 md:py-3 xl:py-8"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
@@ -90,9 +90,9 @@ const Analytics = () => {
         <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
           <TabGroup tabOptions={tabOptions} />
           {/* main content */}
-          <div className="grid grid-cols-4 gap-4 md:gap-2.5 2xl:gap-4 text-text m-4 md:m-2.5 2xl:m-6 2xl:mt-4">
+          <div className="grid grid-cols-4 gap-4 md:gap-2 xl:gap-3 text-text m-4 md:m-1.5 md:mt-2 xl:mx-4 2xl:mt-4">
             {/* Left Panel */}
-            <div className="flex flex-col gap-4 md:gap-2.5">
+            <div className="flex flex-col gap-4 md:gap-2">
               {/* Sensor Selection */}
               <SensorSelector />
 
@@ -117,7 +117,7 @@ const Analytics = () => {
                 height: `${
                   window.innerWidth > 1024
                     ? contentHeight - 200
-                    : contentHeight - 100
+                    : contentHeight - 110
                 }px`,
               }}
             >

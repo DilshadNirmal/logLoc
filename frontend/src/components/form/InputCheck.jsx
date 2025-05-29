@@ -67,7 +67,7 @@ const InputCheck = ({
         {...props}
       />
       <div
-        className={`w-4 h-4 md:w-2.5 md:h-2.5 2xl:w-4 2xl:h-4 border-2 md:border-1 border-primary bg-primary/20 ${
+        className={`w-4 h-4 md:w-3 md:h-3 2xl:w-4 2xl:h-4 border-2 md:border-1 border-primary bg-primary/20 ${
           type === "radio" ? "rounded-full" : "rounded"
         } flex items-center justify-center ${className || ""}`}
       >
@@ -79,7 +79,9 @@ const InputCheck = ({
           />
         )}
       </div>
-      <span className="md:text-xs 2xl:text-base">{checkBoxValue}</span>
+      <span className="text-base md:text-xs 2xl:text-base">
+        {checkBoxValue}
+      </span>
     </label>
   );
 };

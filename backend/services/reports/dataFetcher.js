@@ -255,16 +255,30 @@ function createUnwindPipeline(
 
   // Add filter for selected sensors if needed
   if (hasSelectedSensors && selectedSensors.length > 0) {
-    pipeline.push({
-      $match: {
-        $expr: {
-          $in: [
-            { $concat: ["s", { $toString: "$sensorId" }] },
-            selectedSensors,
-          ],
+    const isNumericSensors = selectedSensors.every(s => typeof s === 'number');
+
+     if (isNumericSensors) {
+      // For numeric sensor IDs (like [22, 23])
+      pipeline.push({
+        $match: {
+          $expr: {
+            $in: ["$sensorId", selectedSensors],
+          },
         },
-      },
-    });
+      });
+    } else {
+      // For string sensor IDs (like ["s22", "s23"])
+      pipeline.push({
+        $match: {
+          $expr: {
+            $in: [
+              { $concat: ["s", { $toString: "$sensorId" }] },
+              selectedSensors,
+            ],
+          },
+        },
+      });
+    }
   }
 
   return pipeline;
@@ -543,7 +557,6 @@ async function getIntervalData(
         avgValue: { $avg: "$value" },
         minValue: { $min: "$value" },
         maxValue: { $max: "$value" },
-        count: { $sum: 1 },
         firstTimestamp: { $min: "$timestamp" },
       },
     },
@@ -556,7 +569,6 @@ async function getIntervalData(
         value: { $round: ["$avgValue", 2] },
         min: { $round: ["$minValue", 2] },
         max: { $round: ["$maxValue", 2] },
-        count: 1,
         timestamp: "$firstTimestamp",
       },
     },
@@ -599,65 +611,68 @@ async function getIntervalData(
 async function getDateData(
   configuration,
   dateRange,
-  selectedSensors = [],
-  excelWriter = null
+  selectedSensors = []
+  // excelWriter = null // excelWriter is no longer used here
 ) {
-  // If no excelWriter, return sample data for API responses
-  if (!excelWriter) {
-    return getSampleData(configuration, dateRange, selectedSensors);
+  console.log("getDateData called with configuration:", configuration);
+  console.log("getDateData called with dateRange:", dateRange);
+  console.log("getDateData called with selectedSensors:", selectedSensors);
+
+  // Generate cache key
+  const cacheKey = generateCacheKey({
+    reportType: "date", // Changed from "sample" to "date" for clarity
+    configuration,
+    dateRange,
+    selectedSensors,
+  });
+
+  // Check cache first
+  const cachedData = dataCache.get(cacheKey);
+  if (cachedData) {
+    console.log("getDateData: Returning cached data");
+    return cachedData;
   }
 
-  // For Excel export, use worker thread with optimized memory settings
-  const mongoUri = mongoose.connection.client.s.url;
+  // Create match stage
+  const matchStage = createMatchStage({ dateRange, configuration });
 
-  // Calculate optimal resource limits based on available system memory
-  const systemMemory = os.totalmem();
-  const memoryLimit = Math.min(
-    Math.floor((systemMemory * 0.4) / (1024 * 1024)), // 40% of system memory
-    4096 // Max 4GB
-  );
+  // Check if we have selected sensors
+  const hasSelectedSensors =
+    Array.isArray(selectedSensors) && selectedSensors.length > 0;
 
-  // Create worker with the necessary data
-  const worker = new Worker(path.join(__dirname, "./dataWorker.js"), {
-    workerData: {
-      startDate: dateRange.from,
-      endDate: dateRange.to,
-      sensorGroup: getSensorGroup(configuration),
-      selectedSensors: selectedSensors, // Pass selected sensors correctly
-      excelFilePath: excelWriter.filePath,
-      mongoUri: mongoUri,
+  // Create aggregation pipeline to fetch all data points
+  const pipeline = [
+    { $match: matchStage },
+    { $sort: { timestamp: 1 } }, // Sort by timestamp
+    ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
+    // Format the result - adjust projection as needed for 'date' report
+    {
+      $project: {
+        _id: 0,
+        date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, // Added date field
+        timestamp: "$timestamp",
+        deviceId: "$deviceId", // Ensure deviceId is present if needed
+        sensorGroup: "$sensorGroup",
+        sensorId: { $concat: ["s", { $toString: "$sensorId" }] },
+        value: { $round: ["$value", 2] },
+        // Add status if it's part of the VoltageData and needed for the report
+        // status: "$status" // Example, if status is stored
+      },
     },
-    resourceLimits: {
-      maxOldGenerationSizeMb: memoryLimit,
-    },
-  });
+    // Sort by timestamp and sensor ID again after projection if necessary
+    { $sort: { timestamp: 1, "sensorId": 1 } },
+  ];
 
-  // Return a promise that resolves when the worker completes
-  return new Promise((resolve, reject) => {
-    let progress = { totalProcessed: 0, totalRows: 0 };
+  console.log("getDateData: Pipeline:", JSON.stringify(pipeline, null, 2));
 
-    worker.on("message", (message) => {
-      if (message.type === "progress") {
-        progress = message;
-      } else if (message.type === "complete") {
-        resolve({
-          success: true,
-          message: "Data processed successfully",
-          totalProcessed: message.totalProcessed,
-          totalRows: message.totalRows,
-        });
-      } else if (message.type === "error") {
-        reject(new Error(message.error));
-      }
-    });
+  // Execute the aggregation
+  const results = await VoltageData.aggregate(pipeline).exec();
+  console.log(`getDateData: Fetched ${results.length} records`);
 
-    worker.on("error", reject);
-    worker.on("exit", (code) => {
-      if (code !== 0) {
-        reject(new Error(`Worker stopped with exit code ${code}`));
-      }
-    });
-  });
+  // Store in cache
+  dataCache.set(cacheKey, results);
+
+  return results;
 }
 
 /**
@@ -739,8 +754,13 @@ async function getCountData({
   selectedCounts,
   customCount,
   selectedSensors = [],
+  configuration,
 }) {
-  console.log(selectedCounts)
+  console.log("Selected counts:", selectedCounts);
+  console.log("Custom count:", customCount);
+  console.log("Configuration:", configuration);
+  console.log("Selected sensors:", selectedSensors);
+  console.log("Sensor type:", selectedSensors.map(s => typeof s));
   // Determine the count to use
   let limit = 100; // Default
 
@@ -774,8 +794,12 @@ async function getCountData({
   const hasSelectedSensors =
     Array.isArray(selectedSensors) && selectedSensors.length > 0;
 
+  const matchStage = createMatchStage({ configuration });
+  console.log(matchStage)
+
   // Create aggregation pipeline
   const pipeline = [
+    { $match: matchStage }, // Add match stage for configuration
     { $sort: { timestamp: -1 } },
     { $limit: limit },
     ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
@@ -790,12 +814,18 @@ async function getCountData({
         value: { $round: ["$value", 2] },
       },
     },
-    // Sort by timestamp (newest first) and sensor ID
     { $sort: { timestamp: -1, sensorId: 1 } },
   ];
 
+  console.log(pipeline)
   // Execute the aggregation
   const results = await VoltageData.aggregate(pipeline).exec();
+  console.log("Query results count:", results.length);
+  if (results.length === 0) {
+    // Check if there's any data at all for this sensor group
+    const dataExists = await VoltageData.findOne({ sensorGroup: matchStage.sensorGroup }).lean();
+    console.log("Any data exists for this sensor group:", !!dataExists);
+  }
 
   // Store in cache
   dataCache.set(cacheKey, results);

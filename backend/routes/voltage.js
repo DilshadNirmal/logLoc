@@ -294,11 +294,14 @@ router.get("/voltage-data", auth, async (req, res) => {
       }));
     } else if (mode === "count") {
       // Get count-based data
+      const configuration = sensorIds[0] <= 20 ? "A" : "B";
+
       const countData = await getCountData({
         selectedCounts: selectedCounts
           ? JSON.parse(selectedCounts)
           : { last100: true },
         customCount: customCount ? parseInt(customCount) : 100,
+        configuration
       });
 
       // Filter and format data for the requested sensors

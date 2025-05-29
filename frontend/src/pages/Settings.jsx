@@ -3,6 +3,7 @@ import { HiOutlineBellAlert } from "react-icons/hi2";
 import { FaRegUser } from "react-icons/fa6";
 import { IoDocumentTextOutline } from "react-icons/io5";
 import { VscGraphLine } from "react-icons/vsc";
+import { BsInfoCircle } from "react-icons/bs";
 import { useSignals } from "@preact/signals-react/runtime";
 import { signal } from "@preact/signals-react";
 
@@ -28,6 +29,7 @@ const Settings = () => {
   const isSuperAdmin = user?.Role === "super_admin";
 
   const tabOptions = [
+    { id: "info", label: "Info", icon: BsInfoCircle },
     { id: "report", label: "Set Report Options", icon: IoDocumentTextOutline },
     { id: "alert", label: "Set Alert", icon: HiOutlineBellAlert },
     { id: "threshold", label: "Set threshold", icon: VscGraphLine },

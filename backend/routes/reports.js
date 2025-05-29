@@ -196,8 +196,13 @@ router.post("/fetch-data", auth, async (req, res) => {
         data = await getSampleData(configuration, dateRange, selectedSensors);
         break;
 
-      case "count":
-        data = await getCountData(req.body);
+        case "count":
+          data = await getCountData({
+            selectedCounts,
+            customCount,
+            selectedSensors,
+            configuration  // Add configuration here
+          });
         break;
 
       default:
@@ -321,59 +326,18 @@ router.post("/export-excel", auth, async (req, res) => {
           break;
 
         case "date":
+          data = await getDateData(configuration, dateRange, selectedSensors); // Fetch date data
           filename = `Date_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-          // Create an Excel writer for streaming
-          const excelWriter = createExcelWriter(reportType, tempFilePath);
-
-          // Get MongoDB connection string
-          const mongoUri = mongoose.connection.client.s.url;
-
-          // Calculate optimal resource limits based on available system memory
-          const systemMemory = os.totalmem();
-          const memoryLimit = Math.min(
-            Math.floor((systemMemory * 0.4) / (1024 * 1024)), // 40% of system memory
-            4096 // Max 4GB
-          );
-
-          // Create worker with the necessary data
-          const worker = new Worker(
-            path.join(__dirname, "../services/reports/dataWorker.js"),
-            {
-              workerData: {
-                startDate: dateRange.from,
-                endDate: dateRange.to,
-                sensorGroup: configuration,
-                selectedSensors, // Pass selected sensors correctly
-                excelFilePath: excelWriter.filePath,
-                mongoUri: mongoUri,
-              },
-              resourceLimits: {
-                maxOldGenerationSizeMb: memoryLimit,
-              },
-            }
-          );
-
-          // Handle worker messages
-          await new Promise((resolve, reject) => {
-            worker.on("message", (message) => {
-              if (message.type === "complete") {
-                resolve();
-              } else if (message.type === "error") {
-                reject(new Error(message.error));
-              }
-            });
-
-            worker.on("error", reject);
-            worker.on("exit", (code) => {
-              if (code !== 0) {
-                reject(new Error(`Worker stopped with exit code ${code}`));
-              }
-            });
-          });
+          await generateExcelFile(data, reportType, tempFilePath);
           break;
 
         case "count":
-          data = await getCountData({ selectedCounts, customCount });
+          data = await getCountData({
+            selectedCounts,
+            customCount,
+            configuration,
+            selectedSensors
+          });
           filename = `Count_Data_${
             new Date().toISOString().split("T")[0]
           }.xlsx`;

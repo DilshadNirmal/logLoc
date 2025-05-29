@@ -16,7 +16,7 @@ const TabButton = ({
           ? "flex-col items-center justify-center gap-6 md:gap-3 2xl:gap-6"
           : "items-center justify-center gap-3 md:gap-2 2xl:gap-3"
       } p-3 md:p-1.5  ${
-        variant === "horizontal" ? "lg:py-3.5 xl:py-5" : "md:p-2 2xl:p-2.5"
+        variant === "horizontal" ? "lg:py-3 xl:py-5" : "md:p-2 2xl:p-2.5"
       } rounded-lg transition-all ${
         selected
           ? "bg-primary text-white"

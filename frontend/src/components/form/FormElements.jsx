@@ -2,7 +2,9 @@ import { MdOutlineFileDownload } from "react-icons/md";
 
 export const FormInput = ({ label, children }) => (
   <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20">
-    <label className="text-text w-fit md:w-32">{label}</label>
+    <label className="text-text text-sm md:text-sm 2xl:text-sm w-fit md:w-32">
+      {label}
+    </label>
     <div className="w-full md:w-7/12 bg-primary/50 border border-secondary rounded-lg px-2">
       {" "}
       {/*[#1d4873]*/} {children}
@@ -28,14 +30,16 @@ export const RadioOption = ({
         className="sr-only"
       />
       <div
-        className={`w-5 h-5 border-2 ${
+        className={`w-5 h-5 md:w-4 md:h-4 2xl:w-5 2xl:h-5 border-2 ${
           checked ? "border-primary bg-primary/20" : "border-primary"
         } rounded-full flex items-center justify-center`}
       >
-        {checked && <div className="w-3 h-3 rounded-full bg-primary"></div>}
+        {checked && (
+          <div className="w-3 h-3 md:w-2 md:h-2 2xl:w-3 2xl:h-3 rounded-full bg-primary"></div>
+        )}
       </div>
     </div>
-    <span>{label}</span>
+    <span className="text-sm md:text-xs 2xl:text-sm">{label}</span>
   </label>
 );
 

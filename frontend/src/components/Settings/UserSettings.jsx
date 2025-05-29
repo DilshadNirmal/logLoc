@@ -16,32 +16,34 @@ const UserSettings = ({
       <div className="flex justify-between items-center mb-6">
         {/* View toggle and sort controls */}
         <div className="flex gap-5">
-          <div className="flex gap-4 border border-primary/75 bg-background/25 p-2 rounded-lg">
-            <button
-              className={`text-white  p-2 rounded ${
-                activeUserView.value === "profile" ? "bg-primary tracking-wider" : ""
-              }`}
-              onClick={() => {
-                activeUserView.value = "profile";
-                sortBy.value = "Sort By";
-                sortOrder.value = "asc";
-              }}
-            >
-              User Profile
-            </button>
-            <button
-              className={`text-white p-2 rounded ${
-                activeUserView.value === "log" ? "bg-primary" : ""
-              }`}
-              onClick={() => {
-                activeUserView.value = "log";
-                sortBy.value = "Sort By";
-                sortOrder.value = "asc";
-              }}
-            >
-              User Log
-            </button>
-          </div>
+        {isSuperAdmin && (
+            <div className="flex gap-4 border border-primary/75 bg-background/25 p-2 rounded-lg">
+              <button
+                className={`text-white  p-2 rounded ${
+                  activeUserView.value === "profile" ? "bg-primary tracking-wider" : ""
+                }`}
+                onClick={() => {
+                  activeUserView.value = "profile";
+                  sortBy.value = "Sort By";
+                  sortOrder.value = "asc";
+                }}
+              >
+                User Profile
+              </button>
+              <button
+                className={`text-white p-2 rounded ${
+                  activeUserView.value === "log" ? "bg-primary" : ""
+                }`}
+                onClick={() => {
+                  activeUserView.value = "log";
+                  sortBy.value = "Sort By";
+                  sortOrder.value = "asc";
+                }}
+              >
+                User Log
+              </button>
+            </div>
+          )}
 
           <div className="relative">
             <button
@@ -149,44 +151,79 @@ const UserSettings = ({
               { key: "Role", header: "job Role" },
               { key: "phoneNumber", header: "Phone" },
             ]}
-            actions={(userData) => (
-              <>
-                {isSuperAdmin && (
-                  <>
-                    <button
-                      onClick={() => {
-                        userSignals.selectedUser.value = userData;
-                        userSignals.editForm.value = {
-                          UserName: userData.UserName,
-                          Email: userData.Email,
-                          Role: userData.Role,
-                          phoneNumber: userData.phoneNumber,
-                        };
-                        userSignals.showEditModal.value = true;
-                      }}
-                      className="text-primary hover:text-primary/80 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => userSignals.handleDeleteUser(userData._id)}
-                      className="text-red-500 hover:text-red-600 mr-4"
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => {
-                    userSignals.selectedUser.value = { _id: userData._id };
-                    userSignals.showPasswordModal.value = true;
-                  }}
-                  className="text-primary hover:text-primary/80"
-                >
-                  Change Password
-                </button>
-              </>
-            )}
+            actions={(userData) => {
+              // Don't show any actions for regular users
+              if (!isSuperAdmin && userData.Role === "super_admin") {
+                return null;
+              }
+
+              return (
+                <>
+                  {/* Super admin can edit and delete everyone */}
+                  {isSuperAdmin && (
+                    <>
+                      <button
+                        onClick={() => {
+                          userSignals.selectedUser.value = userData;
+                          userSignals.editForm.value = {
+                            UserName: userData.UserName,
+                            Email: userData.Email,
+                            Role: userData.Role,
+                            phoneNumber: userData.phoneNumber,
+                          };
+                          userSignals.showEditModal.value = true;
+                        }}
+                        className="text-primary hover:text-primary/80 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => userSignals.handleDeleteUser(userData._id)}
+                        className="text-red-500 hover:text-red-600 mr-4"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => {
+                          userSignals.selectedUser.value = { _id: userData._id };
+                          userSignals.showPasswordModal.value = true;
+                        }}
+                        className="text-primary hover:text-primary/80"
+                      >
+                        Change Password
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* Admin can only edit and delete regular users */}
+                  {!isSuperAdmin && userData.Role === "user" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          userSignals.selectedUser.value = userData;
+                          userSignals.editForm.value = {
+                            UserName: userData.UserName,
+                            Email: userData.Email,
+                            Role: userData.Role,
+                            phoneNumber: userData.phoneNumber,
+                          };
+                          userSignals.showEditModal.value = true;
+                        }}
+                        className="text-primary hover:text-primary/80 mr-4"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => userSignals.handleDeleteUser(userData._id)}
+                        className="text-red-500 hover:text-red-600 mr-4"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            }}
           />
         ) : (
           <Table
