@@ -1,6 +1,6 @@
 import { useSignals } from "@preact/signals-react/runtime";
 
-const BatteryRender = ({ orient, value }) => {
+const BatteryRender = ({ orient, value, side }) => {
   useSignals();
 
   // If value is a signal, access it with .value
@@ -21,7 +21,7 @@ const BatteryRender = ({ orient, value }) => {
         <div
           className={`${
             orient === "height"
-              ? "h-10 md:h-8 lg:h-6 2xl:h-10 w-1 md:w-0.5 lg:w-[1px] 2xl:w-1"
+              ? "h-10 md:h-8 2xl:h-10 w-1 md:w-0.5 2xl:w-1"
               : "h-1 w-10"
           } bg-text/75 rounded-lg sm:order-2`}
         ></div>
@@ -47,7 +47,9 @@ const BatteryRender = ({ orient, value }) => {
             }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-text z-60">{batteryValue}&nbsp;%</span>
+            <span className="text-text text-sm md:text-xs 2xl:text-sm z-60">
+              {side} {batteryValue}&nbsp;%
+            </span>
           </div>
         </div>
       </div>

@@ -11,17 +11,16 @@ import { useAuth } from "../contexts/AuthContext";
 import Modal from "../components/Modal";
 import * as userSignals from "../signals/users";
 import * as settingsSignals from "../signals/settings";
-import TabButton from "../components/TabButton";
 import UserSettings from "../components/Settings/UserSettings";
 import ReportSettings from "../components/Settings/ReportSettings";
 import AlertSettings from "../components/Settings/AlertSettings";
 import ThresholdSettings from "../components/Settings/ThresholdSettings";
 import { selectedTabSignal } from "../signals/voltage";
 import TabGroup from "../components/TabGroup";
+import InfoSettings from "../components/Settings/InfoSettings";
 
 const navHeight = signal(0);
 const contentHeight = signal(0);
-const selectedTab = signal("user");
 
 const Settings = () => {
   useSignals();
@@ -75,7 +74,8 @@ const Settings = () => {
           <fieldset className="border border-primary/75 rounded-lg p-2 md:p-1.5 2xl:p-2 py-1 h-full">
             <TabGroup tabOptions={tabOptions} variant={"vertical"} />
           </fieldset>
-          <fieldset className="border border-primary/75 rounded-lg p-4 md:p-2 2xl:p-4 h-full flex-1">
+          <fieldset className="border border-primary/75 rounded-lg p-4 md:p-4 2xl:p-4 h-full flex-1">
+            {selectedTabSignal.value === "info" && <InfoSettings />}
             {selectedTabSignal.value === "user" && (
               <UserSettings
                 userSignals={userSignals}

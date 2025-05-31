@@ -39,19 +39,19 @@ const Table = ({
       <table className="min-w-full divide-y divide-secondary overflow-y-hidden">
         <thead className="bg-primary/65">
           <tr>
-            <th className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider">
+            <th className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-left text-sm md:text-xs 2xl:text-sm font-medium text-text uppercase tracking-wider">
               S.No
             </th>
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider"
+                className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-left text-sm md:text-xs 2xl:text-sm font-medium text-text uppercase tracking-wider"
               >
                 {column.header}
               </th>
             ))}
             {actions && (
-              <th className="px-6 py-3 text-left text-sm font-medium text-text uppercase tracking-wider">
+              <th className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-left text-sm md:text-xs 2xl:text-sm font-medium text-text uppercase tracking-wider">
                 Actions
               </th>
             )}
@@ -69,13 +69,13 @@ const Table = ({
                     expandableContent ? () => toggleRow(itemId) : undefined
                   }
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-text/75">
+                  <td className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-sm md:text-xs 2xl:text-sm whitespace-nowrap text-text/75">
                     {index + 1}
                   </td>
                   {columns.map((column) => (
                     <td
                       key={`${itemId}-${column.key}`}
-                      className="px-6 py-4 whitespace-nowrap text-text/75"
+                      className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-sm md:text-xs 2xl:text-sm whitespace-nowrap text-text/75"
                     >
                       {column.render
                         ? column.render(item[column.key], item)
@@ -83,7 +83,7 @@ const Table = ({
                     </td>
                   ))}
                   {actions && (
-                    <td className="px-6 py-4 whitespace-nowrap text-text/65">
+                    <td className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-sm md:text-xs 2xl:text-sm whitespace-nowrap text-text/65">
                       {actions(item)}
                     </td>
                   )}

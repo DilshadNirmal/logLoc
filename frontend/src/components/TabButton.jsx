@@ -15,8 +15,10 @@ const TabButton = ({
         variant === "vertical"
           ? "flex-col items-center justify-center gap-6 md:gap-3 2xl:gap-6"
           : "items-center justify-center gap-3 md:gap-2 2xl:gap-3"
-      } p-3 md:p-1.5  ${
-        variant === "horizontal" ? "lg:py-3 xl:py-5" : "md:p-2 2xl:p-2.5"
+      }   ${
+        variant === "horizontal"
+          ? "lg:py-3 xl:py-5"
+          : "md:px-2 md:py-4 2xl:p-2.5"
       } rounded-lg transition-all ${
         selected
           ? "bg-primary text-white"
@@ -31,7 +33,7 @@ const TabButton = ({
       <Icon
         className={` ${
           variant === "vertical"
-            ? "w-6 h-6 md:w-6 md:h-6  2xl:w-14 2xl:h-14"
+            ? "w-6 h-6 md:w-6 md:h-6  2xl:w-10 2xl:h-10"
             : "2xl:w-8 2xl:h-8"
         }`}
       />

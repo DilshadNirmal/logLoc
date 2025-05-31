@@ -4,7 +4,7 @@ const SignalStrength = ({ data, signalHistoryData }) => {
   useSignals();
 
   return (
-    <div className="h-9/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
+    <div className="h-10/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
       <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
         <div className="flex items-end justify-center gap-1">
           {[1, 2, 3].map((bar) => {
@@ -22,7 +22,7 @@ const SignalStrength = ({ data, signalHistoryData }) => {
             return (
               <div
                 key={bar}
-                className="w-3.5 md:w-3 2xl:w-3.5 transition-all duration-300"
+                className="w-3.5 md:w-2.5 2xl:w-3.5 transition-all duration-300"
                 style={{
                   height: `${bar * 14}px`,
                   backgroundColor: barColor,
@@ -32,11 +32,11 @@ const SignalStrength = ({ data, signalHistoryData }) => {
             );
           })}
         </div>
-        <span className="text-3xl font-bold text-center">
-          {data.value.signalStrength}%
+        <span className="text-3xl md:text-2xl 2xl:text-3xl font-bold md:font-semibold text-center">
+          {data.value.signalStrength} %
         </span>
       </div>
-      <div className="w-[80%] md:w-[60%] h-[90%]">
+      <div className="w-[80%] md:w-[60%] h-[95%]">
         <h5 className="text-base md:text-[10px] 2xl:text-sm text-text/85 font-normal tracking-wide mb-2 md:mb-1 2xl:mb-1">
           Signal strength - 12 Hrs
         </h5>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
@@ -11,9 +11,8 @@ import {
   customCount,
   dateRange,
   fetchChart,
-  fetchVoltages,
+  isLoading as isLoadingSignal,
   selectedSensors,
-  selectedSide,
   selectedTabSignal,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
@@ -26,14 +25,6 @@ const Analytics = () => {
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const handleSensorClick = (sensor) => {
-    if (selectedSensors.value.includes(sensor)) {
-      selectedSensors.value = selectedSensors.value.filter((s) => s !== sensor);
-    } else {
-      selectedSensors.value = [...selectedSensors.value, sensor];
-    }
-  };
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -49,14 +40,24 @@ const Analytics = () => {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  useEffect(() => {
-    if (selectedSensors.value.length > 0) {
-      currentPage.value = "analytics";
-      fetchChart("analytics");
-    } else {
-      chartData.value = [];
+  const fetchData = useCallback(async () => {
+    try {
+      if (selectedSensors.value.length > 0) {
+        console.log('Selected sensors changed, fetching chart data...', selectedSensors.value);
+        currentPage.value = "analytics";
+        await fetchChart();
+      } else {
+        console.log('No sensors selected, clearing chart data');
+        chartData.value = [];
+      }
+    } catch (error) {
+      console.error('Error in fetchData:', error);
     }
   }, [selectedSensors.value]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -75,6 +76,20 @@ const Analytics = () => {
     { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "count", label: "Count-wise Data", icon: CiHashtag },
   ];
+
+  // const isLoading = isLoadingSignal.value;
+
+  // // Show loading overlay when data is being fetched
+  // if (isLoading) {
+  //   return (
+  //     <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-50">
+  //       <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+  //         <p className="text-lg font-medium text-gray-800">Loading chart data...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <section
@@ -105,7 +120,7 @@ const Analytics = () => {
                 customCount={customCount}
                 onPlotGraph={() => {
                   currentPage.value = "analytics";
-                  fetchChart("analytics");
+                  fetchChart();
                 }}
               />
             </div>

@@ -255,9 +255,11 @@ function createUnwindPipeline(
 
   // Add filter for selected sensors if needed
   if (hasSelectedSensors && selectedSensors.length > 0) {
-    const isNumericSensors = selectedSensors.every(s => typeof s === 'number');
+    const isNumericSensors = selectedSensors.every(
+      (s) => typeof s === "number"
+    );
 
-     if (isNumericSensors) {
+    if (isNumericSensors) {
       // For numeric sensor IDs (like [22, 23])
       pipeline.push({
         $match: {
@@ -298,6 +300,14 @@ async function getAverageData(
   averageBy,
   selectedSensors = []
 ) {
+  console.log(
+    "get averageData fn: ",
+    configuration,
+    dateRange,
+    averageBy,
+    selectedSensors
+  );
+
   // Generate cache key
   const cacheKey = generateCacheKey({
     reportType: "average",
@@ -314,133 +324,138 @@ async function getAverageData(
   }
 
   // Create match stage
-  const matchStage = createMatchStage({ dateRange, configuration });
-
-  // Check if we have selected sensors
-  const hasSelectedSensors =
-    Array.isArray(selectedSensors) && selectedSensors.length > 0;
-
-  // Generate time periods
-  const periods = generateTimePeriods(
-    new Date(dateRange.from),
-    new Date(dateRange.to),
-    averageBy
-  );
+  const matchStage = {
+    timestamp: {
+      $gte: new Date(dateRange.from),
+      $lte: new Date(dateRange.to),
+    },
+    sensorGroup: configuration === "A" ? "1-20" : "21-40",
+  };
 
   // Create aggregation pipeline
   const pipeline = [
     { $match: matchStage },
-    ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
-    // Group by time period and sensor ID
+    { $addFields: { 
+      timestamp: { $toDate: "$timestamp" } 
+    }},
+    { $sort: { timestamp: 1 } },
+
+    // Convert voltages map to array of objects
+    {
+      $project: {
+        timestamp: 1,
+        voltageEntries: {
+          $map: {
+            input: {
+              $filter: {
+                input: { $objectToArray: "$voltages" },
+                as: "entry",
+                cond:
+                  selectedSensors.length === 0
+                    ? true
+                    : {
+                        $in: ["$$entry.k", selectedSensors.map((s) => `v${s}`)],
+                      },
+              },
+            },
+            as: "entry",
+            in: {
+              k: { $substr: ["$$entry.k", 1, -1] }, // Remove 'v' prefix
+              v: "$$entry.v",
+            },
+          },
+        },
+      },
+    },
+    { $unwind: "$voltageEntries" },
+    {
+      $addFields: {
+        sensorId: "$voltageEntries.k",
+        value: "$voltageEntries.v",
+      },
+    },
+
+    // Group by time period and sensor ID to calculate averages
     {
       $group: {
         _id: {
+          sensorId: "$sensorId",
           period: {
-            $switch: {
-              branches: [
-                {
-                  case: { $eq: [averageBy, "hour"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m-%d-%H",
-                      date: "$timestamp",
-                    },
-                  },
-                },
-                {
-                  case: { $eq: [averageBy, "day"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m-%d",
-                      date: "$timestamp",
-                    },
-                  },
-                },
-                {
-                  case: { $eq: [averageBy, "week"] },
-                  then: {
-                    $concat: [
-                      { $toString: { $year: "$timestamp" } },
-                      "-W",
-                      {
-                        $toString: {
-                          $ceil: {
-                            $divide: [
-                              { $add: [{ $dayOfYear: "$timestamp" }, 6] },
-                              7,
-                            ],
-                          },
-                        },
-                      },
-                    ],
-                  },
-                },
-                {
-                  case: { $eq: [averageBy, "month"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m",
-                      date: "$timestamp",
-                    },
-                  },
-                },
-              ],
-              default: {
-                $dateToString: {
-                  format: "%Y-%m-%d-%H",
-                  date: "$timestamp",
-                },
-              },
+            $dateTrunc: {
+              date: "$timestamp",
+              unit: averageBy === "hour" ? "hour" : "day",
+              timezone: "Asia/Kolkata",
             },
           },
-          sensorId: "$sensorId",
         },
-        avgValue: { $avg: "$value" },
-        minValue: { $min: "$value" },
-        maxValue: { $max: "$value" },
-        count: { $sum: 1 },
-        firstTimestamp: { $min: "$timestamp" },
+        averageValue: { $avg: "$value" },
+        timestamp: { $first: "$timestamp" },
       },
     },
-    // Format the output
+
+    // Format the result
     {
       $project: {
         _id: 0,
-        period: "$_id.period",
-        sensorId: { $concat: ["s", { $toString: "$_id.sensorId" }] },
-        value: { $round: ["$avgValue", 2] },
-        min: { $round: ["$minValue", 2] },
-        max: { $round: ["$maxValue", 2] },
-        count: 1,
-        timestamp: "$firstTimestamp",
+        sensorId: "$_id.sensorId",
+        timestamp: {
+          $dateToString: {
+            date: "$timestamp",
+            format: "%Y-%m-%d %H:%M:%S",
+            timezone: "Asia/Kolkata",
+          },
+        },
+        value: { $round: ["$averageValue", 2] },
+        label: {
+          $dateToString: {
+            date: "$timestamp",
+            format: "%H:%M",
+            timezone: "Asia/Kolkata",
+          },
+        },
       },
     },
-    // Sort by period and sensor ID
-    { $sort: { period: 1, sensorId: 1 } },
+    { $sort: { timestamp: 1, sensorId: 1 } },
   ];
 
-  // Execute the aggregation
-  const results = await VoltageData.aggregate(pipeline).exec();
+  try {
+    // Execute the aggregation
+    const results = await VoltageData.aggregate(pipeline)
+      .allowDiskUse(true)
+      .exec();
+    console.log("Raw results:", JSON.stringify(results, null, 2));
 
-  // Process results to match time periods
-  const formattedResults = results.map((result) => {
-    // Find the matching period
-    const period = periods.find((p) => p.key === result.period);
-
-    return {
+    // Process results and convert sensorId to number
+    const processedResults = results.map((result) => ({
       ...result,
-      periodLabel: period
-        ? formatPeriodLabel(period.startTime, averageBy)
-        : result.period,
-      start: period ? period.startTime : new Date(result.timestamp),
-      end: period ? period.endTime : new Date(result.timestamp),
-    };
-  });
+      sensorId: parseInt(result.sensorId, 10),
+    }));
 
-  // Store in cache
-  dataCache.set(cacheKey, formattedResults);
+    // Group results by sensor ID
+    const groupedResults = {};
+    processedResults.forEach((result) => {
+      if (!groupedResults[result.sensorId]) {
+        groupedResults[result.sensorId] = [];
+      }
+      groupedResults[result.sensorId].push(result);
+    });
 
-  return formattedResults;
+    // Convert to array format
+    const finalResults = Object.entries(groupedResults).map(
+      ([sensorId, data]) => ({
+        sensorId: parseInt(sensorId, 10),
+        data,
+      })
+    );
+
+    // Store in cache
+    dataCache.set(cacheKey, finalResults);
+
+    return finalResults;
+  } catch (error) {
+    console.error("Error in getAverageData:", error);
+    return [];
+  }
 }
 
 /**
@@ -458,146 +473,178 @@ async function getIntervalData(
   selectedSensors = []
 ) {
   // Generate cache key
-  const cacheKey = generateCacheKey({
-    reportType: "interval",
-    configuration,
-    dateRange,
-    interval,
-    selectedSensors,
-  });
+  try {
+    console.log(
+      "getIntervalData fn: ",
+      configuration,
+      dateRange,
+      interval,
+      selectedSensors
+    );
 
-  // Check cache first
-  const cachedData = dataCache.get(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
+    // Generate cache key
+    const cacheKey = generateCacheKey({
+      reportType: "interval",
+      configuration,
+      dateRange,
+      interval,
+      selectedSensors,
+    });
 
-  // Create match stage
-  const matchStage = createMatchStage({ dateRange, configuration });
+    // Check cache first
+    const cachedData = dataCache.get(cacheKey);
+    if (cachedData) {
+      console.log('Returning cached interval data');
+      return cachedData;
+    }
 
-  // Check if we have selected sensors
-  const hasSelectedSensors =
-    Array.isArray(selectedSensors) && selectedSensors.length > 0;
+    // Create match stage
+    const matchStage = createMatchStage({
+      dateRange,
+      configuration,
+      selectedSensors,
+    });
 
-  // Generate time periods
-  const periods = generateTimePeriods(
-    new Date(dateRange.from),
-    new Date(dateRange.to),
-    interval
-  );
+    // Generate time periods for the given date range and interval
+    const periods = generateTimePeriods(
+      new Date(dateRange.from),
+      new Date(dateRange.to),
+      interval
+    );
 
-  // Create aggregation pipeline
-  const pipeline = [
-    { $match: matchStage },
-    ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
-    // Group by interval and sensor ID
-    {
-      $group: {
-        _id: {
-          interval: {
-            $switch: {
-              branches: [
-                {
-                  case: { $eq: [interval, "hour"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m-%d-%H",
-                      date: "$timestamp",
+    // Create aggregation pipeline
+    const pipeline = [
+      { $match: matchStage },
+      ...createUnwindPipeline(selectedSensors.length > 0, selectedSensors),
+      // Group by interval and sensor ID
+      {
+        $group: {
+          _id: {
+            interval: {
+              $switch: {
+                branches: [
+                  {
+                    case: { $eq: [interval, "hour"] },
+                    then: {
+                      $dateToString: {
+                        format: "%Y-%m-%d-%H",
+                        date: "$timestamp",
+                      },
                     },
                   },
-                },
-                {
-                  case: { $eq: [interval, "day"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m-%d",
-                      date: "$timestamp",
+                  {
+                    case: { $eq: [interval, "day"] },
+                    then: {
+                      $dateToString: {
+                        format: "%Y-%m-%d",
+                        date: "$timestamp",
+                      },
                     },
                   },
-                },
-                {
-                  case: { $eq: [interval, "week"] },
-                  then: {
-                    $concat: [
-                      { $toString: { $year: "$timestamp" } },
-                      "-W",
-                      {
-                        $toString: {
-                          $ceil: {
-                            $divide: [
-                              { $add: [{ $dayOfYear: "$timestamp" }, 6] },
-                              7,
-                            ],
+                  {
+                    case: { $eq: [interval, "week"] },
+                    then: {
+                      $concat: [
+                        { $toString: { $year: "$timestamp" } },
+                        "-W",
+                        {
+                          $toString: {
+                            $ceil: {
+                              $divide: [
+                                { $add: [{ $dayOfYear: "$timestamp" }, 6] },
+                                7,
+                              ],
+                            },
                           },
                         },
-                      },
-                    ],
-                  },
-                },
-                {
-                  case: { $eq: [interval, "month"] },
-                  then: {
-                    $dateToString: {
-                      format: "%Y-%m",
-                      date: "$timestamp",
+                      ],
                     },
                   },
-                },
-              ],
-              default: {
-                $dateToString: {
-                  format: "%Y-%m-%d-%H",
-                  date: "$timestamp",
+                  {
+                    case: { $eq: [interval, "month"] },
+                    then: {
+                      $dateToString: {
+                        format: "%Y-%m",
+                        date: "$timestamp",
+                      },
+                    },
+                  },
+                ],
+                default: {
+                  $dateToString: {
+                    format: "%Y-%m-%d-%H",
+                    date: "$timestamp",
+                  },
                 },
               },
             },
+            sensorId: "$sensorId",
           },
-          sensorId: "$sensorId",
+          avgValue: { $avg: "$value" },
+          minValue: { $min: "$value" },
+          maxValue: { $max: "$value" },
+          firstTimestamp: { $min: "$timestamp" },
         },
-        avgValue: { $avg: "$value" },
-        minValue: { $min: "$value" },
-        maxValue: { $max: "$value" },
-        firstTimestamp: { $min: "$timestamp" },
       },
-    },
-    // Format the output
-    {
-      $project: {
-        _id: 0,
-        interval: "$_id.interval",
-        sensorId: { $concat: ["s", { $toString: "$_id.sensorId" }] },
-        value: { $round: ["$avgValue", 2] },
-        min: { $round: ["$minValue", 2] },
-        max: { $round: ["$maxValue", 2] },
-        timestamp: "$firstTimestamp",
+      // Format the output
+      {
+        $project: {
+          _id: 0,
+          interval: "$_id.interval",
+          sensorId: "$_id.sensorId",
+          value: { $round: ["$avgValue", 2] },
+          min: { $round: ["$minValue", 2] },
+          max: { $round: ["$maxValue", 2] },
+          timestamp: "$firstTimestamp",
+        },
       },
-    },
-    // Sort by interval and sensor ID
-    { $sort: { interval: 1, sensorId: 1 } },
-  ];
+      // Sort by interval and sensor ID
+      { $sort: { timestamp: 1, sensorId: 1 } },
+    ];
 
-  // Execute the aggregation
-  const results = await VoltageData.aggregate(pipeline).exec();
+    console.log('Executing interval data aggregation pipeline');
+    const results = await VoltageData.aggregate(pipeline).exec();
+    console.log(`Retrieved ${results.length} interval data points`);
 
-  // Process results to match intervals
-  const formattedResults = results.map((result) => {
-    // Find the matching period
-    const period = periods.find((p) => p.key === result.interval);
+    // Process results to match intervals
+    const formattedResults = results.map((result) => {
+      const period = periods.find((p) => p.key === result.interval);
+      return {
+        ...result,
+        intervalLabel: period
+          ? formatPeriodLabel(period.startTime, interval)
+          : result.interval,
+        start: period ? period.startTime : new Date(result.timestamp),
+        end: period ? period.endTime : new Date(result.timestamp),
+      };
+    });
 
-    return {
-      ...result,
-      intervalLabel: period
-        ? formatPeriodLabel(period.startTime, interval)
-        : result.interval,
-      start: period ? period.startTime : new Date(result.timestamp),
-      end: period ? period.endTime : new Date(result.timestamp),
-    };
-  });
+    // Group by sensor ID for consistent output format with getAverageData
+    const groupedResults = {};
+    formattedResults.forEach((result) => {
+      if (!groupedResults[result.sensorId]) {
+        groupedResults[result.sensorId] = [];
+      }
+      groupedResults[result.sensorId].push(result);
+    });
 
-  // Store in cache
-  dataCache.set(cacheKey, formattedResults);
+    // Convert to array format
+    const finalResults = Object.entries(groupedResults).map(
+      ([sensorId, data]) => ({
+        sensorId: parseInt(sensorId, 10),
+        data,
+      })
+    );
 
-  return formattedResults;
+    // Store in cache
+    dataCache.set(cacheKey, finalResults);
+    console.log('Interval data processing complete');
+
+    return finalResults;
+  } catch (error) {
+    console.error("Error in getIntervalData:", error);
+    return [];
+  }
 }
 
 /**
@@ -605,74 +652,94 @@ async function getIntervalData(
  * @param {string} configuration - Configuration (A or B)
  * @param {Object} dateRange - Date range object
  * @param {Array} selectedSensors - Array of selected sensor IDs
- * @param {Object} excelWriter - Excel writer object (optional)
- * @returns {Promise<Object>} Result object
+ * @returns {Promise<Array>} Processed data
  */
 async function getDateData(
   configuration,
   dateRange,
   selectedSensors = []
-  // excelWriter = null // excelWriter is no longer used here
 ) {
-  console.log("getDateData called with configuration:", configuration);
-  console.log("getDateData called with dateRange:", dateRange);
-  console.log("getDateData called with selectedSensors:", selectedSensors);
+  try {
+    console.log(
+      "getDateData fn: ",
+      configuration,
+      dateRange,
+      selectedSensors
+    );
 
-  // Generate cache key
-  const cacheKey = generateCacheKey({
-    reportType: "date", // Changed from "sample" to "date" for clarity
-    configuration,
-    dateRange,
-    selectedSensors,
-  });
+    // Generate cache key
+    const cacheKey = generateCacheKey({
+      reportType: "date",
+      configuration,
+      dateRange,
+      selectedSensors,
+    });
 
-  // Check cache first
-  const cachedData = dataCache.get(cacheKey);
-  if (cachedData) {
-    console.log("getDateData: Returning cached data");
-    return cachedData;
-  }
+    // Check cache first
+    const cachedData = dataCache.get(cacheKey);
+    if (cachedData) {
+      console.log('Returning cached date data');
+      return cachedData;
+    }
 
-  // Create match stage
-  const matchStage = createMatchStage({ dateRange, configuration });
+    // Create match stage
+    const matchStage = createMatchStage({
+      dateRange,
+      configuration,
+      selectedSensors,
+    });
 
-  // Check if we have selected sensors
-  const hasSelectedSensors =
-    Array.isArray(selectedSensors) && selectedSensors.length > 0;
-
-  // Create aggregation pipeline to fetch all data points
-  const pipeline = [
-    { $match: matchStage },
-    { $sort: { timestamp: 1 } }, // Sort by timestamp
-    ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
-    // Format the result - adjust projection as needed for 'date' report
-    {
-      $project: {
-        _id: 0,
-        date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } }, // Added date field
-        timestamp: "$timestamp",
-        deviceId: "$deviceId", // Ensure deviceId is present if needed
-        sensorGroup: "$sensorGroup",
-        sensorId: { $concat: ["s", { $toString: "$sensorId" }] },
-        value: { $round: ["$value", 2] },
-        // Add status if it's part of the VoltageData and needed for the report
-        // status: "$status" // Example, if status is stored
+    // Create aggregation pipeline
+    const pipeline = [
+      { $match: matchStage },
+      ...createUnwindPipeline(selectedSensors.length > 0, selectedSensors),
+      // Sort by timestamp and sensor ID
+      { $sort: { timestamp: 1, sensorId: 1 } },
+      // Project only the fields we need
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          sensorId: 1,
+          value: { $round: ["$value", 2] },
+        },
       },
-    },
-    // Sort by timestamp and sensor ID again after projection if necessary
-    { $sort: { timestamp: 1, "sensorId": 1 } },
-  ];
+    ];
 
-  console.log("getDateData: Pipeline:", JSON.stringify(pipeline, null, 2));
 
-  // Execute the aggregation
-  const results = await VoltageData.aggregate(pipeline).exec();
-  console.log(`getDateData: Fetched ${results.length} records`);
+    console.log('Executing date data aggregation pipeline');
+    const results = await VoltageData.aggregate(pipeline).exec();
+    console.log(`Retrieved ${results.length} date data points`);
 
-  // Store in cache
-  dataCache.set(cacheKey, results);
+    // Group by sensor ID for consistent output format with getAverageData
+    const groupedResults = {};
+    results.forEach((result) => {
+      if (!groupedResults[result.sensorId]) {
+        groupedResults[result.sensorId] = [];
+      }
+      groupedResults[result.sensorId].push({
+        ...result,
+        timestamp: new Date(result.timestamp).toISOString(),
+      });
+    });
 
-  return results;
+    // Convert to array format
+    const finalResults = Object.entries(groupedResults).map(
+      ([sensorId, data]) => ({
+        sensorId: parseInt(sensorId, 10),
+        data,
+      })
+    );
+
+    // Store in cache
+    dataCache.set(cacheKey, finalResults);
+    console.log('Date data processing complete');
+
+    return finalResults;
+  } catch (error) {
+    console.error("Error in getDateData:", error);
+    return [];
+  }
 }
 
 /**
@@ -747,90 +814,107 @@ async function getSampleData(configuration, dateRange, selectedSensors = []) {
  * @param {Object} options - Options object
  * @param {Object} options.selectedCounts - Selected count options
  * @param {number} options.customCount - Custom count value
- * @param {Array} options.selectedSensors - Array of selected sensor IDs
+ * @param {Array} options.sensorIds - Array of selected sensor IDs
+ * @param {string} options.configuration - Configuration (A or B)
  * @returns {Promise<Array>} Processed data
  */
 async function getCountData({
   selectedCounts,
   customCount,
-  selectedSensors = [],
+  sensorIds = [],
   configuration,
 }) {
-  console.log("Selected counts:", selectedCounts);
-  console.log("Custom count:", customCount);
-  console.log("Configuration:", configuration);
-  console.log("Selected sensors:", selectedSensors);
-  console.log("Sensor type:", selectedSensors.map(s => typeof s));
-  // Determine the count to use
-  let limit = 100; // Default
+  try {
+    console.log("getCountData fn: ", {
+      selectedCounts,
+      customCount,
+      sensorIds,
+      configuration,
+    });
 
-  if (selectedCounts.last100) {
-    limit = 100;
-  } else if (selectedCounts.last500) {
-    limit = 500;
-  } else if (selectedCounts.last1000) {
-    limit = 1000;
-  } else if (selectedCounts.custom && customCount) {
-    limit = parseInt(customCount, 10) || 100;
-  }
+    // Generate cache key
+    const cacheKey = generateCacheKey({
+      reportType: "count",
+      selectedCounts,
+      customCount,
+      sensorIds,
+      configuration,
+    });
 
-  // Cap the limit for performance
-  limit = Math.min(limit, 5000);
+    // Check cache first
+    const cachedData = dataCache.get(cacheKey);
+    if (cachedData) {
+      console.log('Returning cached count data');
+      return cachedData;
+    }
 
-  // Generate cache key
-  const cacheKey = generateCacheKey({
-    reportType: "count",
-    limit,
-    selectedSensors,
-  });
+    // Determine the limit based on selected counts
+    let limit = 100; // Default to last 100 records
+    if (selectedCounts.last100) limit = 100;
+    else if (selectedCounts.last500) limit = 500;
+    else if (selectedCounts.last1000) limit = 1000;
+    else if (selectedCounts.custom && customCount > 0) limit = customCount;
 
-  // Check cache first
-  const cachedData = dataCache.get(cacheKey);
-  if (cachedData) {
-    return cachedData;
-  }
+    // Create match stage
+    const matchStage = {
+      sensorGroup: configuration === "A" ? "1-20" : "21-40",
+    };
 
-  // Check if we have selected sensors
-  const hasSelectedSensors =
-    Array.isArray(selectedSensors) && selectedSensors.length > 0;
-
-  const matchStage = createMatchStage({ configuration });
-  console.log(matchStage)
-
-  // Create aggregation pipeline
-  const pipeline = [
-    { $match: matchStage }, // Add match stage for configuration
-    { $sort: { timestamp: -1 } },
-    { $limit: limit },
-    ...createUnwindPipeline(hasSelectedSensors, selectedSensors),
-    // Format the result
-    {
-      $project: {
-        _id: 0,
-        timestamp: 1,
-        deviceId: 1,
-        sensorGroup: 1,
-        sensorId: { $concat: ["s", { $toString: "$sensorId" }] },
-        value: { $round: ["$value", 2] },
+    // Create aggregation pipeline
+    const pipeline = [
+      { $match: matchStage },
+      ...createUnwindPipeline(sensorIds.length > 0, sensorIds),
+      // Sort by timestamp in descending order to get the most recent records
+      { $sort: { timestamp: -1 } },
+      // Limit to the requested number of records
+      { $limit: limit },
+      // Sort back to ascending order for display
+      { $sort: { timestamp: 1, sensorId: 1 } },
+      // Project only the fields we need
+      {
+        $project: {
+          _id: 0,
+          timestamp: 1,
+          sensorId: 1,
+          value: { $round: ["$value", 2] },
+        },
       },
-    },
-    { $sort: { timestamp: -1, sensorId: 1 } },
-  ];
+    ];
 
-  console.log(pipeline)
-  // Execute the aggregation
-  const results = await VoltageData.aggregate(pipeline).exec();
-  console.log("Query results count:", results.length);
-  if (results.length === 0) {
-    // Check if there's any data at all for this sensor group
-    const dataExists = await VoltageData.findOne({ sensorGroup: matchStage.sensorGroup }).lean();
-    console.log("Any data exists for this sensor group:", !!dataExists);
+
+    console.log('Executing count data aggregation pipeline');
+    const results = await VoltageData.aggregate(pipeline).exec();
+    console.log(`Retrieved ${results.length} count data points`);
+
+    // Group by sensor ID for consistent output format with getAverageData
+    const groupedResults = {};
+    results.forEach((result) => {
+      if (!groupedResults[result.sensorId]) {
+        groupedResults[result.sensorId] = [];
+      }
+      groupedResults[result.sensorId].push({
+        ...result,
+        timestamp: new Date(result.timestamp).toISOString(),
+      });
+    });
+
+    // Convert to array format
+    const finalResults = Object.entries(groupedResults).map(
+      ([sensorId, data]) => ({
+        sensorId: parseInt(sensorId, 10),
+        data,
+      })
+    );
+
+    // Store in cache
+    dataCache.set(cacheKey, finalResults);
+    console.log('Count data processing complete');
+
+    return finalResults;
+  } catch (error) {
+    console.error("Error in getCountData:", error);
+    return [];
   }
-
-  // Store in cache
-  dataCache.set(cacheKey, results);
-
-  return results;
 }
 
 /**

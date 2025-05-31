@@ -51,7 +51,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchVoltages();
     fetchSignalHistory();
-    fetchChart("dashboard");
+    fetchChart();
 
     const voltageInterval = setInterval(fetchVoltages, 2000);
     const historyInterval = setInterval(fetchSignalHistory, 60000);
@@ -144,8 +144,8 @@ const Dashboard = () => {
         {/* gauge for min and max */}
         <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5 md:gap-1 xl:gap-1.5">
           {/* A side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-[10px] 2xl:text-sm">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[90%] h-[95%]">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               A side
             </legend>
 
@@ -153,8 +153,8 @@ const Dashboard = () => {
           </fieldset>
 
           {/* B side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-[10px] 2xl:text-sm">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[90%] h-[95%]">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               B side
             </legend>
 
@@ -165,24 +165,26 @@ const Dashboard = () => {
         {/* battery and Signal */}
         <div className="flex flex-col md:flex-row lg:flex-row gap-2">
           <div className="w-full h-[400px] sm:w-4/12 sm:h-full bg-secondary text-text rounded-lg p-1">
-            <h4 className="mt-4 md:mt-2 mb-5 sm:mb-2 ml-4 text-lg md:text-sm">
+            <h4 className="mt-4 md:mt-2 mb-5 sm:mb-2 ml-4 text-lg md:text-xs 2xl:text-lg">
               battery Status
             </h4>
 
             {/* battery will be down here */}
             <div className="w-full h-10/12 sm:h-9/12 flex sm:flex-col mt-10 md:mt-0 justify-around">
               <BatteryRender
+                side={`(A)`}
                 orient={windowWidth >= 1024 ? "height" : "width"}
                 value={voltageDataA}
               />
               <BatteryRender
+                side={`(B)`}
                 orient={windowWidth >= 1024 ? "height" : "width"}
                 value={voltageDataB}
               />
             </div>
           </div>
-          <div className="bg-secondary text-text rounded-lg p-1 md:p-0.5 flex-1">
-            <h4 className=" mt-2 mb-15 md:mt-1.5 md:mb-2.5 2xl:mt-2 2xl:mb-3 ml-4 text-sm md:text-xs 2xl:text-sm">
+          <div className="bg-secondary text-text rounded-lg p-4 md:p-3 2xl:p-4 flex-1">
+            <h4 className="text-sm md:text-xs 2xl:text-sm mb-4 md:mb-3 2xl:mb-4">
               Signal Strength
             </h4>
             <SignalStrength

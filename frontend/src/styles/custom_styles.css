@@ -52,7 +52,7 @@ div.left > div:nth-child(2) {
 }
 
 div.left > div:nth-child(3) {
-  padding: 0.35rem;
+  padding: 0.55rem;
 }
 
 div.right > div:nth-child(1) {

@@ -17,7 +17,7 @@ const DateTimeRangePanel = ({
     switch (mode.value) {
       case "interval":
         return (
-          <>
+          <div className="py-6">
             <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
               Select Time Interval
             </h3>
@@ -63,12 +63,12 @@ const DateTimeRangePanel = ({
                 </div>
               </div>
             </div>
-          </>
+          </div>
         );
 
       case "date":
         return (
-          <>
+          <div className="py-6">
             <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
               Select Date Range
             </h3>
@@ -94,12 +94,12 @@ const DateTimeRangePanel = ({
                 inputClassName={`bg-background/65 w-full p-2 md:p-1 2xl:p-2 md:text-xs 2xl:text-sm text-text/85 outline-none border border-secondary rounded`}
               />
             </div>
-          </>
+          </div>
         );
 
       case "count":
         return (
-          <>
+          <div className="py-6">
             <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
               Select Count
             </h3>
@@ -148,12 +148,12 @@ const DateTimeRangePanel = ({
                 )}
               </div>
             </div>
-          </>
+          </div>
         );
 
       case "average":
         return (
-          <>
+          <div className="py-6">
             <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
               Average Data
             </h3>
@@ -207,7 +207,7 @@ const DateTimeRangePanel = ({
                 </div>
               </div>
             </div>
-          </>
+          </div>
         );
 
       default:

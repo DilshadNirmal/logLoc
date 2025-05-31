@@ -123,8 +123,15 @@ router.post("/fetch-data", auth, async (req, res) => {
       dateRange,
       averageBy,
       interval,
-      selectedSensors,
+      sensorIds,
     } = req.body;
+
+    console.log("reportType:", reportType,
+      configuration,
+      dateRange,
+      averageBy,
+      interval,
+      sensorIds,)
 
     // Validate required parameters
     if (!reportType) {
@@ -173,7 +180,7 @@ router.post("/fetch-data", auth, async (req, res) => {
           configuration,
           dateRange,
           averageBy,
-          selectedSensors
+          sensorIds
         );
         break;
 
@@ -188,21 +195,43 @@ router.post("/fetch-data", auth, async (req, res) => {
           configuration,
           dateRange,
           interval,
-          selectedSensors
+          sensorIds
         );
         break;
 
       case "date":
-        data = await getSampleData(configuration, dateRange, selectedSensors);
+        data = await getDateData(configuration, dateRange, sensorIds);
         break;
 
         case "count":
-          data = await getCountData({
-            selectedCounts,
-            customCount,
-            selectedSensors,
-            configuration  // Add configuration here
-          });
+        // Parse selectedCounts if it's a string (from query params)
+        let selectedCounts = {};
+        if (req.body.selectedCounts) {
+          if (typeof req.body.selectedCounts === 'string') {
+            try {
+              selectedCounts = JSON.parse(req.body.selectedCounts);
+            } catch (e) {
+              console.warn('Failed to parse selectedCounts:', e);
+              selectedCounts = { last100: true }; // Default to last 100 if parsing fails
+            }
+          } else {
+            selectedCounts = req.body.selectedCounts;
+          }
+        } else {
+          selectedCounts = { last100: true }; // Default value if not provided
+        }
+
+        const customCount = req.body.customCount 
+          ? parseInt(req.body.customCount, 10) 
+          : 0;
+        
+        data = await getCountData({
+          selectedCounts,
+          customCount,
+          sensorIds,
+          configuration
+        });
+        break;
         break;
 
       default:

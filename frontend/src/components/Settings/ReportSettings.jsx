@@ -1,10 +1,18 @@
 import React, { useEffect } from "react";
-import { reportConfig, reportSelectedUsers, allUsers, toggleReportUserSelection, showUserSelectionModal, fetchReportConfig } from "../../signals/settings";
+import {
+  reportConfig,
+  reportSelectedUsers,
+  allUsers,
+  toggleReportUserSelection,
+  showUserSelectionModal,
+  fetchReportConfig,
+} from "../../signals/settings";
 import { useSignals } from "@preact/signals-react/runtime";
 import Table from "../Table";
 import InputCheck from "../form/InputCheck";
 import Modal from "../Modal";
 import { FaPlus } from "react-icons/fa";
+import { ImUserPlus } from "react-icons/im";
 import axiosInstance from "../../lib/axios";
 
 const ReportSettings = () => {
@@ -13,7 +21,7 @@ const ReportSettings = () => {
   useEffect(() => {
     // Fetch all users when component mounts
     fetchAllUsers();
-    fetchReportConfig()
+    fetchReportConfig();
   }, []);
 
   const fetchAllUsers = async () => {
@@ -30,7 +38,7 @@ const ReportSettings = () => {
       // Save report configuration to backend with selected users
       await axiosInstance.post("/report-config", {
         ...reportConfig.value,
-        users: reportSelectedUsers.value
+        users: reportSelectedUsers.value,
       });
       alert("Report configuration saved successfully");
     } catch (error) {
@@ -75,7 +83,9 @@ const ReportSettings = () => {
   return (
     <div className="flex flex-col gap-4 md:gap-2 xl:gap-4 h-full">
       <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-[50%]">
-        <h3 className="text-xl font-semibold tracking-wider text-text mb-4">Selected People</h3>
+        <h3 className="text-xl md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
+          Selected People
+        </h3>
         <Table
           data={getReportSelectedUserData()}
           columns={[
@@ -96,15 +106,17 @@ const ReportSettings = () => {
       <div className="flex gap-4 md:gap-2 xl:gap-4 w-full h-[50%]">
         <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-full w-6/8">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold tracking-wider text-text">Select People</h3>
+            <h3 className="text-xl md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
+              Select People
+            </h3>
             <button
               onClick={() => (showUserSelectionModal.value = true)}
-              className="p-2 bg-primary text-text rounded-full hover:bg-primary/80"
+              className="p-2 bg-primary/65 text-text rounded-full hover:bg-primary/80"
             >
-              <FaPlus />
+              <ImUserPlus className="md:w-3 md:h-3 2xl:w-4 2xl:h-4" />
             </button>
           </div>
-          <div className="bg-background p-4 rounded-lg">
+          <div className="bg-background rounded-lg">
             <Table
               data={getAvailableUserData()}
               columns={[
@@ -122,9 +134,11 @@ const ReportSettings = () => {
             />
           </div>
         </div>
-        <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-full w-2/8">
-          <h4 className="text-xl font-semibold tracking-wider text-text mb-4">Set Frequency</h4>
-          <div className="bg-background p-4 rounded-lg h-[65%] grid place-content-center">
+        <div className="p-4 md:py-2 bg-primary/25 rounded-lg shadow-lg h-full w-2/8">
+          <h4 className="text-xl md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85 mb-2">
+            Set Frequency
+          </h4>
+          <div className="bg-background p-4 rounded-lg h-[60%] grid place-content-center">
             <div className="grid grid-rows-3 place-items-center gap-4">
               <InputCheck
                 type="radio"

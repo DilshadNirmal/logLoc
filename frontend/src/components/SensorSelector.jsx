@@ -13,17 +13,21 @@ const SensorSelector = () => {
     if (selectedSide.value === side) {
       isDropdownOpen.value = !isDropdownOpen.value;
     } else {
+      selectedSensors.value = [];
       selectedSide.value = side;
       isDropdownOpen.value = true;
     }
   };
 
   const handleSensorClick = (sensor) => {
-    if (selectedSensors.value.includes(sensor)) {
-      selectedSensors.value = selectedSensors.value.filter((s) => s !== sensor);
+    const currentSensors = selectedSensors.value;
+    if (currentSensors.includes(sensor)) {
+      selectedSensors.value = currentSensors.filter((s) => s !== sensor);
     } else {
-      selectedSensors.value = [...selectedSensors.value, sensor];
+      selectedSensors.value = [...currentSensors, sensor];
     }
+    // Force a re-render by updating the signal
+    selectedSensors.value = [...selectedSensors.value];
   };
 
   //   TODO:
@@ -46,7 +50,7 @@ const SensorSelector = () => {
 
       <div className="flex gap-1.5 md:gap-1.5 xl:gap-2">
         <div
-          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4 md:px-2 xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
+          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4 md:px-2 2xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
             selectedSide.value === "A" ? "bg-primary" : "bg-background"
           }`}
           onClick={() => handleSideChange("A")}
@@ -88,7 +92,7 @@ const SensorSelector = () => {
         </div>
 
         <div
-          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4  md:px-2 xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
+          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4  md:px-2 2xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
             selectedSide.value === "B" ? "bg-primary" : "bg-background"
           }`}
           onClick={() => handleSideChange("B")}

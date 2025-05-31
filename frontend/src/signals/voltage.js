@@ -26,6 +26,7 @@ export const averageBy = signal("minute");
 export const dateRange = signal({ from: new Date(), to: new Date() });
 export const countOptions = signal("last100");
 export const customCount = signal(100);
+export const isLoading = signal(false);
 
 // Re-export common signals for backward compatibility
 export { selectedTabSignal, currentPage };
@@ -65,6 +66,20 @@ export const getMaxVoltage = (voltageData) =>
     const voltages = voltageData.value.voltages;
     return calculateVoltage(voltages, (values) => Math.max(...values));
   });
+
+// Computed signal to get sensors for the selected side
+export const getSelectedSensors = computed(() => {
+  const side = selectedSide.value;
+  const sensors = selectedSensors.value;
+
+  if (side === "A") {
+    return sensors.filter((s) => s <= 20);
+  } else if (side === "B") {
+    return sensors.filter((s) => s >= 21 && s <= 40);
+  } else {
+    return sensors;
+  }
+});
 
 // computed signals for voltage status
 export const getVoltageStatus = (value) => {
@@ -120,61 +135,138 @@ export const fetchVoltages = async () => {
   }
 };
 
-export const fetchChart = async (sourcePage) => {
+export const fetchChart = async () => {
   try {
     if (selectedSensors.value.length === 0) {
       chartData.value = [];
       return;
     }
 
+    console.log(selectedSensors.value);
+    isLoading.value = true;
+
     const params = {
-      sensorId: selectedSensors.value,
+      reportType: selectedTabSignal.value,
+      configuration: selectedSide.value,
+      sensorIds: getSelectedSensors.value,
     };
 
-    // Determine which page is calling this function
-    const page = sourcePage || currentPage.value;
-
-    if (page === "dashboard") {
-      // For Dashboard page, use timeRange
-      params.timeRange = timeRange.value;
-    } else if (page === "analytics") {
-      // For Analytics page, use dateRange
-      if (dateRange.value.from && dateRange.value.to) {
-        params.from = new Date(dateRange.value.from).toISOString();
-        params.to = new Date(dateRange.value.to).toISOString();
-
-        params.mode = selectedTabSignal.value;
-
-        if (selectedTabSignal.value === "average" && averageBy.value) {
-          params.averageBy = averageBy.value;
-        } else if (selectedTabSignal.value === "interval") {
-          params.interval = "hour"; // Default to hour, can be customized
-        } else if (selectedTabSignal.value === "count") {
-          params.selectedCounts = JSON.stringify({
-            last100: countOptions.value === "last100",
-            last500: countOptions.value === "last500",
-            last1000: countOptions.value === "last1000",
-            custom: countOptions.value === "custom",
-          });
-          params.customCount = customCount.value;
-        }
-      }
+    // Add date range if available
+    if (dateRange.value.from && dateRange.value.to) {
+      params.dateRange = {
+        from: new Date(dateRange.value.from).toISOString(),
+        to: new Date(dateRange.value.to).toISOString(),
+      };
     }
 
-    const response = await axiosInstance.get("/voltage-data", { params });
+    // Add specific parameters based on report type
+    switch (selectedTabSignal.value) {
+      case "average":
+        params.averageBy = averageBy.value;
+        break;
+      case "interval":
+        params.interval = "hour";
+        break;
+      case "count":
+        params.selectedCounts = JSON.stringify({
+          last100: countOptions.value === "last100",
+          last500: countOptions.value === "last500",
+          last1000: countOptions.value === "last1000",
+          custom: countOptions.value === "custom",
+        });
+        params.customCount = customCount.value;
+        break;
+    }
 
-    if (response.data && Array.isArray(response.data)) {
-      // Filter out any sensors with empty data
-      const validData = response.data.filter(
-        (sensor) => sensor.data && sensor.data.length > 0
-      );
-      chartData.value = [...validData];
+    const response = await axiosInstance.post("/reports/fetch-data", params);
+    
+    console.log('Raw API Response:', response.data);
+    console.log('Response type:', typeof response.data);
+    
+    let dataToProcess = [];
+    
+    // Handle different response formats
+    if (Array.isArray(response.data)) {
+      // If response is already an array
+      dataToProcess = response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      // If response is an object, check for common data properties
+      if (response.data.data && Array.isArray(response.data.data)) {
+        dataToProcess = response.data.data;
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        dataToProcess = response.data.results;
+      } else {
+        // If it's an object but we can't find an array, try to use its values
+        dataToProcess = Object.values(response.data);
+      }
+    }
+    
+    console.log('Data to process:', dataToProcess);
+    
+    if (Array.isArray(dataToProcess) && dataToProcess.length > 0) {
+      console.log('Starting data processing...');
+      
+      const processedData = dataToProcess
+        .map((sensor, index) => {
+          if (!sensor) return null;
+          
+          const sensorId = sensor.sensorId || sensor.id || index;
+          console.log(`Processing sensor ${index + 1}/${dataToProcess.length}:`, sensorId);
+          
+          let sensorData = sensor.data || sensor.values || sensor.readings || [];
+          if (!Array.isArray(sensorData)) {
+            console.warn(`Sensor ${sensorId} has invalid data:`, sensor);
+            return null;
+          }
+          
+          console.log(`Sensor ${sensorId} has ${sensorData.length} data points`);
+          
+          const processedSensor = {
+            sensorId,
+            data: sensorData
+              .map((item, itemIndex) => {
+                try {
+                  if (!item || item.value === undefined) {
+                    console.warn(`Invalid item at index ${itemIndex} for sensor ${sensorId}:`, item);
+                    return null;
+                  }
+                  
+                  const timestamp = item.timestamp || item.time || item.date;
+                  const value = Number(item.value);
+                  
+                  if (isNaN(value)) {
+                    console.warn(`Invalid value at index ${itemIndex} for sensor ${sensorId}:`, item.value);
+                    return null;
+                  }
+                  
+                  return {
+                    ...item,
+                    timestamp: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString(),
+                    value: value,
+                    label: item.label || new Date(timestamp).toLocaleTimeString()
+                  };
+                } catch (error) {
+                  console.error(`Error processing item ${itemIndex} for sensor ${sensorId}:`, error);
+                  return null;
+                }
+              })
+              .filter(item => item !== null)
+          };
+          
+          return processedSensor.data.length > 0 ? processedSensor : null;
+        })
+        .filter(sensor => sensor !== null);
+    
+      console.log('Final processed data:', processedData);
+      chartData.value = processedData;
     } else {
       chartData.value = [];
     }
   } catch (error) {
     console.error("Error loading chart:", error);
     chartData.value = [];
+  } finally {
+    isLoading.value = false; // Set loading to false when done
   }
 };
 
