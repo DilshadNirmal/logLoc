@@ -24,7 +24,7 @@ const TabGroup = ({ tabOptions, variant = "horizontal" }) => {
       className={`${
         variant === "vertical"
           ? "flex flex-col justify-between h-full p-4 md:p-2 2xl:p-4 py-8 md:py-2 xl:py-8"
-          : "grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-2.5 2xl:gap-4 mt-4 md:mt-1.5 m-4 md:m-1 xl:mx-4 xl:my-4"
+          : "grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-2.5 2xl:gap-4 md:mt-1.5 mb-4 md:m-1 xl:mx-4 xl:my-4"
       } `}
     >
       {tabOptions.map((tab) => (

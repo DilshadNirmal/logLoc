@@ -150,7 +150,7 @@ const Reports = () => {
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
-        <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
+        <fieldset className="border border-primary/75 rounded-lg p-3 md:p-2 py-4 md:py-1 h-full">
           <TabGroup tabOptions={tabOptions} />
           <div
             className="bg-primary/25 rounded-lg md:mx-2 xl:mx-4"

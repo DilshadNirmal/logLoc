@@ -118,7 +118,7 @@ const SensorSelectionComp = () => {
           checkBoxValue="Side A"
           checked={selectedSidesSignal.value.A}
           onChange={() => handleSideChange("A")}
-          labelClassName={`text-text`}
+          labelClassName={`text-text text-xs md:text-sm`}
         />
         <InputCheck
           type="checkbox"
@@ -126,7 +126,7 @@ const SensorSelectionComp = () => {
           checkBoxValue="Side B"
           checked={selectedSidesSignal.value.B}
           onChange={() => handleSideChange("B")}
-          labelClassName={`text-text`}
+          labelClassName={`text-text text-xs md:text-sm`}
         />
         <InputCheck
           type="checkbox"
@@ -134,7 +134,7 @@ const SensorSelectionComp = () => {
           checkBoxValue="All"
           checked={selectedSidesSignal.value.ALL}
           onChange={() => handleSideChange("ALL")}
-          labelClassName={`text-text`}
+          labelClassName={`text-text text-xs md:text-sm`}
         />
       </div>
 

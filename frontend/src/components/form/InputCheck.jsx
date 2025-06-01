@@ -67,21 +67,19 @@ const InputCheck = ({
         {...props}
       />
       <div
-        className={`w-4 h-4 md:w-3 md:h-3 2xl:w-4 2xl:h-4 border-2 md:border-1 border-primary bg-primary/20 ${
+        className={`w-3 h-3 md:w-3 md:h-3 2xl:w-4 2xl:h-4 border-2 md:border-1 border-primary bg-primary/20 ${
           type === "radio" ? "rounded-full" : "rounded"
         } flex items-center justify-center ${className || ""}`}
       >
         {isChecked() && (
           <div
-            className={`w-2.5 h-2.5 md:w-1.5 md:h-1.5 2xl:w-2.5 2xl:h-2.5 bg-primary ${
+            className={`w-1.5 h-1.5 md:w-1.5 md:h-1.5 2xl:w-2.5 2xl:h-2.5 bg-primary ${
               type === "radio" ? "rounded-full" : "rounded"
             }`}
           />
         )}
       </div>
-      <span className="text-base md:text-xs 2xl:text-base">
-        {checkBoxValue}
-      </span>
+      <span className="">{checkBoxValue}</span>
     </label>
   );
 };

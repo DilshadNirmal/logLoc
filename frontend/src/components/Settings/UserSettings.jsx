@@ -3,24 +3,28 @@ import { FaUserGroup } from "react-icons/fa6";
 import { IoIosArrowUp } from "react-icons/io";
 import Table from "../Table";
 import { useSignals } from "@preact/signals-react/runtime";
-import { activeUserView, sortBy, sortOpen, sortOrder } from "../../signals/settings";
+import {
+  activeUserView,
+  sortBy,
+  sortOpen,
+  sortOrder,
+} from "../../signals/settings";
 
-const UserSettings = ({
-  isSuperAdmin,
-  userSignals,
-}) => {
-    useSignals()
+const UserSettings = ({ isSuperAdmin, userSignals }) => {
+  useSignals();
   return (
     <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-full">
       {/* Header controls */}
       <div className="flex justify-between items-center mb-6">
         {/* View toggle and sort controls */}
         <div className="flex gap-5">
-        {isSuperAdmin && (
-            <div className="flex gap-4 border border-primary/75 bg-background/25 p-2 rounded-lg">
+          {isSuperAdmin && (
+            <div className="flex gap-4 border border-primary/75 bg-background/25 p-2 md:p-1.5 2xl:p-2 rounded-lg md:rounded-md 2xl:rounded-lg">
               <button
-                className={`text-white  p-2 rounded ${
-                  activeUserView.value === "profile" ? "bg-primary tracking-wider" : ""
+                className={`p-2 md:p-1.5 2xl:p-2 rounded tracking-wider md:text-sm 2xl:text-base ${
+                  activeUserView.value === "profile"
+                    ? "bg-primary text-secondary font-semibold"
+                    : ""
                 }`}
                 onClick={() => {
                   activeUserView.value = "profile";
@@ -31,8 +35,10 @@ const UserSettings = ({
                 User Profile
               </button>
               <button
-                className={`text-white p-2 rounded ${
-                  activeUserView.value === "log" ? "bg-primary" : ""
+                className={`p-2 md:p-1.5 2xl:p-2 rounded tracking-wider md:text-sm 2xl:text-base ${
+                  activeUserView.value === "log"
+                    ? "bg-primary text-secondary font-semibold"
+                    : ""
                 }`}
                 onClick={() => {
                   activeUserView.value = "log";
@@ -47,11 +53,11 @@ const UserSettings = ({
 
           <div className="relative">
             <button
-              onClick={() => sortOpen.value = !sortOpen.value}
-              className="border border-primary/75 bg-background/25 p-2 px-3 h-full rounded-lg flex items-center justify-between gap-2 w-40"
+              onClick={() => (sortOpen.value = !sortOpen.value)}
+              className="border border-primary/75 bg-background/25 p-2 md:p-1.5 2xl:p-2 px-3 md:px-2 2xl:px-3 h-full rounded-lg flex items-center justify-around gap-2 w-30"
             >
-              <span>
-              {sortBy.value === "username"
+              <span className="md:text-sm 2xl:text-base">
+                {sortBy.value === "username"
                   ? "Username"
                   : sortBy.value === "location"
                   ? "Region"
@@ -62,43 +68,46 @@ const UserSettings = ({
               </span>
               <span
                 className={`transform transition-transform duration-200 ${
-                    sortOpen.value ? "rotate-180" : ""
+                  sortOpen.value ? "rotate-180" : ""
                 }`}
               >
-                <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
+                <IoIosArrowUp className="w-4 h-4 md:w-3.5 md:h-3.5 2xl:w-5 2xl:h-5" />
               </span>
             </button>
 
             {sortOpen.value && (
-              <div className="absolute top-full left-0 mt-2 w-48 bg-background border border-primary/75 rounded-lg shadow-lg z-50">
-                <div className="p-2 space-y-2">
+              <div className="absolute top-full left-0 mt-1.5 w-35 bg-background border border-primary/75 rounded-md shadow-lg z-50">
+                <div className="p-1">
                   <button
                     onClick={() => {
-                        sortBy.value = "username";
-                        sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
-                        sortOpen.value = false;
+                      sortBy.value = "username";
+                      sortOrder.value =
+                        sortOrder.value === "asc" ? "desc" : "asc";
+                      sortOpen.value = false;
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-primary/20 rounded"
+                    className="w-full text-left md:text-sm 2xl:text-base tracking-wide px-2.5 py-2 hover:bg-primary/20 rounded"
                   >
                     Username
                   </button>
                   <button
                     onClick={() => {
-                        sortBy.value = "location";
-                        sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
-                        sortOpen.value = false;
+                      sortBy.value = "location";
+                      sortOrder.value =
+                        sortOrder.value === "asc" ? "desc" : "asc";
+                      sortOpen.value = false;
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-primary/20 rounded"
+                    className="w-full text-left md:text-sm 2xl:text-base tracking-wide px-2.5 py-2 hover:bg-primary/20 rounded"
                   >
                     Region
                   </button>
                   <button
                     onClick={() => {
-                        sortBy.value = "timestamp";
-                        sortOrder.value = sortOrder.value === "asc" ? "desc" : "asc";
-                        sortOpen.value = false;
+                      sortBy.value = "timestamp";
+                      sortOrder.value =
+                        sortOrder.value === "asc" ? "desc" : "asc";
+                      sortOpen.value = false;
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-primary/20 rounded"
+                    className="w-full text-left md:text-sm 2xl:text-base tracking-wide px-2.5 py-2 hover:bg-primary/20 rounded"
                   >
                     Time
                   </button>
@@ -111,17 +120,20 @@ const UserSettings = ({
         {isSuperAdmin && (
           <button
             onClick={() => (userSignals.showAddModal.value = true)}
-            className="flex gap-2 bg-background/25 border border-primary/75 text-white rounded-lg p-4"
+            className="flex items-center gap-2 bg-background/25 border border-primary/75 text-white rounded-lg p-2.5 2xl:p-3 px-3 md:px-2.5 2xl:px-3"
           >
-            <FaUserGroup className="2xl:w-6 2xl:h-6" />
-            <span className="tracking-wider">Add Users</span>
+            <FaUserGroup className="md:w-4 md:h-4 2xl:w-6 2xl:h-6" />
+            <span className="tracking-wider md:text-sm 2xl:text-base">
+              Add Users
+            </span>
           </button>
         )}
       </div>
 
       {/* User table */}
       <div className="bg-secondary/10 shadow rounded-lg overflow-hidden">
-        {activeUserView.value=== "profile" ? (
+        <div className="max-h-[70vh] overflow-y-auto">
+        {activeUserView.value === "profile" ? (
           <Table
             data={userSignals.users.value.sort((a, b) => {
               if (sortBy.value === "username") {
@@ -178,14 +190,18 @@ const UserSettings = ({
                         Edit
                       </button>
                       <button
-                        onClick={() => userSignals.handleDeleteUser(userData._id)}
+                        onClick={() =>
+                          userSignals.handleDeleteUser(userData._id)
+                        }
                         className="text-red-500 hover:text-red-600 mr-4"
                       >
                         Delete
                       </button>
                       <button
                         onClick={() => {
-                          userSignals.selectedUser.value = { _id: userData._id };
+                          userSignals.selectedUser.value = {
+                            _id: userData._id,
+                          };
                           userSignals.showPasswordModal.value = true;
                         }}
                         className="text-primary hover:text-primary/80"
@@ -194,7 +210,7 @@ const UserSettings = ({
                       </button>
                     </>
                   )}
-                  
+
                   {/* Admin can only edit and delete regular users */}
                   {!isSuperAdmin && userData.Role === "user" && (
                     <>
@@ -214,7 +230,9 @@ const UserSettings = ({
                         Edit
                       </button>
                       <button
-                        onClick={() => userSignals.handleDeleteUser(userData._id)}
+                        onClick={() =>
+                          userSignals.handleDeleteUser(userData._id)
+                        }
                         className="text-red-500 hover:text-red-600 mr-4"
                       >
                         Delete
@@ -286,6 +304,7 @@ const UserSettings = ({
             ]}
           />
         )}
+        </div>
       </div>
     </div>
   );

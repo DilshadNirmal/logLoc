@@ -29,9 +29,9 @@ const ReportForm = ({ onDownload, type }) => {
       case "average":
         return (
           <>
-            <div className="flex items-center justify-center gap-12 md:gap-20">
-              <label className="text-text md:text-sm 2xl:text-base w-fit md:w-32 font-semibold tracking-wider">
-                Average By:
+            <div className="px-2 pb-4 flex items-center justify-center gap-10 md:gap-20">
+              <label className="text-text text-xs md:text-sm 2xl:text-base w-full md:w-32 font-semibold tracking-widest md:tracking-wider">
+                Average By :
               </label>
               <div className="w-9/12 md:w-7/12 flex flex-row items-center justify-center gap-2 md:gap-8">
                 <RadioOption
@@ -56,7 +56,7 @@ const ReportForm = ({ onDownload, type }) => {
       case "interval":
         return (
           <div className="flex items-center justify-center gap-12 md:gap-20">
-            <label className="text-text md:text-sm 2xl:text-base w-fit md:w-46 font-semibold tracking-wider">
+            <label className="text-text text-xs md:text-sm 2xl:text-base w-full md:w-32 font-semibold tracking-widest md:tracking-wider">
               Get 1 data for every
             </label>
             <div className="w-9/12 md:w-7/12 flex flex-row items-center justify-center gap-2 md:gap-8">
@@ -143,58 +143,62 @@ const ReportForm = ({ onDownload, type }) => {
   };
 
   return (
-    <div className="grid sm:grid-cols-2 gap-8 h-full">
+    <div className="grid sm:grid-cols-2 gap-8 p-4 h-full">
       <div className="sm:flex items-center justify-center hidden">
         <img src={ReportAmico} alt="" className="xl:w-9/12" />
       </div>
       <div className="flex flex-col items-center justify-around h-full">
-        <div className="space-y-6 md:space-y-4 xl:space-y-6 w-full sm:w-10/12">
-          <h2 className="text-lg xl:text-xl text-center font-semibold tracking-wider text-text">
+        <div className="space-y-3 md:space-y-4 xl:space-y-6 w-full sm:w-10/12">
+          <h2 className="text-base xl:text-lg text-center font-semibold tracking-widest bg-primary text-transparent bg-clip-text">
             {getTitle()}
           </h2>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20">
-            <label className="text-text w-fit md:w-32">Configuration</label>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-center gap-2 md:gap-20">
+            <label className="text-text/85 text-sm w-fit md:w-32">
+              Configuration
+            </label>
             <div className="w-full md:w-7/12 border border-secondary rounded-lg px-2">
               <SensorSelectionComp />
             </div>
           </div>
 
           {type.value !== "count" && (
-            <div className="space-y-8">
-              <FormInput label="From">
-                <input
-                  type="date"
-                  value={dateRange.value.from}
-                  onChange={(e) =>
-                    (dateRange.value = {
-                      ...dateRange.value,
-                      from: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 md:p-1.5 2xl:p-2 bg-transparent text-text text-base md:text-sm 2xl:text-base outline-none"
-                />
-              </FormInput>
-              <FormInput label="To">
-                <input
-                  type="date"
-                  value={dateRange.value.to}
-                  onChange={(e) =>
-                    (dateRange.value = {
-                      ...dateRange.value,
-                      to: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 md:p-1.5 2xl:p-2 bg-transparent text-text text-base md:text-sm 2xl:text-base outline-none"
-                />
-              </FormInput>
+            <div className="space-y-8 px-2 not-odd:flex flex-col justify-between items-center">
+              <div className="w-full">
+                <FormInput label="From">
+                  <input
+                    type="date"
+                    value={dateRange.value.from}
+                    onChange={(e) =>
+                      (dateRange.value = {
+                        ...dateRange.value,
+                        from: e.target.value,
+                      })
+                    }
+                    className="w-full p-1.5 md:p-1.5 2xl:p-2 mb-2 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
+                  />
+                </FormInput>
+                <FormInput label="To">
+                  <input
+                    type="date"
+                    value={dateRange.value.to}
+                    onChange={(e) =>
+                      (dateRange.value = {
+                        ...dateRange.value,
+                        to: e.target.value,
+                      })
+                    }
+                    className="w-full p-1.5 md:p-1.5 2xl:p-2 mb-2 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
+                  />
+                </FormInput>
+              </div>
             </div>
           )}
 
           {renderFormContent()}
         </div>
 
-        <div className="flex justify-center items-center w-10/12">
+        <div className="flex justify-center items-center w-10/12 my-4">
           <DownloadButton onClick={onDownload} />
         </div>
       </div>
