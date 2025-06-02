@@ -142,9 +142,9 @@ const Dashboard = () => {
         </div>
 
         {/* gauge for min and max */}
-        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5 md:gap-1 xl:gap-1.5">
+        <div className="bg-secondary rounded-lg flex flex-col items-center md:flex-row xl:flex-row gap-1.5 md:gap-1 xl:gap-1.5">
           {/* A side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[90%] h-[95%]">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[95%] md:w-[90%] h-[95%]">
             <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               A side
             </legend>
@@ -153,7 +153,7 @@ const Dashboard = () => {
           </fieldset>
 
           {/* B side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[90%] h-[95%]">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[95%] md:w-[90%] h-[95%]">
             <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               B side
             </legend>

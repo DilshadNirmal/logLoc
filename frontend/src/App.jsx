@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import EmailConfig from "./pages/EmailConfig";
 import UserList from "./pages/UserList";
 import ChangePassword from "./pages/ChangePassword";
+import ActivitiesLog from "./pages/ActivitiesLog";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -157,6 +158,11 @@ const AppContent = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/activities" element={
+          <PrivateRoute>
+            <ActivitiesLog />
+          </PrivateRoute>
+        } />
       </Routes>
     </Router>
   );

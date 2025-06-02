@@ -17,11 +17,11 @@ const DateTimeRangePanel = ({
     switch (mode.value) {
       case "interval":
         return (
-          <div className="py-6">
-            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
+          <div className="md:py-6">
+            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider md:mt-2 2xl:mt-4">
               Select Time Interval
             </h3>
-            <div className="mt-12 md:mt-8 2xl:mt-12 flex flex-col items-center gap-6 md:gap-4 2xl:gap-6">
+            <div className="mt-6 md:mt-8 2xl:mt-12 flex flex-col items-center gap-2 md:gap-4 2xl:gap-6">
               {["from", "to"].map((label) => (
                 <InputBox
                   labelName={label}
@@ -68,11 +68,11 @@ const DateTimeRangePanel = ({
 
       case "date":
         return (
-          <div className="py-6">
-            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
+          <div className="md:py-6">
+            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider md:mt-2 2xl:mt-4">
               Select Date Range
             </h3>
-            <div className="mt-12 md:mt-8 2xl:mt-12 flex flex-col items-center gap-6 md:gap-4 2xl:gap-6">
+            <div className="mt-6 md:mt-8 2xl:mt-12 flex flex-col items-center gap-2 md:gap-4 2xl:gap-6">
               <InputBox
                 labelName={"from"}
                 type={"date"}
@@ -99,8 +99,8 @@ const DateTimeRangePanel = ({
 
       case "count":
         return (
-          <div className="py-6">
-            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
+          <div className="md:py-6">
+            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider md:mt-2 2xl:mt-4">
               Select Count
             </h3>
             <div className="mt-12 md:mt-8 2xl:mt-12 flex flex-col items-center gap-6 md:gap-4 2xl:gap-6">
@@ -153,11 +153,11 @@ const DateTimeRangePanel = ({
 
       case "average":
         return (
-          <div className="py-6">
-            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider mt-4 md:mt-2 2xl:mt-4">
+          <div className="md:py-6">
+            <h3 className="text-lg md:text-base 2xl:text-2xl text-center font-semibold tracking-wider md:mt-2 2xl:mt-4">
               Average Data
             </h3>
-            <div className="mt-12 md:mt-8 2xl:mt-12 flex flex-col items-center gap-6 md:gap-4 2xl:gap-6">
+            <div className="mt-6 md:mt-8 2xl:mt-12 flex flex-col items-center gap-2 md:gap-4 2xl:gap-6">
               <InputBox
                 labelName={"from"}
                 type={"date"}
@@ -180,7 +180,7 @@ const DateTimeRangePanel = ({
               />
             </div>
 
-            <div className="mt-12 md:mt-8 2xl:mt-12 flex items-start justify-center">
+            <div className="mt-6 md:mt-8 2xl:mt-12 flex items-start justify-center">
               <div className="">
                 <h3 className="font-medium tracking-wider text-sm md:text-xs 2xl:text-lg mb-6 md:mb-3 2xl:mb-6">
                   Average by
@@ -216,12 +216,12 @@ const DateTimeRangePanel = ({
   };
 
   return (
-    <div className="bg-secondary text-white flex-1 p-4 2xl:pt-12 rounded-lg">
+    <div className="bg-secondary text-white flex-1 p-8 md:p-4 2xl:pt-12 rounded-lg">
       {renderContent()}
       <div className="flex justify-center mt-6">
         <button
           onClick={onPlotGraph}
-          className="mt-4 md:mt-2 2xl:mt-4 bg-primary hover:bg-primary/80 text-white px-8 md:px-4 2xl:px-8 py-2 md:py-1 2xl:py-2 text-sm md:text-xs 2xl:text-base rounded-lg md:rounded-md 2xl:rounded-lg transition-colors"
+          className="md:mt-2 2xl:mt-4 bg-primary hover:bg-primary/80 text-white px-8 md:px-4 2xl:px-8 py-2 md:py-1 2xl:py-2 text-sm md:text-xs 2xl:text-base rounded-lg md:rounded-md 2xl:rounded-lg transition-colors"
         >
           Plot Graph
         </button>

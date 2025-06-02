@@ -43,15 +43,18 @@ const Analytics = () => {
   const fetchData = useCallback(async () => {
     try {
       if (selectedSensors.value.length > 0) {
-        console.log('Selected sensors changed, fetching chart data...', selectedSensors.value);
+        console.log(
+          "Selected sensors changed, fetching chart data...",
+          selectedSensors.value
+        );
         currentPage.value = "analytics";
         await fetchChart();
       } else {
-        console.log('No sensors selected, clearing chart data');
+        console.log("No sensors selected, clearing chart data");
         chartData.value = [];
       }
     } catch (error) {
-      console.error('Error in fetchData:', error);
+      console.error("Error in fetchData:", error);
     }
   }, [selectedSensors.value]);
 
@@ -97,15 +100,15 @@ const Analytics = () => {
       style={{ marginTop: `${navHeight}px` }}
     >
       <div
-        className="max-w-screen mx-auto px-4 md:px-4 xl:px-8 py-4 md:py-3 xl:py-8"
+        className="max-w-screen mx-auto px-4 sm:px-6 lg:px-8 py-8"
         style={{
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
-        <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
+        <fieldset className="border border-primary/75 rounded-lg p-3 md:p-2 py-4 md:py-1 h-full">
           <TabGroup tabOptions={tabOptions} />
           {/* main content */}
-          <div className="grid grid-cols-4 gap-4 md:gap-2 xl:gap-3 text-text m-4 md:m-1.5 md:mt-2 xl:mx-4 2xl:mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-2 xl:gap-3 text-text m-1 md:m-1.5 md:mt-2 xl:mx-4 2xl:mt-4">
             {/* Left Panel */}
             <div className="flex flex-col gap-4 md:gap-2">
               {/* Sensor Selection */}
@@ -127,7 +130,7 @@ const Analytics = () => {
 
             {/* Right Panel - Chart */}
             <div
-              className="col-span-3 flex flex-col bg-secondary rounded-lg p-4 md:p-2 2xl:p-4"
+              className="md:col-span-3 flex flex-col bg-secondary rounded-lg p-4 md:p-2 2xl:p-4"
               style={{
                 height: `${
                   window.innerWidth > 1024
@@ -136,7 +139,7 @@ const Analytics = () => {
                 }px`,
               }}
             >
-              <div className="h-full flex-1 border border-primary/30 rounded-lg p-4 md:p-2 2xl:p-4">
+              <div className="!h-[250px] md:h-full flex-1 border border-primary/30 rounded-lg p-4 md:p-2 2xl:p-4">
                 <ChartContainer data={chartData} />
               </div>
 

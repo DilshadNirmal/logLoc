@@ -14,6 +14,8 @@ const {
   storeAccessToken,
   clearPreviousUserSessions,
 } = require("../utils/redis.js");
+const activityLogger = require("../middleware/activityLogger.js");
+const UserActivity = require("../models/UserActivity.js");
 
 const router = express.Router();
 
@@ -67,6 +69,12 @@ router.post("/login", async (req, res) => {
 
     await user.save();
 
+    await activityLogger.logActivity(user, "login", {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      location: req.body.location,
+    });
+
     res.json({
       user: {
         _id: user._id,
@@ -97,6 +105,12 @@ router.post("/update-location", auth, async (req, res) => {
     user.locationHistory.push(req.body);
     await user.save();
 
+    await activityLogger.logActivity(user, "location_update", {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      location: req.body,
+    });
+
     res.json({ message: "Location updated successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -106,24 +120,60 @@ router.post("/update-location", auth, async (req, res) => {
 router.post("/logout", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    const clientIp = req.ip;
+    if (!user) {
+      return res.status(404).send({ error: "User not found" });
+    }
 
-    // Update activity with logout
-    user.activities = user.activities.filter(
-      (activity) => activity.type !== "logout"
-    );
+    // First, find the last login activity
+    const lastLoginActivity = await UserActivity.findOne({
+      user: user._id,
+      type: "login",
+    }).sort({ createdAt: -1 });
+
+    console.log("Last login activity:", lastLoginActivity);
+
+    // Log the logout activity
+    const logoutActivity = await activityLogger.logActivity(user, "logout", {
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+      location: lastLoginActivity?.location || null,
+    });
+
+    console.log("Created logout activity:", logoutActivity);
+
+    // Update user's last activity
+    user.lastActivity = {
+      type: "logout",
+      timestamp: new Date(),
+      ipAddress: req.ip,
+    };
+
+    // Update the activities array in user model
+    user.activities = user.activities || [];
+    user.activities = user.activities.filter((a) => a.type !== "logout");
     user.activities.push({
       type: "logout",
-      ipAddress: clientIp,
-      location: user.activities.find((activity) => activity.type === "login")
-        .location,
+      timestamp: new Date(),
+      ipAddress: req.ip,
+      location: lastLoginActivity?.location || null,
     });
 
     await user.save();
 
-    res.send({ message: "User logged out successfully" });
+    // Clear tokens
+    await clearAccessToken(user._id);
+    await clearRefreshToken(user._id);
+
+    res.send({
+      message: "User logged out successfully",
+      logoutActivityId: logoutActivity?._id,
+    });
   } catch (error) {
-    res.status(500).send({ error: error.message });
+    console.error("Error in logout:", error);
+    res.status(500).send({
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 });
 
@@ -205,6 +255,63 @@ router.post("/refresh-token", async (req, res) => {
     });
   } catch (error) {
     res.status(401).send({ error: "Please Authenticate" });
+  }
+});
+
+router.get("/admin/activities", auth, async (req, res) => {
+  try {
+    // Check if user is super_admin
+    if (req.user.Role !== "super_admin") {
+      console.log(
+        `Access denied for user ${req.user._id} with role ${req.user.Role}`
+      );
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Only super admins can view activities.",
+      });
+    }
+
+    const {
+      userId,
+      type,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const query = {};
+    if (userId) query.user = userId;
+    if (type) query.type = type;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const activities = await UserActivity.find(query)
+      .populate("user", "UserName Email")
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .lean();
+
+    const count = await UserActivity.countDocuments(query);
+
+    res.json({
+      success: true,
+      activities: activities || [],
+      totalItems: count || 0,
+      totalPages: Math.ceil(count / limit) || 1,
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error("Error in /admin/activities:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
