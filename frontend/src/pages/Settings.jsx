@@ -70,7 +70,7 @@ const Settings = () => {
             window.innerWidth >= 1024 ? `${contentHeight.value}px` : "auto",
         }}
       >
-        <div className="flex gap-4 md:gap-2 2xl:gap-2 mx-8 md:mx-4 my-2 md:my-1 h-full">
+        <div className="flex flex-col md:flex-row gap-4 md:gap-2 2xl:gap-2 mx-2 md:mx-4 my-2 md:my-1 h-full">
           <fieldset className="border border-primary/75 rounded-lg p-2 md:p-1.5 2xl:p-2 py-1 h-full">
             <TabGroup tabOptions={tabOptions} variant={"vertical"} />
           </fieldset>

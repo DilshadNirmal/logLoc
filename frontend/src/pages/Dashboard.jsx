@@ -55,7 +55,11 @@ const Dashboard = () => {
 
     const voltageInterval = setInterval(fetchVoltages, 2000);
     const historyInterval = setInterval(fetchSignalHistory, 60000);
-    const debouncedFetchChart = debounce(() => fetchChart("dashboard"), 500);
+    const debouncedFetchChart = debounce(() => fetchChart({
+      from: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      to: new Date(),
+      isDashboard: true
+    }), 500);
     const unsubscribeSensors = selectedSensors.subscribe(debouncedFetchChart);
     const unsubscribeSide = selectedSide.subscribe(debouncedFetchChart);
     const unsubscribeTimeRange = timeRange.subscribe(debouncedFetchChart);

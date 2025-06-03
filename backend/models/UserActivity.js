@@ -1,4 +1,4 @@
-// In UserActivity.js
+// backend/models/UserActivity.js
 const mongoose = require('mongoose');
 
 const UserActivitySchema = new mongoose.Schema({
@@ -10,7 +10,7 @@ const UserActivitySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['login', 'logout', 'location_update'],
+    enum: ['login', 'logout'],
     required: true
   },
   ipAddress: {
@@ -29,13 +29,11 @@ const UserActivitySchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
     index: true
-  },
-  // Store additional metadata
-  metadata: mongoose.Schema.Types.Mixed
+  }
 }, { timestamps: true });
 
-// Compound index for common queries
-UserActivitySchema.index({ user: 1, timestamp: -1 });
+// Indexes for common queries
+UserActivitySchema.index({ user: 1, type: 1, timestamp: -1 });
 UserActivitySchema.index({ type: 1, timestamp: -1 });
 
 module.exports = mongoose.model('UserActivity', UserActivitySchema);

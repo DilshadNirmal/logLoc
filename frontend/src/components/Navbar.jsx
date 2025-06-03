@@ -7,6 +7,8 @@ import Logo from "../assets/images/xyma.webp";
 import { CgMenuLeft, CgClose } from "react-icons/cg";
 import { HiOutlineUser } from "react-icons/hi";
 import { IoIosNotificationsOutline } from "react-icons/io";
+import { FaBell, FaBellSlash } from "react-icons/fa";
+import axiosInstance from "../lib/axios";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -16,6 +18,9 @@ const Navbar = () => {
   const location = useLocation();
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const userRole = user?.Role?.toLowerCase() || "user";
   const dropdownItems = profileDropdownItems[userRole] || [];
@@ -50,6 +55,50 @@ const Navbar = () => {
   const handleDropdownItemClick = () => {
     setIsDropdownOpen(false);
   };
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const response = await axiosInstance.get("/notifications");
+      console.log("fetch notifications:", response);
+      setNotifications(response.data);
+      setUnreadCount(response.data.filter((n) => !n.read).length);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  // Mark notification as read
+  const markAsRead = async (id) => {
+    try {
+      await axiosInstance.patch(`/notifications/${id}/read`);
+      console.log("mard id", id);
+      setNotifications(
+        notifications.map((n) => (n._id === id ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Mark all as read
+  const markAllAsRead = async () => {
+    try {
+      await axiosInstance.patch("/notifications/read-all");
+      setNotifications(notifications.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+    }
+  };
+
+  // Poll for new notifications every 30 seconds
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header
@@ -129,15 +178,102 @@ const Navbar = () => {
                   </ul>
                 </div>
               </div>
-              <button
-                type="button"
-                className="text-text bg-secondary px-4 py-2 text-center flex items-center justify-center rounded-lg relative"
-              >
-                <IoIosNotificationsOutline className="h-6 md:h-8 2xl:h-10 w-5 md:w-5 2xl:w-6" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  2
-                </span>
-              </button>
+              <div className="relative ml-4">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="text-text bg-secondary p-2 md:p-4 rounded-lg hover:bg-secondary/80 transition-colors relative"
+                >
+                  {unreadCount > 0 ? (
+                    <FaBell className="h-5 w-5" />
+                  ) : (
+                    <FaBellSlash className="h-5 w-5" />
+                  )}
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-secondary rounded-md shadow-lg overflow-hidden z-50">
+                    <div className="p-3 border-b border-background bg-background/30 flex justify-between items-center">
+                      <h3 className="text-sm font-medium text-text">
+                        Notifications
+                      </h3>
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-xs text-primary hover:text-blue-800"
+                      >
+                        Mark all as read
+                      </button>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <div
+                            key={notification._id}
+                            className={`p-3 border-b border-background hover:bg-background/50 cursor-pointer ${
+                              !notification.read
+                                ? "bg-background/20"
+                                : "bg-background/35"
+                            }`}
+                            onClick={() => {
+                              markAsRead(notification._id);
+                              // Navigate to relevant page if needed
+                              // navigate(`/sensors/${notification.sensorId}`);
+                            }}
+                          >
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 pt-0.5">
+                                <div
+                                  className={`h-2 w-2 rounded-full ${
+                                    notification.severity === "high"
+                                      ? "bg-red-500"
+                                      : notification.severity === "medium"
+                                      ? "bg-yellow-500"
+                                      : "bg-blue-500"
+                                  }`}
+                                />
+                              </div>
+                              <div className="ml-3 w-0 flex-1">
+                                <p
+                                  className={`  ${
+                                    !notification.read
+                                      ? "font-medium text-text text-sm"
+                                      : "font-normal text-text/75 text-xs"
+                                  }`}
+                                >
+                                  {notification.sensorId?.name ||
+                                    "Sensor Alert"}
+                                </p>
+                                <p
+                                  className={`mt-1  ${
+                                    !notification.read
+                                      ? "text-sm text-text/80"
+                                      : "font-normal text-text/65 text-xs"
+                                  }`}
+                                >
+                                  {notification.message}
+                                </p>
+                                <p className="mt-1 text-xs text-text/60">
+                                  {new Date(
+                                    notification.timestamp
+                                  ).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-center text-sm text-gray-500">
+                          No notifications
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <>

@@ -149,10 +149,10 @@ const AlertSettings = () => {
   };
 
   return (
-    <div className="p-4 md:p-2 2xl:p-4 h-full flex gap-4 md:gap-2 2xl:gap-4">
-      <div className="p-4 md:p-4 2xl:p-4 bg-primary/25 rounded-lg shadow-lg h-full w-[70%] md:w-[65%] 2xl:w-[70%]">
+    <div className="md:p-2 2xl:p-4 h-full flex flex-col md:flex-row gap-4 md:gap-2 2xl:gap-4">
+      <div className="p-4 md:p-4 2xl:p-4 bg-primary/25 rounded-lg shadow-lg h-full w-full md:w-[65%] 2xl:w-[70%]">
         <div className="flex justify-between mx-4 md:mx-2 mt-8 md:mt-4 2xl:mt-4 mb-4 md:mb-4 2xl:mb-4">
-          <h3 className="text-xl md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
+          <h3 className="text-base md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
             Select People
           </h3>
           {/* {signals.alertConfigStatus.value.error && (
@@ -168,7 +168,7 @@ const AlertSettings = () => {
           )} */}
           <button
             onClick={() => (signals.showUserSelectionModal.value = true)}
-            className="px-6 md:px-3 2xl:px-6 py-2 md:py-1 2xl:py-2 bg-primary text-text text-sm md:text-xs 2xl:text-base tracking-wider rounded hover:bg-primary/80"
+            className="px-3 md:px-3 2xl:px-6 py-1.5 md:py-1 2xl:py-2 bg-primary text-text text-xs md:text-xs 2xl:text-base tracking-wider rounded hover:bg-primary/80"
           >
             Select Users
           </button>
@@ -189,7 +189,7 @@ const AlertSettings = () => {
           />
         </div>
         <div className="mt-6 bg-secondary/5 p-4 rounded-lg">
-          <h4 className="text-lg md:text-base 2xl:text-lg font-medium tracking-wider text-text/85 mb-4">
+          <h4 className="text-sm md:text-base 2xl:text-lg font-medium tracking-wider text-text/85 mb-4">
             Alert Delay
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -200,6 +200,7 @@ const AlertSettings = () => {
               value="1"
               signal={signals.alertDelay}
               checkBoxValue="1 min"
+              labelClassName={`text-sm md:text-sm 2xl:text-base`}
             />
             <InputCheck
               type="radio"
@@ -208,6 +209,7 @@ const AlertSettings = () => {
               value="5"
               signal={signals.alertDelay}
               checkBoxValue="5 min"
+              labelClassName={`text-sm md:text-sm 2xl:text-base`}
             />
             <InputCheck
               type="radio"
@@ -216,6 +218,7 @@ const AlertSettings = () => {
               value="10"
               signal={signals.alertDelay}
               checkBoxValue="10 min"
+              labelClassName={`text-sm md:text-sm 2xl:text-base`}
             />
             <InputCheck
               type="radio"
@@ -224,6 +227,7 @@ const AlertSettings = () => {
               value="custom"
               signal={signals.alertDelay}
               checkBoxValue="Custom"
+              labelClassName={`text-sm md:text-sm 2xl:text-base`}
             />
           </div>
 
@@ -245,7 +249,7 @@ const AlertSettings = () => {
         <button
           onClick={saveSelectedUsers}
           disabled={signals.alertConfigStatus.value.loading}
-          className={`mt-6 px-6 py-2 bg-primary text-text text-sm md:text-sm 2xl:text-base rounded hover:bg-primary/80 ${
+          className={`mt-3 md:mt-6 px-6 py-2 bg-primary text-text text-sm md:text-sm 2xl:text-base rounded hover:bg-primary/80 ${
             signals.alertConfigStatus.value.loading
               ? "opacity-50 cursor-not-allowed"
               : ""
@@ -256,13 +260,13 @@ const AlertSettings = () => {
             : "Save Configuration"}
         </button>
       </div>
-      <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-full w-[30%] md:w-[35%] 2xl:w-[30%] flex flex-col gap-6 md:gap-4 2xl:gap-6">
-        <h3 className="text-xl md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
+      <div className="p-4 bg-primary/25 rounded-lg shadow-lg h-full w-full md:w-[35%] 2xl:w-[30%] flex flex-col gap-6 md:gap-4 2xl:gap-6">
+        <h3 className="text-base md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
           Set Frequency
         </h3>
         <div className="grid grid-cols-2 gap-4 bg-secondary/5 rounded-lg">
           <div>
-            <label className="block text-text/70 text-base md:text-sm 2xl:text-lg mb-2">
+            <label className="block text-text/70 text-sm md:text-sm 2xl:text-lg mb-2">
               Group A (1-20)
             </label>
             <select
@@ -277,7 +281,7 @@ const AlertSettings = () => {
                   number: Number(e.target.value),
                 })
               }
-              className="w-full p-2 md:p-1.5 2xl:p-2 border border-secondary rounded bg-background text-text text-sm"
+              className="w-full p-2 md:p-1.5 2xl:p-2 border border-secondary rounded bg-background text-text text-xs md:text-sm"
             >
               {[...Array(20)].map((_, i) => (
                 <option key={i + 1} value={i + 1} className="text-xs">
@@ -287,7 +291,7 @@ const AlertSettings = () => {
             </select>
           </div>
           <div>
-            <label className="block text-text/70 text-base md:text-sm 2xl:text-lg mb-2">
+            <label className="block text-text/70 text-sm md:text-sm 2xl:text-lg mb-2">
               Group B (21-40)
             </label>
             <select
@@ -302,7 +306,7 @@ const AlertSettings = () => {
                   number: Number(e.target.value),
                 })
               }
-              className="w-full p-2 md:p-1.5 2xl:p-2 border border-secondary rounded bg-background text-text text-sm"
+              className="w-full p-2 md:p-1.5 2xl:p-2 border border-secondary rounded bg-background text-text text-xs md:text-sm"
             >
               {[...Array(20)].map((_, i) => (
                 <option key={i + 1} value={i + 1} className="text-xs">
@@ -417,7 +421,7 @@ const AlertSettings = () => {
 
         <div className="grid grid-cols-2 gap-4 bg-secondary/5 rounded-lg">
           <div>
-            <label className="block text-text/70 text-base md:text-sm 2xl:text-lg mb-1.5">
+            <label className="block text-text/70 text-sm md:text-sm 2xl:text-lg mb-1.5">
               Low Threshold
             </label>
             <input
@@ -434,7 +438,7 @@ const AlertSettings = () => {
             />
           </div>
           <div>
-            <label className="block text-text/70 text-base md:text-sm 2xl:text-lg mb-1.5">
+            <label className="block text-text/70 text-sm md:text-sm 2xl:text-lg mb-1.5">
               High Threshold
             </label>
             <input

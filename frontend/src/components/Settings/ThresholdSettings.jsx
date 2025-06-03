@@ -5,12 +5,12 @@ import { thresholdValues } from "../../signals/voltage";
 const ThresholdSettings = () => {
   return (
     <div className="p-4 pt-12 md:pt-6 2xl:pt-12 bg-primary/25 rounded-lg shadow-lg h-full">
-      <h2 className="text-xl md:text-lg 2xl:text-xl font-semibold tracking-wider text-text mb-6 md:mb-4 2xl:mb-6">
-        Customize Values by colours - for Dashboard visuals
+      <h2 className="text-base md:text-lg 2xl:text-xl font-semibold tracking-wider text-text mb-6 md:mb-4 2xl:mb-6">
+        Customize Values by colours - <br /> for Dashboard visuals
       </h2>
       <div className=" bg-background rounded-md h-[80%] p-6 mt-10">
-        <div className="flex items-center justify-around h-full">
-          <div className="flex flex-col items-center justify-around w-[40%] h-[60%]">
+        <div className="flex flex-col md:flex-row items-center justify-around h-full gap-8 md:gap-2">
+          <div className="flex flex-col items-center justify-around w-full md:w-[40%] h-[60%]">
             <InputBox
               htmlFor={"max"}
               type={"number"}
@@ -22,7 +22,7 @@ const ThresholdSettings = () => {
               labelClassName={
                 "text-text/75 font-medium text-base tracking-wide w-fit"
               }
-              inputClassName={`bg-primary/25 text-text/85 p-2 rounded inset-shadow-sm/50 inset-shadow-primary/35 w-80 md:w-40 2xl:w-80 h-12 outline-none`}
+              inputClassName={`bg-primary/25 text-text/85 p-2 rounded inset-shadow-sm/50 inset-shadow-primary/35 w-30 md:w-40 2xl:w-80 h-12 outline-none`}
               className={`flex items-center w-full justify-between mb-4`}
             />
             <InputBox
@@ -36,7 +36,7 @@ const ThresholdSettings = () => {
               labelClassName={
                 "text-text/75 font-medium text-base tracking-wide w-fit"
               }
-              inputClassName={`bg-primary/25 text-text/85 p-2 rounded inset-shadow-sm/50 inset-shadow-primary/35 w-80 md:w-40 2xl:w-80 h-12 outline-none`}
+              inputClassName={`bg-primary/25 text-text/85 p-2 rounded inset-shadow-sm/50 inset-shadow-primary/35 w-30 md:w-40 2xl:w-80 h-12 outline-none`}
               className={`flex items-center w-full justify-between mb-4`}
             />
 
@@ -56,25 +56,25 @@ const ThresholdSettings = () => {
               </button>
             </div>
           </div>
-          <div className="w-1 h-[300px] bg-primary/35 rounded-lg mx-8" />
-          <div className="w-5/12 h-full grid grid-cols-3">
+          <div className="w-[200px] h-1 md:w-1 md:h-[300px] bg-primary/35 rounded-lg mx-8" />
+          <div className="w-full md:w-5/12 h-full grid grid-cols-3">
             <div className="flex flex-col items-center justify-center gap-12">
-              <span className="w-20 h-9 bg-green-500 rounded"></span>
-              <span className="w-20 h-9 bg-yellow-500 rounded"></span>
-              <span className="w-20 h-9 bg-red-500 rounded"></span>
+              <span className="w-16 md:w-20 h-7 md:h-9 bg-green-500 rounded"></span>
+              <span className="w-16 md:w-20 h-7 md:h-9 bg-yellow-500 rounded"></span>
+              <span className="w-16 md:w-20 h-7 md:h-9 bg-red-500 rounded"></span>
             </div>
             <div className="flex flex-col items-center justify-center gap-12">
-              <span className="text-text h-9">
+              <span className="text-text text-sm md:text-base h-7 md:h-9">
                 {" "}
                 {`< ${thresholdValues.value.min} mv`}
               </span>
-              <span className="text-text h-9">{`${thresholdValues.value.min} mv - ${thresholdValues.value.max} mv`}</span>
-              <span className="text-text h-9">{`> ${thresholdValues.value.max} mv`}</span>
+              <span className="text-text text-xs md:text-base h-7 md:h-9">{`${thresholdValues.value.min} mv - ${thresholdValues.value.max} mv`}</span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">{`> ${thresholdValues.value.max} mv`}</span>
             </div>
             <div className="flex flex-col items-center justify-center gap-12">
-              <span className="text-text h-9">Low</span>
-              <span className="text-text h-9">Medium</span>
-              <span className="text-text h-9">High</span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">Low</span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">Medium</span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">High</span>
             </div>
           </div>
         </div>

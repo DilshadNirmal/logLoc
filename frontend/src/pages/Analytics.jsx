@@ -47,7 +47,6 @@ const Analytics = () => {
           "Selected sensors changed, fetching chart data...",
           selectedSensors.value
         );
-        currentPage.value = "analytics";
         await fetchChart();
       } else {
         console.log("No sensors selected, clearing chart data");

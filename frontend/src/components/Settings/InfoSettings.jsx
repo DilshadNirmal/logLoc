@@ -3,12 +3,12 @@ import UtMaps from "../../assets/images/utmaps.png";
 
 const InfoSettings = () => {
   return (
-    <div className="p-4 md:p-2 2xl:p-4 bg-primary/25 rounded-lg shadow-lg h-full flex flex-col justify-around items-center">
-      <div className="h-[50%]">
+    <div className="p-4 md:p-2 2xl:p-4 bg-primary/25 rounded-lg shadow-lg h-full flex flex-col justify-around items-center gap-4">
+      <div className="h-[350px] md:h-[50%]">
         <img src={UtMaps} alt="ut maps" className="h-full" />
       </div>
       <div>
-        <p className="first-letter:float-left first-letter:mr-3 first-letter:text-7xl first-letter:font-bold text-lg w-[65ch] text-justify">
+        <p className="first-letter:float-left first-letter:mr-3 first-letter:text-5xl md:first-letter:text-7xl first-letter:font-bold text-base md:text-lg w-[30ch] md:w-[65ch] text-pretty text-justify">
           <span className="text-primary font-semibold tracking-wider">
             µTMapS
           </span>{" "}

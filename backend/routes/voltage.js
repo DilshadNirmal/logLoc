@@ -9,6 +9,7 @@ const {
   getIntervalData,
   getAverageData,
 } = require("../services/reports/dataFetcher.js");
+const { checkVoltageThresholds } = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -44,7 +45,7 @@ router.get("/store-voltage-1-20", async (req, res) => {
       try {
         await checkAndSendAlert(i, value);
       } catch (alertError) {
-        console.error(`Error checking alerts for sensor ${i}:`, alertError);
+      console.error(`Error checking alerts for sensor ${i}:`, alertError);
       }
       voltages[`v${i}`] = value;
     }
@@ -59,6 +60,12 @@ router.get("/store-voltage-1-20", async (req, res) => {
     });
 
     await voltageData.save();
+
+    await checkVoltageThresholds({
+      deviceId,
+      sensorGroup: "1-20",
+      voltages,
+    });
 
     res.status(201).json({
       success: true,
@@ -112,6 +119,12 @@ router.get("/store-voltage-21-40", async (req, res) => {
     });
 
     await voltageData.save();
+
+    await checkVoltageThresholds({
+      deviceId,
+      sensorGroup: "21-40",
+      voltages,
+    });
 
     res.status(201).json({
       success: true,
@@ -410,6 +423,60 @@ router.get("/voltage-history/signal", auth, async (req, res) => {
       message: "Failed to fetch signal history",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
+  }
+});
+
+router.get('/voltage-history/raw', auth, async (req, res) => {
+  try {
+    const { from, to, sensorGroup } = req.query;
+    
+    const query = {
+      timestamp: {
+        $gte: new Date(from),
+        $lte: new Date(to)
+      },
+      sensorGroup
+    };
+
+    const data = await VoltageData.find(query)
+      .sort({ timestamp: 1 })
+      .lean();
+
+    // Transform the data to match the frontend's expected format
+    const result = [];
+    const sensors = new Set();
+
+    // First, collect all unique sensor IDs
+    data.forEach(entry => {
+      Object.keys(entry.voltages).forEach(sensorId => {
+        sensors.add(sensorId.replace('v', ''));
+      });
+    });
+
+    // Create an entry for each sensor
+    sensors.forEach(sensorId => {
+      const sensorData = {
+        sensorId: parseInt(sensorId),
+        data: []
+      };
+
+      data.forEach(entry => {
+        const value = entry.voltages[`v${sensorId}`];
+        if (value !== undefined) {
+          sensorData.data.push({
+            timestamp: entry.timestamp,
+            value: value
+          });
+        }
+      });
+
+      result.push(sensorData);
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching raw voltage data:', error);
+    res.status(500).json({ message: 'Error fetching raw voltage data' });
   }
 });
 

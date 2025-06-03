@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import axiosInstance from "../lib/axios";
 
 const AuthContext = createContext(null);
 
@@ -87,34 +88,50 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     try {
-      setLoading(true);
-      setError(null);
+      console.log("credentials", credentials);
+      const response = await axiosInstance.post("/auth/login", credentials);
+      console.log("response after credentials", response);
+      const { user, accessToken, refreshToken, loginActivityId } =
+        response.data;
 
-      // Get user's location
-      const locationData = await getUserLocation();
+      // Store tokens and user data
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      setUser(user);
 
-      const loginData = {
-        ...credentials,
-        ...(locationData && {
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-        }),
-      };
+      // Get user's location and update it
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            // Get location details using reverse geocoding
+            const locationResponse = await axiosInstance.post(
+              "/auth/reverse-geocode",
+              {
+                latitude,
+                longitude,
+              }
+            );
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}auth/login`,
-        loginData
-      );
+            // Update the login activity with location
+            await axiosInstance.post("/auth/update-location", {
+              ...locationResponse.data,
+              latitude,
+              longitude,
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            // Update without location if geolocation fails
+            axiosInstance.post("/auth/update-location", {});
+          }
+        );
+      }
 
-      setUser(response.data.user);
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-      return response.data;
-    } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
-      throw err;
-    } finally {
-      setLoading(false);
+      // Redirect to dashboard or home
+      navigate("/dashboard");
+    } catch (error) {
+      setError(error.response?.data?.message || "Login failed");
     }
   };
 

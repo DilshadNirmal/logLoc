@@ -135,9 +135,11 @@ export const fetchVoltages = async () => {
   }
 };
 
-export const fetchChart = async () => {
+export const fetchChart = async (options = {}) => {
+  const { isDashboard = false } = options;
+
   try {
-    if (selectedSensors.value.length === 0) {
+    if (!isDashboard && selectedSensors.value.length === 0) {
       chartData.value = [];
       return;
     }
@@ -145,6 +147,35 @@ export const fetchChart = async () => {
     console.log(selectedSensors.value);
     isLoading.value = true;
 
+    if (isDashboard) {
+      // Dashboard view - fetch raw data for last 24 hours
+      const response = await axiosInstance.get("/voltage-history/raw", {
+        params: {
+          from: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          to: new Date().toISOString(),
+          sensorGroup: selectedSide.value === "A" ? "1-20" : "21-40",
+        },
+      });
+
+      if (response.data && Array.isArray(response.data)) {
+        chartData.value = response.data
+          .filter(sensor => selectedSensors.value.includes(sensor.sensorId.toString()))
+          .map(sensor => ({
+            ...sensor,
+            data: (sensor.data || []).map(item => ({
+              ...item,
+              timestamp: item.timestamp ? new Date(item.timestamp).toISOString() : new Date().toISOString(),
+              value: Number(item.value) || 0,
+              label: item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : ''
+            }))
+          }));
+      } else {
+        chartData.value = [];
+      }
+      return;
+    }
+
+    // Original analytics code
     const params = {
       reportType: selectedTabSignal.value,
       configuration: selectedSide.value,
@@ -187,16 +218,13 @@ export const fetchChart = async () => {
     
     // Handle different response formats
     if (Array.isArray(response.data)) {
-      // If response is already an array
       dataToProcess = response.data;
     } else if (response.data && typeof response.data === 'object') {
-      // If response is an object, check for common data properties
       if (response.data.data && Array.isArray(response.data.data)) {
         dataToProcess = response.data.data;
       } else if (response.data.results && Array.isArray(response.data.results)) {
         dataToProcess = response.data.results;
       } else {
-        // If it's an object but we can't find an array, try to use its values
         dataToProcess = Object.values(response.data);
       }
     }
@@ -266,8 +294,83 @@ export const fetchChart = async () => {
     console.error("Error loading chart:", error);
     chartData.value = [];
   } finally {
-    isLoading.value = false; // Set loading to false when done
+    isLoading.value = false;
   }
+};
+
+// Helper function to process raw data (for dashboard)
+const processRawData = (data) => {
+  return data
+    .filter(sensor => selectedSensors.value.includes(sensor.sensorId.toString()))
+    .map(sensor => ({
+      id: sensor.sensorId,
+      data: (sensor.data || [])
+        .map(item => {
+          try {
+            const timestamp = item.timestamp || item.x || item.time;
+            const value = Number(item.value || item.y);
+            
+            if (isNaN(value)) {
+              console.warn(`Invalid value for sensor ${sensor.sensorId}:`, item.value);
+              return null;
+            }
+            
+            return {
+              x: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString(),
+              y: value,
+              value: value,
+              timestamp: timestamp,
+              label: item.label || (timestamp ? new Date(timestamp).toLocaleTimeString() : '')
+            };
+          } catch (error) {
+            console.error(`Error processing item for sensor ${sensor.sensorId}:`, error);
+            return null;
+          }
+        })
+        .filter(item => item !== null)
+    }))
+    .filter(sensor => sensor.data.length > 0);
+};
+
+// Helper function to process analytics data (for reports)
+const processAnalyticsData = (data) => {
+  return data
+    .filter(sensor => selectedSensors.value.includes(sensor.sensorId.toString()))
+    .map(sensor => {
+      // Check if data is in the expected format
+      const sensorData = Array.isArray(sensor.data) ? sensor.data : 
+                       (sensor.values || sensor.readings || []);
+      
+      return {
+        id: sensor.sensorId,
+        data: sensorData
+          .map(item => {
+            try {
+              // Handle different possible field names
+              const timestamp = item.timestamp || item.x || item.time || item.date;
+              const value = Number(item.value || item.y || item.avg || item.average);
+              
+              if (isNaN(value)) {
+                console.warn(`Invalid value for sensor ${sensor.sensorId}:`, item);
+                return null;
+              }
+              
+              return {
+                x: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString(),
+                y: value,
+                value: value,
+                timestamp: timestamp,
+                label: item.label || (timestamp ? new Date(timestamp).toLocaleTimeString() : '')
+              };
+            } catch (error) {
+              console.error(`Error processing analytics item for sensor ${sensor.sensorId}:`, error);
+              return null;
+            }
+          })
+          .filter(item => item !== null)
+      };
+    })
+    .filter(sensor => sensor.data.length > 0);
 };
 
 export const fetchSignalHistory = async () => {

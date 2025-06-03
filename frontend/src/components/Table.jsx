@@ -35,8 +35,8 @@ const Table = ({
   }
 
   return (
-    <div className="bg-background/70 shadow rounded-lg overflow-hidden">
-      <table className="min-w-full divide-y divide-secondary overflow-y-hidden">
+    <div className="w-full bg-background/70 shadow rounded-lg overflow-auto md:overflow-hidden">
+      <table className="w-full divide-y divide-secondary overflow-y-hidden">
         <thead className="bg-primary/65">
           <tr>
             <th className="px-6 md:px-3 2xl:px-6 py-3 md:py-2.5 2xl:py-3 text-left text-sm md:text-xs 2xl:text-sm font-medium text-text uppercase tracking-wider">

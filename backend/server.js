@@ -11,6 +11,7 @@ const otpRoutes = require("./routes/otp");
 const dataRoutes = require("./routes/data");
 const reportsRoutes = require("./routes/reports");
 const reportConfigRoutes = require("./routes/reportConfig");
+const notificationRoutes = require("./routes/notification");
 const { initReportScheduler } = require("./services/reportScheduler");
 
 const app = express();
@@ -23,7 +24,7 @@ app.use(
       process.env.CLIENT_URL_2,
       "http://localhost:5173",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: [
@@ -53,6 +54,7 @@ app.use("/api", otpRoutes);
 app.use("/api", dataRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api", reportConfigRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Connect to MongoDB
 connectDB(process.env.MONGODB_URI)

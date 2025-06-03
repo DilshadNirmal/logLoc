@@ -69,11 +69,17 @@ router.post("/login", async (req, res) => {
 
     await user.save();
 
-    await activityLogger.logActivity(user, "login", {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-      location: req.body.location,
+    const activity = new UserActivity({
+      user: user._id,
+      type: 'login',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      // We'll update the location in the update-location endpoint
+      location: {}
     });
+    
+    // Store the activity ID in the user's session or token for later update
+    const loginActivity = await activity.save();
 
     res.json({
       user: {
@@ -87,6 +93,7 @@ router.post("/login", async (req, res) => {
       },
       accessToken,
       refreshToken,
+      loginActivityId: loginActivity._id
     });
   } catch (error) {
     res.status(400).send({ error: error.message });
@@ -100,20 +107,39 @@ router.post("/update-location", auth, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const loginActivity = await UserActivity.findOne({
+      user: user._id,
+      type: 'login'
+    }).sort({ createdAt: -1 });
+
+    if (loginActivity) {
+      // Update the login activity with location
+      loginActivity.location = {
+        city: req.body.city,
+        region: req.body.region,
+        country: req.body.country,
+        latitude: req.body.latitude,
+        longitude: req.body.longitude
+      };
+      await loginActivity.save();
+    }
+
     // Store location history
     user.locationHistory = user.locationHistory || [];
     user.locationHistory.push(req.body);
     await user.save();
 
-    await activityLogger.logActivity(user, "location_update", {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-      location: req.body,
+    res.json({ 
+      success: true,
+      message: "Location updated successfully" 
     });
-
-    res.json({ message: "Location updated successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error updating location:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Error updating location",
+      error: error.message 
+    });
   }
 });
 
@@ -124,55 +150,28 @@ router.post("/logout", auth, async (req, res) => {
       return res.status(404).send({ error: "User not found" });
     }
 
-    // First, find the last login activity
-    const lastLoginActivity = await UserActivity.findOne({
-      user: user._id,
-      type: "login",
-    }).sort({ createdAt: -1 });
-
-    console.log("Last login activity:", lastLoginActivity);
-
     // Log the logout activity
-    const logoutActivity = await activityLogger.logActivity(user, "logout", {
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-      location: lastLoginActivity?.location || null,
-    });
-
-    console.log("Created logout activity:", logoutActivity);
-
-    // Update user's last activity
-    user.lastActivity = {
-      type: "logout",
-      timestamp: new Date(),
+    await new UserActivity({
+      user: user._id,
+      type: 'logout',
       ipAddress: req.ip,
-    };
-
-    // Update the activities array in user model
-    user.activities = user.activities || [];
-    user.activities = user.activities.filter((a) => a.type !== "logout");
-    user.activities.push({
-      type: "logout",
-      timestamp: new Date(),
-      ipAddress: req.ip,
-      location: lastLoginActivity?.location || null,
-    });
-
-    await user.save();
+      userAgent: req.headers['user-agent']
+    }).save();
 
     // Clear tokens
     await clearAccessToken(user._id);
     await clearRefreshToken(user._id);
 
-    res.send({
-      message: "User logged out successfully",
-      logoutActivityId: logoutActivity?._id,
+    res.json({
+      success: true,
+      message: "User logged out successfully"
     });
   } catch (error) {
     console.error("Error in logout:", error);
-    res.status(500).send({
-      error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    res.status(500).json({
+      success: false,
+      message: "Error during logout",
+      error: error.message
     });
   }
 });
@@ -262,48 +261,43 @@ router.get("/admin/activities", auth, async (req, res) => {
   try {
     // Check if user is super_admin
     if (req.user.Role !== "super_admin") {
-      console.log(
-        `Access denied for user ${req.user._id} with role ${req.user.Role}`
-      );
       return res.status(403).json({
         success: false,
-        message: "Access denied. Only super admins can view activities.",
+        message: "Access denied. Only super admins can view activities."
       });
     }
 
-    const {
-      userId,
-      type,
-      startDate,
-      endDate,
-      page = 1,
-      limit = 20,
-    } = req.query;
-
-    const query = {};
+    const { userId, type, startDate, endDate, page = 1, limit = 20 } = req.query;
+    
+    const query = { 
+      type: { $in: ['login', 'logout'] } // Only include login/logout events
+    };
+    
     if (userId) query.user = userId;
-    if (type) query.type = type;
+    if (type && ['login', 'logout'].includes(type)) query.type = type;
+    
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
       if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    const activities = await UserActivity.find(query)
-      .populate("user", "UserName Email")
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
-    const count = await UserActivity.countDocuments(query);
+    const [activities, count] = await Promise.all([
+      UserActivity.find(query)
+        .populate('user', 'UserName Email')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .lean(),
+      UserActivity.countDocuments(query)
+    ]);
 
     res.json({
       success: true,
-      activities: activities || [],
-      totalItems: count || 0,
-      totalPages: Math.ceil(count / limit) || 1,
-      currentPage: parseInt(page),
+      activities,
+      totalItems: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: parseInt(page)
     });
   } catch (error) {
     console.error("Error in /admin/activities:", error);

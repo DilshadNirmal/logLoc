@@ -13,7 +13,7 @@ const TabButton = ({
     <button
       className={`flex text-sm md:text-base ${
         variant === "vertical"
-          ? "flex-col items-center justify-center gap-6 md:gap-3 2xl:gap-6"
+          ? "flex-col items-center justify-center py-3 gap-6 md:gap-3 2xl:gap-6"
           : "items-center justify-center gap-3 md:gap-2 2xl:gap-3"
       } ${
         variant === "horizontal"

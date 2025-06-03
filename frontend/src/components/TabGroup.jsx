@@ -23,7 +23,7 @@ const TabGroup = ({ tabOptions, variant = "horizontal" }) => {
     <div
       className={`${
         variant === "vertical"
-          ? "flex flex-col justify-between h-full p-4 md:p-2 2xl:p-4 py-8 md:py-2 xl:py-8"
+          ? "grid grid-cols-2 md:flex flex-col gap-2 justify-between h-full px-4 md:p-2 2xl:p-4 py-4 md:py-2 2xl:py-8 [&>*:last-child]:col-span-2 [&>*:last-child]:md:col-auto"
           : "grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-2.5 2xl:gap-4 md:mt-1.5 mb-4 md:m-1 xl:mx-4 xl:my-4"
       } `}
     >

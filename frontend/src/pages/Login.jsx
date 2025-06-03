@@ -29,6 +29,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await login(credentials);
+      console.log(response);
 
       if (!response.user.cookieConsent) {
         navigate("/cookie-consent");
