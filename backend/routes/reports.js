@@ -133,6 +133,7 @@ router.post("/fetch-data", auth, async (req, res) => {
       dateRange,
       averageBy,
       interval,
+      "sensorIds: ",
       sensorIds
     );
 
@@ -236,13 +237,14 @@ router.post("/fetch-data", auth, async (req, res) => {
           ? parseInt(req.body.customCount, 10)
           : 0;
 
+        const selectedSensors = sensorIds.map((sensorId) => sensorId);
+
         data = await getCountData({
           selectedCounts,
           customCount,
-          sensorIds,
+          selectedSensors,
           configuration,
         });
-        break;
         break;
 
       default:
