@@ -5,13 +5,13 @@ import { LuSigma } from "react-icons/lu";
 
 import {
   averageBy,
-  chartData,
   countOptions,
   currentPage,
   customCount,
   dateRange,
   fetchChart,
-  isLoading as isLoadingSignal,
+  isLoading as globalIsLoading, // Use global loading signal
+  chartData as globalChartData,
   selectedSensors,
   selectedTabSignal,
 } from "../signals/voltage";
@@ -20,11 +20,15 @@ import DateTimeRangePanel from "../components/form/DateTimeRangePanel";
 import TabGroup from "../components/TabGroup";
 import SensorSelector from "../components/SensorSelector";
 import SensorCheckboxGrid from "../components/SensorCheckBoxGrid.";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const Analytics = () => {
+  useSignals();
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [fetchError, setFetchError] = useState(null); // Local error state for fetch operations
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -41,25 +45,33 @@ const Analytics = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
+    console.log(
+      "[Analytics] fetchData called. selectedSensors.value:",
+      JSON.stringify(selectedSensors.value)
+    );
+    if (selectedSensors.value.length === 0) {
+      console.log("No sensors selected, clearing chart data");
+      globalChartData.value = []; // Clear global chart data if no sensors
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchError(null);
+    currentPage.value = "analytics"; // Ensure fetchChart knows the context
     try {
-      if (selectedSensors.value.length > 0) {
-        console.log(
-          "Selected sensors changed, fetching chart data...",
-          selectedSensors.value
-        );
-        await fetchChart();
-      } else {
-        console.log("No sensors selected, clearing chart data");
-        chartData.value = [];
-      }
+      await fetchChart(); // This updates globalChartData & globalIsLoading from voltage.js
     } catch (error) {
-      console.error("Error in fetchData:", error);
+      console.error("Error in fetchData (Analytics):", error);
+      setFetchError(error);
+      globalChartData.value = []; // Clear data on error
+    } finally {
+      setIsFetching(false);
     }
   }, [selectedSensors.value]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [selectedSensors.value]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -73,25 +85,27 @@ const Analytics = () => {
   }, []);
 
   const tabOptions = [
+    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "average", label: "Average Data", icon: LuSigma },
     { id: "interval", label: "Interval Data", icon: TbClockCode },
-    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "count", label: "Count-wise Data", icon: CiHashtag },
   ];
 
   // const isLoading = isLoadingSignal.value;
 
   // // Show loading overlay when data is being fetched
-  // if (isLoading) {
-  //   return (
-  //     <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-50">
-  //       <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-  //         <p className="text-lg font-medium text-gray-800">Loading chart data...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (globalIsLoading.value || isFetching) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+          <p className="text-lg font-medium text-gray-800">
+            Loading chart data...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section
@@ -139,7 +153,7 @@ const Analytics = () => {
               }}
             >
               <div className="!h-[250px] md:h-full flex-1 border border-primary/30 rounded-lg p-4 md:p-2 2xl:p-4">
-                <ChartContainer data={chartData} />
+                <ChartContainer source="analytics" />
               </div>
 
               {/* Sensor Checkbox Grid */}

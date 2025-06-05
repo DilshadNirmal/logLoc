@@ -3,6 +3,12 @@ import { useSignals } from "@preact/signals-react/runtime";
 const SignalStrength = ({ data, signalHistoryData }) => {
   useSignals();
 
+  const boxes = Array.from({ length: 12 }, (_, i) => ({
+    index: i,
+    data: signalHistoryData.value[i] || null,
+    time: signalHistoryData.value[i]?.time || "--.--"
+  }));
+
   return (
     <div className="h-10/12 px-3 flex flex-col md:flex-row justify-center items-center gap-10 md:gap-1">
       <div className="flex flex-col justify-center items-center gap-4 h-[100%] w-[35%]">
@@ -41,32 +47,47 @@ const SignalStrength = ({ data, signalHistoryData }) => {
           Signal strength - 12 Hrs
         </h5>
         <div className="grid grid-cols-4 2xl:grid-rows-3 gap-1">
-          {signalHistoryData.value.map((item, index) => (
+        {boxes.map((box) => (
             <div
-              key={index}
+              key={box.index}
               className="bg-background/20 rounded-lg p-1.5 lg:p-1 lg:py-1.5 2xl:p-2 flex flex-col items-center justify-end"
             >
               <div className="flex items-end mb-2 lg:mb-1 2xl:mb-2">
-                {Array.from({ length: item.strength || 0 }, (_, i) => (
-                  <div
-                    key={i}
-                    className="w-0.5 2xl:w-1 mx-[1px]"
-                    style={{
-                      height: `${(i + 1) * 4}px`,
-                      backgroundColor:
-                        item.strength === 1
-                          ? "#ff4d4d"
-                          : item.strength === 2
-                          ? "#ffa64d"
-                          : item.strength === 3
-                          ? "#ffff4d"
-                          : "#4dff4d",
-                    }}
-                  />
-                ))}
+                {box.data ? (
+                  Array.from({ length: 3 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="w-0.5 2xl:w-1 mx-[1px]"
+                      style={{
+                        height: `${(i + 1) * 4}px`,
+                        backgroundColor:
+                          box.data.strength === 1
+                            ? "#ff4d4d"
+                            : box.data.strength === 2
+                            ? "#ffa64d"
+                            : box.data.strength === 3
+                            ? "#ffff4d"
+                            : "#4dff4d",
+                        opacity: i < box.data.strength ? 1 : 0.3,
+                      }}
+                    />
+                  ))
+                ) : (
+                     Array.from({ length: 3 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="w-0.5 2xl:w-1 mx-[1px]"
+                      style={{
+                        height: `${(i + 1) * 4}px`,
+                        backgroundColor: "#4dff4d",
+                        opacity: 0.3,
+                      }}
+                    />
+                  ))
+                )}
               </div>
               <span className="text-xs lg:text-[7px] 2xl:text-[8px] text-text/75">
-                {item.time}
+                {box.time}
               </span>
             </div>
           ))}

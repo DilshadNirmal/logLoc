@@ -109,6 +109,38 @@ const SensorSelectionComp = () => {
     return [];
   };
 
+  const handleSelectAllToggle = () => {
+    const availableSensorIds = getAvailableSensors(); // This correctly gets an array of sensor IDs
+    const currentSelectedIds = new Set(selectedSensors.value);
+
+    const allCurrentlyAvailableSelected =
+      availableSensorIds.length > 0 &&
+      availableSensorIds.every((id) => currentSelectedIds.has(id));
+
+    if (allCurrentlyAvailableSelected) {
+      // If all available are currently selected, deselect them
+      availableSensorIds.forEach((id) => currentSelectedIds.delete(id));
+    } else {
+      // Else (not all available are selected, or none are), select all available ones
+      availableSensorIds.forEach((id) => currentSelectedIds.add(id));
+    }
+    selectedSensors.value = Array.from(currentSelectedIds);
+
+    // Sync the top-level "All" checkbox state
+    if (availableSensorIds.length > 0) {
+      const allSelectedAfterToggle = availableSensorIds.every((id) =>
+        selectedSensors.value.includes(id)
+      );
+      selectedSidesSignal.value = {
+        ...selectedSidesSignal.value,
+        ALL: allSelectedAfterToggle,
+      };
+    } else {
+      // No sensors available, so top-level "All" should be false
+      selectedSidesSignal.value = { ...selectedSidesSignal.value, ALL: false };
+    }
+  };
+
   return (
     <div className="space-y-1 py-2">
       <div className="flex p-2 justify-between">
@@ -126,14 +158,6 @@ const SensorSelectionComp = () => {
           checkBoxValue="Side B"
           checked={selectedSidesSignal.value.B}
           onChange={() => handleSideChange("B")}
-          labelClassName={`text-text text-xs md:text-sm`}
-        />
-        <InputCheck
-          type="checkbox"
-          name={`selectsensors`}
-          checkBoxValue="All"
-          checked={selectedSidesSignal.value.ALL}
-          onChange={() => handleSideChange("ALL")}
           labelClassName={`text-text text-xs md:text-sm`}
         />
       </div>
@@ -168,19 +192,67 @@ const SensorSelectionComp = () => {
 
         {isOpenSignal.value && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-text/20 rounded max-h-48 overflow-y-auto z-10">
-            <div className="grid grid-cols-4 gap-2 p-2">
-              {getAvailableSensors().map((sensorId) => (
-                <InputCheck
-                  key={sensorId}
-                  type="checkbox"
-                  checkBoxValue={`S${sensorId}`}
-                  value={sensorId.toString()}
-                  checked={selectedSensors.value.includes(sensorId)}
-                  onChange={() => handleSensorSelection(sensorId)}
-                  labelClassName="text-text"
-                />
-              ))}
-            </div>
+            {(() => {
+              const availableSensors = getAvailableSensors();
+              if (
+                availableSensors.length === 0 &&
+                (selectedSidesSignal.value.A || selectedSidesSignal.value.B)
+              ) {
+                return (
+                  <p className="text-text/70 text-xs p-2 text-center">
+                    No sensors available for selected side(s).
+                  </p>
+                );
+              }
+              if (
+                availableSensors.length === 0 &&
+                !selectedSidesSignal.value.A &&
+                !selectedSidesSignal.value.B
+              ) {
+                return (
+                  <p className="text-text/70 text-xs p-2 text-center">
+                    Please select a side first.
+                  </p>
+                );
+              }
+
+              const allCurrentlyAvailableSelected =
+                availableSensors.length > 0 &&
+                availableSensors.every((sensorId) =>
+                  selectedSensors.value.includes(sensorId)
+                );
+
+              return (
+                <div className="grid grid-cols-4 gap-2 p-2">
+                  {/* Add Select All checkbox here if sensors are available */}
+                  {availableSensors.length > 0 && (
+                    <div className="col-span-4 p-1 border-b border-text/10 mb-1">
+                      {" "}
+                      {/* Styling for the Select All checkbox container */}
+                      <InputCheck
+                        type="checkbox"
+                        name="selectAllDropdownSensors"
+                        checkBoxValue="Select All"
+                        checked={allCurrentlyAvailableSelected}
+                        onChange={handleSelectAllToggle}
+                        labelClassName={`text-text text-xs md:text-sm w-full font-medium`}
+                      />
+                    </div>
+                  )}
+                  {availableSensors.map((sensorId) => (
+                    <InputCheck
+                      key={sensorId}
+                      type="checkbox"
+                      checkBoxValue={`S${sensorId}`}
+                      value={sensorId.toString()}
+                      checked={selectedSensors.value.includes(sensorId)}
+                      onChange={() => handleSensorSelection(sensorId)}
+                      labelClassName="text-text"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

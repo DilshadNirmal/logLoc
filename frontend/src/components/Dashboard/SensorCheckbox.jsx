@@ -1,14 +1,20 @@
 import { useSignals } from "@preact/signals-react/runtime";
-import { selectedSensors, selectedSide } from "../../signals/voltage";
+import {
+  dashboardSelectedSensors,
+  dashboardSelectedSide,
+} from "../../signals/dashboardSignals";
 
 const SensorCheckbox = () => {
   useSignals();
 
   const handleChange = (e, sensorId) => {
     if (e.target.checked) {
-      selectedSensors.value = [...selectedSensors.value, sensorId];
+      dashboardSelectedSensors.value = [
+        ...dashboardSelectedSensors.value,
+        sensorId,
+      ];
     } else {
-      selectedSensors.value = selectedSensors.value.filter(
+      dashboardSelectedSensors.value = dashboardSelectedSensors.value.filter(
         (id) => id !== sensorId
       );
     }
@@ -17,7 +23,9 @@ const SensorCheckbox = () => {
   return (
     <div className="grid grid-cols-10 place-items-center gap-1 md:gap-0.5 2xl:gap-1 p-2 md:p-1 2xl:p-2">
       {[...Array(20)].map((_, index) => {
-        const sensorId = selectedSide.value === "A" ? index + 1 : index + 21;
+        // const sensorId = selectedSide.value === "A" ? index + 1 : index + 21;
+        const sensorId =
+          dashboardSelectedSide.value === "A" ? index + 1 : index + 21;
         return (
           <label
             key={sensorId}
@@ -25,7 +33,8 @@ const SensorCheckbox = () => {
           >
             <input
               type="checkbox"
-              checked={selectedSensors.value.includes(sensorId)}
+              // checked={selectedSensors.value.includes(sensorId)}
+              checked={dashboardSelectedSensors.value.includes(sensorId)}
               onChange={(e) => handleChange(e, sensorId)}
               className="absolute opacity-0 cursor-pointer h-0 w-0"
             />

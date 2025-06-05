@@ -23,29 +23,12 @@ import ActivitiesLog from "./pages/ActivitiesLog";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary"></div>
-      </div>
-    );
-  }
-  if (!user) {
-    return <Navigate to="/login" />;
+    return <div>Loading...</div>;
   }
 
-  if (!user.cookieConsent && location.pathname !== "/cookie-consent") {
-    console.log(user, "path to cookie consent");
-    return <Navigate to="/cookie-consent" />;
-  }
-
-  if (!user.phoneVerified && location.pathname !== "/verify-otp") {
-    return <Navigate to="/verify-otp" />;
-  }
-
-  return children;
+  return user ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
@@ -81,17 +64,17 @@ const AppContent = () => {
         <Route
           path="/cookie-consent"
           element={
-            <PrivateRoute>
+            <PublicRoute>
               <CookieConsent />
-            </PrivateRoute>
+            </PublicRoute>
           }
         />
         <Route
           path="/verify-otp"
           element={
-            <PrivateRoute>
+            <PublicRoute>
               <VerifyOtp />
-            </PrivateRoute>
+            </PublicRoute>
           }
         />
 

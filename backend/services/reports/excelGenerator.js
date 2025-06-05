@@ -101,18 +101,18 @@ function generateWorkSheet(workbook, data, options = {}) {
 
   worksheet.columns = config.columns;
 
-  try {
-    const logoId = workbook.addImage({
-      filename: "./assets/xyma.png",
-      extension: "png",
-    });
-    worksheet.addImage(logoId, {
-      tl: { col: 0, row: 0 },
-      ext: { width: 200, height: 50 },
-    });
-  } catch (error) {
-    console.warn("Could not add logo:", error.message);
-  }
+  // try {
+  //   const logoId = workbook.addImage({
+  //     filename: "./assets/xyma.png",
+  //     extension: "png",
+  //   });
+  //   worksheet.addImage(logoId, {
+  //     tl: { col: 0, row: 0 },
+  //     ext: { width: 200, height: 50 },
+  //   });
+  // } catch (error) {
+  //   console.warn("Could not add logo:", error.message);
+  // }
 
   // Style header row
   const headerRow = worksheet.getRow(1);

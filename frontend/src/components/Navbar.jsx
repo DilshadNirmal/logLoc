@@ -9,8 +9,14 @@ import { HiOutlineUser } from "react-icons/hi";
 import { IoIosNotificationsOutline } from "react-icons/io";
 import { FaBell, FaBellSlash } from "react-icons/fa";
 import axiosInstance from "../lib/axios";
+import ChangePasswordModal from "../components/ChangePasswordModal";
+import { showChangePasswordModal } from "../signals/settings";
+import Modal from "./Modal";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const Navbar = () => {
+  useSignals();
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -153,17 +159,33 @@ const Navbar = () => {
                     className="py-2 md:py-1.5 2xl:py-2"
                     aria-labelledby="user-menu-button"
                   >
-                    {dropdownItems.map((item) => (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className="block px-4 md:px-3 2xl:px-4 py-2 md:py-1.5 2xl:py-2 text-sm md:text-xs 2xl:text-sm text-primary hover:bg-primary/10"
-                          onClick={handleDropdownItemClick}
-                        >
-                          {item.name}
-                        </Link>
-                      </li>
-                    ))}
+                    {dropdownItems.map((item) =>
+                      item.name === "Change Password" ? (
+                        <li key={item.name}>
+                          {" "}
+                          {/* Use item.name or a unique key */}
+                          <button
+                            onClick={() => {
+                              showChangePasswordModal.value = true;
+                              handleDropdownItemClick(); // Close dropdown on click
+                            }}
+                            className="block w-full text-left px-4 md:px-3 2xl:px-4 py-2 md:py-1.5 2xl:py-2 text-sm md:text-xs 2xl:text-sm text-primary hover:bg-primary/10"
+                          >
+                            Change Password
+                          </button>
+                        </li>
+                      ) : (
+                        <li key={item.path}>
+                          <Link
+                            to={item.path}
+                            className="block px-4 md:px-3 2xl:px-4 py-2 md:py-1.5 2xl:py-2 text-sm md:text-xs 2xl:text-sm text-primary hover:bg-primary/10"
+                            onClick={handleDropdownItemClick}
+                          >
+                            {item.name}
+                          </Link>
+                        </li>
+                      )
+                    )}
                     <li>
                       <button
                         onClick={() => {
@@ -370,6 +392,11 @@ const Navbar = () => {
           ))}
         </nav>
       </div>
+      {showChangePasswordModal.value && (
+        <Modal onClose={() => (showChangePasswordModal.value = false)}>
+          <ChangePasswordModal />
+        </Modal>
+      )}
     </header>
   );
 };

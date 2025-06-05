@@ -1,12 +1,15 @@
 import React from "react";
 import InputBox from "../form/InputBox";
 import { thresholdValues } from "../../signals/voltage";
+import toast from "react-hot-toast";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const ThresholdSettings = () => {
+  useSignals();
   return (
     <div className="p-4 pt-12 md:pt-6 2xl:pt-12 bg-primary/25 rounded-lg shadow-lg h-full">
       <h2 className="text-base md:text-lg 2xl:text-xl font-semibold tracking-wider text-text mb-6 md:mb-4 2xl:mb-6">
-        Customize Values by colours - <br /> for Dashboard visuals
+        Customize Values by colours - for Dashboard visuals
       </h2>
       <div className=" bg-background rounded-md h-[80%] p-6 mt-10">
         <div className="flex flex-col md:flex-row items-center justify-around h-full gap-8 md:gap-2">
@@ -50,6 +53,7 @@ const ThresholdSettings = () => {
                   thresholdValues.value.max = parseInt(
                     document.getElementById("max_value").value
                   );
+                  toast.success("Threshold values updated successfully!");
                 }}
               >
                 Set Value
@@ -59,7 +63,7 @@ const ThresholdSettings = () => {
           <div className="w-[200px] h-1 md:w-1 md:h-[300px] bg-primary/35 rounded-lg mx-8" />
           <div className="w-full md:w-5/12 h-full grid grid-cols-3">
             <div className="flex flex-col items-center justify-center gap-12">
-              <span className="w-16 md:w-20 h-7 md:h-9 bg-green-500 rounded"></span>
+              <span className="w-16 md:w-20 h-7 md:h-9 bg-blue-500 rounded"></span>
               <span className="w-16 md:w-20 h-7 md:h-9 bg-yellow-500 rounded"></span>
               <span className="w-16 md:w-20 h-7 md:h-9 bg-red-500 rounded"></span>
             </div>
@@ -72,9 +76,15 @@ const ThresholdSettings = () => {
               <span className="text-text text-sm md:text-base h-7 md:h-9">{`> ${thresholdValues.value.max} mv`}</span>
             </div>
             <div className="flex flex-col items-center justify-center gap-12">
-              <span className="text-text text-sm md:text-base h-7 md:h-9">Low</span>
-              <span className="text-text text-sm md:text-base h-7 md:h-9">Medium</span>
-              <span className="text-text text-sm md:text-base h-7 md:h-9">High</span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">
+                Low
+              </span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">
+                Medium
+              </span>
+              <span className="text-text text-sm md:text-base h-7 md:h-9">
+                High
+              </span>
             </div>
           </div>
         </div>

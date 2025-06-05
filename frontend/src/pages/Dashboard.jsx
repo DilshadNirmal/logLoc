@@ -1,6 +1,5 @@
 import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useState } from "react";
-import ReactSpeedometer from "react-d3-speedometer";
+import { useCallback, useEffect, useState } from "react";
 
 import ThreedModel from "../canvas/ThreedModel";
 import BatteryRender from "../components/BatteryRender";
@@ -11,18 +10,21 @@ import SensorCheckbox from "../components/Dashboard/SensorCheckbox";
 import TimeRangeSelector from "../components/Dashboard/TimeRangeSelector";
 import debounce from "lodash/debounce";
 import {
-  chartData,
-  currentPage,
-  fetchChart,
   fetchSignalHistory,
   fetchVoltages,
-  selectedSensors,
-  selectedSide,
   signalHistory,
-  timeRange,
   voltageDataA,
   voltageDataB,
 } from "../signals/voltage";
+import {
+  dashboardSelectedSide,
+  dashboardSelectedSensors,
+  dashboardTimeRange,
+  dashboardChartData,
+  isDashboardChartLoading, // Optional: for loading UI
+  dashboardChartError, // Optional: for error UI
+  fetchDashboardChartData,
+} from "../signals/dashboardSignals";
 import ChartContainer from "../components/Chart";
 import SignalStrength from "../components/Dashboard/SignalStrength";
 import GaugeDisplay from "../components/Dashboard/GaugeDisplay";
@@ -51,35 +53,15 @@ const Dashboard = () => {
   useEffect(() => {
     fetchVoltages();
     fetchSignalHistory();
-    fetchChart();
 
     const voltageInterval = setInterval(fetchVoltages, 2000);
     const historyInterval = setInterval(fetchSignalHistory, 60000);
-    const debouncedFetchChart = debounce(() => fetchChart({
-      from: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      to: new Date(),
-      isDashboard: true
-    }), 500);
-    const unsubscribeSensors = selectedSensors.subscribe(debouncedFetchChart);
-    const unsubscribeSide = selectedSide.subscribe(debouncedFetchChart);
-    const unsubscribeTimeRange = timeRange.subscribe(debouncedFetchChart);
 
     return () => {
       clearInterval(voltageInterval);
       clearInterval(historyInterval);
-      debouncedFetchChart.cancel();
-      unsubscribeSensors();
-      unsubscribeSide();
-      unsubscribeTimeRange();
     };
   }, []);
-
-  useEffect(() => {
-    if (selectedSensors.value.length > 0) {
-    } else {
-      chartData.value = [];
-    }
-  }, [selectedSensors.value]);
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -246,10 +228,10 @@ const Dashboard = () => {
 
             <SensorCheckbox />
 
-            <TimeRangeSelector timeRange={timeRange} />
+            <TimeRangeSelector />
           </div>
           <div className="chart-container">
-            <ChartContainer data={chartData} />
+            <ChartContainer />
           </div>
         </div>
       </div>

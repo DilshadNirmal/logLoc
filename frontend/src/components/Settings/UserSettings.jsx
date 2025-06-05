@@ -18,22 +18,23 @@ const UserSettings = ({ isSuperAdmin, userSignals }) => {
       <div className="md:flex justify-between items-center mb-6">
         {/* View toggle and sort controls */}
         <div className="flex gap-5">
-          {isSuperAdmin && (
-            <div className="flex gap-4 border border-primary/75 bg-background/25 p-1 md:p-1.5 2xl:p-2 rounded-lg md:rounded-md 2xl:rounded-lg">
-              <button
-                className={`p-1.5 md:p-1.5 2xl:p-2 rounded tracking-wider text-sm md:text-sm 2xl:text-base ${
-                  activeUserView.value === "profile"
-                    ? "bg-primary text-secondary font-semibold"
-                    : ""
-                }`}
-                onClick={() => {
-                  activeUserView.value = "profile";
-                  sortBy.value = "Sort By";
-                  sortOrder.value = "asc";
-                }}
-              >
-                User Profile
-              </button>
+          <div className="flex gap-4 border border-primary/75 bg-background/25 p-1 md:p-1.5 2xl:p-2 rounded-lg md:rounded-md 2xl:rounded-lg">
+            <button
+              className={`p-1.5 md:p-1.5 2xl:p-2 rounded tracking-wider text-sm md:text-sm 2xl:text-base ${
+                activeUserView.value === "profile"
+                  ? "bg-primary text-secondary font-semibold"
+                  : ""
+              }`}
+              onClick={() => {
+                activeUserView.value = "profile";
+                sortBy.value = "Sort By";
+                sortOrder.value = "asc";
+              }}
+            >
+              User Profile
+            </button>
+
+            {isSuperAdmin && ( // User Log button only for super_admin
               <button
                 className={`p-1.5 md:p-1.5 2xl:p-2 rounded tracking-wider text-sm md:text-sm 2xl:text-base ${
                   activeUserView.value === "log"
@@ -48,13 +49,13 @@ const UserSettings = ({ isSuperAdmin, userSignals }) => {
               >
                 User Log
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="relative">
             <button
               onClick={() => (sortOpen.value = !sortOpen.value)}
-              className="border border-primary/75 bg-background/25 p-1 md:p-1.5 2xl:p-2 px-1.5 md:px-2 2xl:px-3 h-full rounded-lg flex items-center justify-around gap-1 md:gap-2 w-25 md:w-30"
+              className="border border-primary/75 bg-background/25 p-1 md:p-1.5 2xl:p-2 px-1.5 md:px-2 2xl:px-3 h-full rounded-lg flex items-center justify-around gap-1 md:gap-2 w-25 md:w-35"
             >
               <span className="text-sm md:text-sm 2xl:text-base">
                 {sortBy.value === "username"
@@ -133,177 +134,197 @@ const UserSettings = ({ isSuperAdmin, userSignals }) => {
       {/* User table */}
       <div className="bg-secondary/10 shadow rounded-lg overflow-hidden">
         <div className="w-[320px] md:w-full">
-        {activeUserView.value === "profile" ? (
-          <Table
-            data={userSignals.users.value.sort((a, b) => {
-              if (sortBy.value === "username") {
-                return sortOrder.value === "asc"
-                  ? a.UserName.localeCompare(b.UserName)
-                  : b.UserName.localeCompare(a.UserName);
+          {(activeUserView.value === "profile" || !isSuperAdmin) &&
+            (() => {
+              let tableData = userSignals.users.value;
+              if (!isSuperAdmin) {
+                tableData = tableData.filter(
+                  (user) => user.Role !== "super_admin"
+                );
               }
-              if (sortBy.value === "location") {
-                const aEmail = a.Email || "";
-                const bEmail = b.Email || "";
-                return sortOrder.value === "asc"
-                  ? aEmail.localeCompare(bEmail)
-                  : bEmail.localeCompare(aEmail);
-              }
-              if (sortBy.value === "timestamp") {
-                const aPhone = a.phoneNumber || "";
-                const bPhone = b.phoneNumber || "";
-                return sortOrder.value === "asc"
-                  ? aPhone.localeCompare(bPhone)
-                  : bPhone.localeCompare(aPhone);
-              }
-              return 0;
-            })}
-            columns={[
-              { key: "UserName", header: "Username" },
-              { key: "Email", header: "Email Id" },
-              { key: "Role", header: "job Role" },
-              { key: "phoneNumber", header: "Phone" },
-            ]}
-            actions={(userData) => {
-              // Don't show any actions for regular users
-              if (!isSuperAdmin && userData.Role === "super_admin") {
-                return null;
-              }
-
-              return (
-                <>
-                  {/* Super admin can edit and delete everyone */}
-                  {isSuperAdmin && (
-                    <>
-                      <button
-                        onClick={() => {
-                          userSignals.selectedUser.value = userData;
-                          userSignals.editForm.value = {
-                            UserName: userData.UserName,
-                            Email: userData.Email,
-                            Role: userData.Role,
-                            phoneNumber: userData.phoneNumber,
-                          };
-                          userSignals.showEditModal.value = true;
-                        }}
-                        className="text-primary hover:text-primary/80 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() =>
-                          userSignals.handleDeleteUser(userData._id)
-                        }
-                        className="text-red-500 hover:text-red-600 mr-4"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => {
-                          userSignals.selectedUser.value = {
-                            _id: userData._id,
-                          };
-                          userSignals.showPasswordModal.value = true;
-                        }}
-                        className="text-primary hover:text-primary/80"
-                      >
-                        Change Password
-                      </button>
-                    </>
-                  )}
-
-                  {/* Admin can only edit and delete regular users */}
-                  {!isSuperAdmin && userData.Role === "user" && (
-                    <>
-                      <button
-                        onClick={() => {
-                          userSignals.selectedUser.value = userData;
-                          userSignals.editForm.value = {
-                            UserName: userData.UserName,
-                            Email: userData.Email,
-                            Role: userData.Role,
-                            phoneNumber: userData.phoneNumber,
-                          };
-                          userSignals.showEditModal.value = true;
-                        }}
-                        className="text-primary hover:text-primary/80 mr-4"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() =>
-                          userSignals.handleDeleteUser(userData._id)
-                        }
-                        className="text-red-500 hover:text-red-600 mr-4"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </>
-              );
-            }}
-          />
-        ) : (
-          <Table
-            data={userSignals.users.value
-              .flatMap((user) =>
-                (user.activities || []).map((activity) => ({
-                  username: user.UserName,
-                  method: activity.type,
-                  timestamp: new Date(activity.timestamp).toLocaleString(),
-                  ipAddress: activity.ipAddress,
-                  location: activity.location?.[0]
-                    ? `${activity.location[0].city || "Unknown"}, ${
-                        activity.location[0].country || "Unknown"
-                      }`
-                    : "Unknown",
-                  latitude: activity.location?.[0]?.latitude ?? "Not available",
-                  longitude:
-                    activity.location?.[0]?.longitude ?? "Not available",
-                  rawTimestamp: new Date(activity.timestamp).getTime(),
-                }))
-              )
-              .sort((a, b) => {
+              tableData = tableData.sort((a, b) => {
                 if (sortBy.value === "username") {
                   return sortOrder.value === "asc"
-                    ? a.username.localeCompare(b.username)
-                    : b.username.localeCompare(a.username);
+                    ? a.UserName.localeCompare(b.UserName)
+                    : b.UserName.localeCompare(a.UserName);
                 }
                 if (sortBy.value === "location") {
+                  // Corresponds to 'Region' in dropdown, sorts by Email
+                  const aEmail = a.Email || "";
+                  const bEmail = b.Email || "";
                   return sortOrder.value === "asc"
-                    ? a.location.localeCompare(b.location)
-                    : b.location.localeCompare(a.location);
+                    ? aEmail.localeCompare(bEmail)
+                    : bEmail.localeCompare(aEmail);
                 }
                 if (sortBy.value === "timestamp") {
+                  // Corresponds to 'Time' in dropdown, sorts by phoneNumber
+                  const aPhone = a.phoneNumber || "";
+                  const bPhone = b.phoneNumber || "";
                   return sortOrder.value === "asc"
-                    ? a.rawTimestamp - b.rawTimestamp
-                    : b.rawTimestamp - a.rawTimestamp;
+                    ? aPhone.localeCompare(bPhone)
+                    : bPhone.localeCompare(aPhone);
                 }
                 return 0;
-              })}
-            columns={[
-              { key: "username", header: "Username" },
-              {
-                key: "method",
-                header: "Method",
-                render: (method) => (
-                  <span
-                    className={`px-3 py-1 rounded-full font-semibold tracking-wider ${
-                      method === "login" ? " text-green-800" : " text-red-800"
-                    }`}
-                  >
-                    {method}
-                  </span>
-                ),
-              },
-              { key: "timestamp", header: "Timestamp" },
-              { key: "ipAddress", header: "IP Address" },
-              { key: "location", header: "Location" },
-              { key: "latitude", header: "Latitude" },
-              { key: "longitude", header: "Longitude" },
-            ]}
-          />
-        )}
+              });
+
+              return (
+                <Table
+                  data={tableData}
+                  columns={[
+                    { key: "UserName", header: "Username" },
+                    { key: "Email", header: "Email Id" },
+                    { key: "Role", header: "job Role" },
+                    { key: "phoneNumber", header: "Phone" },
+                  ]}
+                  actions={(userData) => {
+                    // Don't show any actions for regular users against super_admin or admin if current user is not super_admin
+                    if (
+                      !isSuperAdmin &&
+                      (userData.Role === "super_admin" ||
+                        userData.Role === "admin")
+                    ) {
+                      return null;
+                    }
+                    // Super admin can edit and delete everyone
+                    if (isSuperAdmin) {
+                      return (
+                        <>
+                          <button
+                            onClick={() => {
+                              userSignals.selectedUser.value = userData;
+                              userSignals.editForm.value = {
+                                UserName: userData.UserName,
+                                Email: userData.Email,
+                                Role: userData.Role,
+                                phoneNumber: userData.phoneNumber,
+                              };
+                              userSignals.showEditModal.value = true;
+                            }}
+                            className="text-primary hover:text-primary/80 mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() =>
+                              userSignals.handleDeleteUser(userData._id)
+                            }
+                            className="text-red-500 hover:text-red-600 mr-4"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => {
+                              userSignals.selectedUser.value = {
+                                _id: userData._id,
+                              };
+                              userSignals.showPasswordModal.value = true;
+                            }}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            Change Password
+                          </button>
+                        </>
+                      );
+                    }
+                    // Admin can only edit and delete regular users
+                    if (!isSuperAdmin && userData.Role === "user") {
+                      return (
+                        <>
+                          <button
+                            onClick={() => {
+                              userSignals.selectedUser.value = userData;
+                              userSignals.editForm.value = {
+                                UserName: userData.UserName,
+                                Email: userData.Email,
+                                Role: userData.Role,
+                                phoneNumber: userData.phoneNumber,
+                              };
+                              userSignals.showEditModal.value = true;
+                            }}
+                            className="text-primary hover:text-primary/80 mr-4"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() =>
+                              userSignals.handleDeleteUser(userData._id)
+                            }
+                            className="text-red-500 hover:text-red-600 mr-4"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      );
+                    }
+                    return null; // Default no actions
+                  }}
+                />
+              );
+            })()}
+
+          {/* Render User Log Table ONLY if user is SuperAdmin AND current view is 'log' */}
+          {isSuperAdmin && activeUserView.value === "log" && (
+            <Table
+              data={userSignals.users.value
+                .flatMap((user) =>
+                  (user.activities || []).map((activity) => ({
+                    username: user.UserName,
+                    method: activity.type,
+                    timestamp: new Date(activity.timestamp).toLocaleString(),
+                    ipAddress: activity.ipAddress,
+                    location: activity.location?.[0]
+                      ? `${activity.location[0].city || "Unknown"}, ${
+                          activity.location[0].country || "Unknown"
+                        }`
+                      : "Unknown",
+                    latitude:
+                      activity.location?.[0]?.latitude ?? "Not available",
+                    longitude:
+                      activity.location?.[0]?.longitude ?? "Not available",
+                    rawTimestamp: new Date(activity.timestamp).getTime(),
+                  }))
+                )
+                .sort((a, b) => {
+                  if (sortBy.value === "username") {
+                    return sortOrder.value === "asc"
+                      ? a.username.localeCompare(b.username)
+                      : b.username.localeCompare(a.username);
+                  }
+                  if (sortBy.value === "location") {
+                    return sortOrder.value === "asc"
+                      ? a.location.localeCompare(b.location)
+                      : b.location.localeCompare(a.location);
+                  }
+                  if (sortBy.value === "timestamp") {
+                    return sortOrder.value === "asc"
+                      ? a.rawTimestamp - b.rawTimestamp
+                      : b.rawTimestamp - a.rawTimestamp;
+                  }
+                  return 0;
+                })}
+              columns={[
+                { key: "username", header: "Username" },
+                {
+                  key: "method",
+                  header: "Method",
+                  render: (method) => (
+                    <span
+                      className={`px-3 py-1 rounded-full font-semibold tracking-wider ${
+                        method === "login" ? " text-green-800" : " text-red-800"
+                      }`}
+                    >
+                      {method}
+                    </span>
+                  ),
+                },
+                { key: "timestamp", header: "Timestamp" },
+                { key: "ipAddress", header: "IP Address" },
+                { key: "location", header: "Location" },
+                { key: "latitude", header: "Latitude" },
+                { key: "longitude", header: "Longitude" },
+              ]}
+            />
+          )}
         </div>
       </div>
     </div>

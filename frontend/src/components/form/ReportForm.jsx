@@ -163,8 +163,8 @@ const ReportForm = ({ onDownload, type }) => {
           </div>
 
           {type.value !== "count" && (
-            <div className="space-y-8 px-2 not-odd:flex flex-col justify-between items-center">
-              <div className="w-full">
+            <div className="space-y-8 px-2 ">
+              <div className="w-full not-odd:flex flex-col justify-between items-center gap-2">
                 <FormInput label="From">
                   <input
                     type="date"
@@ -175,7 +175,7 @@ const ReportForm = ({ onDownload, type }) => {
                         from: e.target.value,
                       })
                     }
-                    className="w-full p-1.5 md:p-1.5 2xl:p-2 mb-2 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
+                    className="w-full p-1.5 md:p-1.5 2xl:p-3 mb-2 md:mb-0 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
                   />
                 </FormInput>
                 <FormInput label="To">
@@ -188,7 +188,7 @@ const ReportForm = ({ onDownload, type }) => {
                         to: e.target.value,
                       })
                     }
-                    className="w-full p-1.5 md:p-1.5 2xl:p-2 mb-2 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
+                    className="w-full p-1.5 md:p-1.5 2xl:p-3 mb-2 md:mb-0 bg-transparent text-text text-sm md:text-sm 2xl:text-base outline-none"
                   />
                 </FormInput>
               </div>

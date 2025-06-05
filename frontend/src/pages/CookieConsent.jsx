@@ -1,25 +1,33 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import axiosInstance from "../lib/axios";
+import { useState } from "react";
 
 const CookieConsent = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleConsent = async () => {
     try {
-      await axiosInstance.post("auth/update-cookie-consent", {
-        userId: user._id,
-        consent: true,
+      setError('');
+      setSuccess('');
+      console.log(user);
+
+      // Update user state with cookie consent
+      const updatedUser = await updateUser({
+        cookieConsent: true
       });
 
-      if (!user.phoneVerified) {
-        navigate("/verify-otp");
-      } else {
-        navigate("/");
+      if (updatedUser) {
+        setSuccess('Cookie consent updated successfully');
+        // Navigate to dashboard since both verifications are complete
+        setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
       }
     } catch (error) {
-      console.error("Error updating cookie consent:", error);
+      setError(error.message || "Failed to update cookie consent");
+      console.error("Cookie consent error details:", error);
     }
   };
 
@@ -33,6 +41,8 @@ const CookieConsent = () => {
         <h2 className="text-3xl font-bold text-center text-text">
           Cookie Consent
         </h2>
+        {error && <p className="text-red-500 text-center">{error}</p>}
+        {success && <p className="text-green-500 text-center">{success}</p>}
         <div className="mt-4 space-y-4">
           <p className="text-text/80">
             We use cookies and similar technologies to help personalize content,

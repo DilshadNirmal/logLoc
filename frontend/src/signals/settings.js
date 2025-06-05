@@ -2,6 +2,9 @@ import { signal } from "@preact/signals-react";
 import axiosInstance from "../lib/axios";
 import { alertConfigSignal } from "./commonSignals";
 
+// for change password ui
+export const showChangePasswordModal = signal(false);
+
 // alert setting signals
 export const emails = signal([]);
 export const selectedUsers = signal([]);

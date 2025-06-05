@@ -26,9 +26,9 @@ const Reports = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const tabOptions = [
+    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "average", label: "Average Data", icon: LuSigma },
     { id: "interval", label: "Interval Data", icon: TbClockCode },
-    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "count", label: "Count-wise Data", icon: CiHashtag },
   ];
 

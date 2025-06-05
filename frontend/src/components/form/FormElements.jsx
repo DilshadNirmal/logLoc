@@ -1,7 +1,7 @@
 import { MdOutlineFileDownload } from "react-icons/md";
 
 export const FormInput = ({ label, children }) => (
-  <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20">
+  <div className="flex flex-col md:flex-row items-start md:items-center justify-center md:gap-20 mb-2">
     <label className="text-text text-sm md:text-sm 2xl:text-sm w-fit md:w-32 my-2">
       {label}
     </label>

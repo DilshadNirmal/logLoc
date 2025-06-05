@@ -111,12 +111,12 @@ const ReportSettings = () => {
             <h3 className="text-base md:text-lg 2xl:text-xl font-medium tracking-wider text-text/85">
               Select People
             </h3>
-            <button
+            {/* <button
               onClick={() => (showUserSelectionModal.value = true)}
               className="p-2 bg-primary/65 text-text rounded-full hover:bg-primary/80"
             >
               <ImUserPlus className="md:w-3 md:h-3 2xl:w-4 2xl:h-4" />
-            </button>
+            </button> */}
           </div>
           <div className="bg-background rounded-lg">
             <div className="w-[320px] md:w-full">

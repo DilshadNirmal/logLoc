@@ -126,12 +126,15 @@ router.post("/fetch-data", auth, async (req, res) => {
       sensorIds,
     } = req.body;
 
-    console.log("reportType:", reportType,
+    console.log(
+      "reportType:",
+      reportType,
       configuration,
       dateRange,
       averageBy,
       interval,
-      sensorIds,)
+      sensorIds
+    );
 
     // Validate required parameters
     if (!reportType) {
@@ -153,7 +156,15 @@ router.post("/fetch-data", auth, async (req, res) => {
     }
 
     // Generate cache key
-    const cacheKey = `data_${generateCacheKey(req.body)}`;
+    const cacheParams = {
+      reportType: req.body.reportType,
+      configuration: req.body.configuration,
+      dateRange: req.body.dateRange,
+      averageBy: req.body.averageBy,
+      interval: req.body.interval,
+      selectedSensors: req.body.sensorIds, // Map sensorIds to selectedSensors
+    };
+    const cacheKey = `data_${generateCacheKey(cacheParams)}`;
 
     // Check if data is in cache
     const cachedData = cache.get(cacheKey);
@@ -203,15 +214,15 @@ router.post("/fetch-data", auth, async (req, res) => {
         data = await getDateData(configuration, dateRange, sensorIds);
         break;
 
-        case "count":
+      case "count":
         // Parse selectedCounts if it's a string (from query params)
         let selectedCounts = {};
         if (req.body.selectedCounts) {
-          if (typeof req.body.selectedCounts === 'string') {
+          if (typeof req.body.selectedCounts === "string") {
             try {
               selectedCounts = JSON.parse(req.body.selectedCounts);
             } catch (e) {
-              console.warn('Failed to parse selectedCounts:', e);
+              console.warn("Failed to parse selectedCounts:", e);
               selectedCounts = { last100: true }; // Default to last 100 if parsing fails
             }
           } else {
@@ -221,15 +232,15 @@ router.post("/fetch-data", auth, async (req, res) => {
           selectedCounts = { last100: true }; // Default value if not provided
         }
 
-        const customCount = req.body.customCount 
-          ? parseInt(req.body.customCount, 10) 
+        const customCount = req.body.customCount
+          ? parseInt(req.body.customCount, 10)
           : 0;
-        
+
         data = await getCountData({
           selectedCounts,
           customCount,
           sensorIds,
-          configuration
+          configuration,
         });
         break;
         break;
@@ -365,7 +376,7 @@ router.post("/export-excel", auth, async (req, res) => {
             selectedCounts,
             customCount,
             configuration,
-            selectedSensors
+            selectedSensors,
           });
           filename = `Count_Data_${
             new Date().toISOString().split("T")[0]

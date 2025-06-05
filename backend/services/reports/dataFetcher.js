@@ -335,9 +335,11 @@ async function getAverageData(
   // Create aggregation pipeline
   const pipeline = [
     { $match: matchStage },
-    { $addFields: { 
-      timestamp: { $toDate: "$timestamp" } 
-    }},
+    {
+      $addFields: {
+        timestamp: { $toDate: "$timestamp" },
+      },
+    },
     { $sort: { timestamp: 1 } },
 
     // Convert voltages map to array of objects
@@ -494,7 +496,7 @@ async function getIntervalData(
     // Check cache first
     const cachedData = dataCache.get(cacheKey);
     if (cachedData) {
-      console.log('Returning cached interval data');
+      console.log("Returning cached interval data");
       return cachedData;
     }
 
@@ -602,7 +604,7 @@ async function getIntervalData(
       { $sort: { timestamp: 1, sensorId: 1 } },
     ];
 
-    console.log('Executing interval data aggregation pipeline');
+    console.log("Executing interval data aggregation pipeline");
     const results = await VoltageData.aggregate(pipeline).exec();
     console.log(`Retrieved ${results.length} interval data points`);
 
@@ -638,7 +640,7 @@ async function getIntervalData(
 
     // Store in cache
     dataCache.set(cacheKey, finalResults);
-    console.log('Interval data processing complete');
+    console.log("Interval data processing complete");
 
     return finalResults;
   } catch (error) {
@@ -654,18 +656,9 @@ async function getIntervalData(
  * @param {Array} selectedSensors - Array of selected sensor IDs
  * @returns {Promise<Array>} Processed data
  */
-async function getDateData(
-  configuration,
-  dateRange,
-  selectedSensors = []
-) {
+async function getDateData(configuration, dateRange, selectedSensors = []) {
   try {
-    console.log(
-      "getDateData fn: ",
-      configuration,
-      dateRange,
-      selectedSensors
-    );
+    console.log("getDateData fn: ", configuration, dateRange, selectedSensors);
 
     // Generate cache key
     const cacheKey = generateCacheKey({
@@ -678,7 +671,7 @@ async function getDateData(
     // Check cache first
     const cachedData = dataCache.get(cacheKey);
     if (cachedData) {
-      console.log('Returning cached date data');
+      console.log("Returning cached date data");
       return cachedData;
     }
 
@@ -706,8 +699,7 @@ async function getDateData(
       },
     ];
 
-
-    console.log('Executing date data aggregation pipeline');
+    console.log("Executing date data aggregation pipeline");
     const results = await VoltageData.aggregate(pipeline).exec();
     console.log(`Retrieved ${results.length} date data points`);
 
@@ -733,7 +725,7 @@ async function getDateData(
 
     // Store in cache
     dataCache.set(cacheKey, finalResults);
-    console.log('Date data processing complete');
+    console.log("Date data processing complete");
 
     return finalResults;
   } catch (error) {
@@ -810,27 +802,30 @@ async function getSampleData(configuration, dateRange, selectedSensors = []) {
 }
 
 /**
- * Gets count-based data
+ * Gets count-based data in consistent format with other functions
  * @param {Object} options - Options object
  * @param {Object} options.selectedCounts - Selected count options
  * @param {number} options.customCount - Custom count value
  * @param {Array} options.sensorIds - Array of selected sensor IDs
  * @param {string} options.configuration - Configuration (A or B)
- * @returns {Promise<Array>} Processed data
+ * @returns {Promise<Array>} Processed data in format [{ sensorId: number, data: [...] }]
  */
 async function getCountData({
   selectedCounts,
   customCount,
-  sensorIds = [],
   configuration,
+  selectedSensors,
 }) {
   try {
     console.log("getCountData fn: ", {
       selectedCounts,
       customCount,
-      sensorIds,
       configuration,
+      selectedSensors,
     });
+
+    const sensorIds = selectedSensors.map((sensor) => sensor);
+    console.log(sensorIds);
 
     // Generate cache key
     const cacheKey = generateCacheKey({
@@ -844,16 +839,25 @@ async function getCountData({
     // Check cache first
     const cachedData = dataCache.get(cacheKey);
     if (cachedData) {
-      console.log('Returning cached count data');
+      console.log("Returning cached count data");
       return cachedData;
     }
 
-    // Determine the limit based on selected counts
+    // Determine the limit based on selected options
     let limit = 100; // Default to last 100 records
     if (selectedCounts.last100) limit = 100;
     else if (selectedCounts.last500) limit = 500;
     else if (selectedCounts.last1000) limit = 1000;
     else if (selectedCounts.custom && customCount > 0) limit = customCount;
+
+    // Prepare sensor filters - handle both numeric IDs and string IDs (like "s22")
+    const numericSensorIds = sensorIds
+      .map((id) =>
+        typeof id === "string" && id.startsWith("s")
+          ? parseInt(id.substring(1))
+          : parseInt(id)
+      )
+      .filter((id) => !isNaN(id));
 
     // Create match stage
     const matchStage = {
@@ -863,42 +867,73 @@ async function getCountData({
     // Create aggregation pipeline
     const pipeline = [
       { $match: matchStage },
-      ...createUnwindPipeline(sensorIds.length > 0, sensorIds),
-      // Sort by timestamp in descending order to get the most recent records
-      { $sort: { timestamp: -1 } },
-      // Limit to the requested number of records
+      { $sort: { timestamp: -1 } }, // Get most recent documents first
       { $limit: limit },
-      // Sort back to ascending order for display
+      // Convert voltages map to array of entries
+      {
+        $addFields: {
+          voltageEntries: { $objectToArray: "$voltages" },
+        },
+      },
+      { $unwind: "$voltageEntries" },
+      // Extract sensor ID from key (e.g., "v1" -> 1)
+      {
+        $addFields: {
+          sensorId: {
+            $toInt: {
+              $substr: [
+                "$voltageEntries.k",
+                1,
+                { $subtract: [{ $strLenCP: "$voltageEntries.k" }, 1] },
+              ],
+            },
+          },
+          value: "$voltageEntries.v",
+        },
+      },
+      // Filter by selected sensors if any
+      ...(numericSensorIds.length > 0
+        ? [
+            {
+              $match: {
+                sensorId: { $in: numericSensorIds },
+              },
+            },
+          ]
+        : []),
+      // Sort by timestamp and sensor ID
       { $sort: { timestamp: 1, sensorId: 1 } },
-      // Project only the fields we need
+      // Project to desired format
       {
         $project: {
           _id: 0,
-          timestamp: 1,
+          timestamp: {
+            $dateToString: {
+              format: "%Y-%m-%d %H:%M:%S",
+              date: "$timestamp",
+              timezone: "Asia/Kolkata",
+            },
+          },
           sensorId: 1,
           value: { $round: ["$value", 2] },
         },
       },
     ];
 
-
-    console.log('Executing count data aggregation pipeline');
+    console.log("Executing count data aggregation pipeline");
     const results = await VoltageData.aggregate(pipeline).exec();
     console.log(`Retrieved ${results.length} count data points`);
 
-    // Group by sensor ID for consistent output format with getAverageData
+    // Group by sensor ID to match the format of other functions
     const groupedResults = {};
     results.forEach((result) => {
       if (!groupedResults[result.sensorId]) {
         groupedResults[result.sensorId] = [];
       }
-      groupedResults[result.sensorId].push({
-        ...result,
-        timestamp: new Date(result.timestamp).toISOString(),
-      });
+      groupedResults[result.sensorId].push(result);
     });
 
-    // Convert to array format
+    // Convert to array format [{ sensorId: number, data: [...] }]
     const finalResults = Object.entries(groupedResults).map(
       ([sensorId, data]) => ({
         sensorId: parseInt(sensorId, 10),
@@ -908,7 +943,7 @@ async function getCountData({
 
     // Store in cache
     dataCache.set(cacheKey, finalResults);
-    console.log('Count data processing complete');
+    console.log("Count data processing complete");
 
     return finalResults;
   } catch (error) {

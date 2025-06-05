@@ -38,12 +38,12 @@ const VerifyOtp = () => {
     try {
       setError("");
       setMessage("");
-
+  
       const response = await axiosInstance.post("/verify-otp", {
         phoneNumber,
         otp,
       });
-
+  
       if (response.data.success) {
         setMessage("Phone number verified successfully");
         if (updateUser) {
@@ -53,7 +53,13 @@ const VerifyOtp = () => {
             phoneVerified: true,
           });
         }
-        setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
+  
+        // Check if cookie consent is needed
+        if (!user.cookieConsent) {
+          setTimeout(() => navigate("/cookie-consent", { replace: true }), 1500);
+        } else {
+          setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid OTP");

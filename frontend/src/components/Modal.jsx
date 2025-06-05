@@ -1,6 +1,8 @@
+import { useSignals } from "@preact/signals-react/runtime";
 import { CgClose } from "react-icons/cg";
 
 const Modal = ({ children, onClose }) => {
+  useSignals();
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();

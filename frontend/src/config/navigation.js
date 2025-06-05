@@ -30,7 +30,7 @@ export const mainNavigation = [
 export const profileDropdownItems = {
   [ROLES.SUPER_ADMIN]: [
     { name: "Activities", path: "/activities" },
-    { name: "Change password", path: "/change-password" },
+    { name: "Change Password", path: "/change-password" },
   ],
   [ROLES.ADMIN]: [
     { name: "Change Password", path: "/change-password" },

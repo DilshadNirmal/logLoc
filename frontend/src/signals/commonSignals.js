@@ -2,14 +2,14 @@ import { signal } from "@preact/signals-react";
 import axiosInstance from "../lib/axios";
 
 // Common UI signals
-export const selectedTabSignal = signal("average");
+export const selectedTabSignal = signal("date");
 export const currentPage = signal("dashboard");
 
 // Common alert configuration signals
 export const alertConfigSignal = signal({
   emails: [],
   users: [],
-  alertDelay: 5
+  alertDelay: 5,
 });
 
 // Common API functions
@@ -20,7 +20,7 @@ export const fetchAlertConfig = async () => {
       alertConfigSignal.value = {
         ...alertConfigSignal.value,
         emails: response.data.emails || [],
-        users: response.data.users || []
+        users: response.data.users || [],
       };
     }
   } catch (error) {
@@ -33,9 +33,9 @@ export const saveAlertConfig = async () => {
     const response = await axiosInstance.post("/global-email-config", {
       emails: alertConfigSignal.value.emails,
       users: alertConfigSignal.value.users,
-      alertDelay: alertConfigSignal.value.alertDelay
+      alertDelay: alertConfigSignal.value.alertDelay,
     });
-    
+
     return response.data.success;
   } catch (error) {
     console.error("Error saving alert configuration:", error);

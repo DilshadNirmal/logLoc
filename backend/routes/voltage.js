@@ -428,15 +428,22 @@ router.get("/voltage-history/signal", auth, async (req, res) => {
 
 router.get('/voltage-history/raw', auth, async (req, res) => {
   try {
-    const { from, to, sensorGroup } = req.query;
+    const { from, to, sensorIds } = req.query;
+    
+    // Parse sensor IDs from query parameter
+    const sensorIdList = sensorIds ? sensorIds.split(',').map(id => `v${id.trim()}`) : [];
     
     const query = {
       timestamp: {
         $gte: new Date(from),
         $lte: new Date(to)
-      },
-      sensorGroup
+      }
     };
+
+    // Only add sensorGroup filter if we're not filtering by specific sensor IDs
+    if (sensorIdList.length === 0 && req.query.sensorGroup) {
+      query.sensorGroup = req.query.sensorGroup;
+    }
 
     const data = await VoltageData.find(query)
       .sort({ timestamp: 1 })
@@ -446,10 +453,13 @@ router.get('/voltage-history/raw', auth, async (req, res) => {
     const result = [];
     const sensors = new Set();
 
-    // First, collect all unique sensor IDs
+    // First, collect all unique sensor IDs that match our filter
     data.forEach(entry => {
       Object.keys(entry.voltages).forEach(sensorId => {
-        sensors.add(sensorId.replace('v', ''));
+        // If we have specific sensor IDs, only include those
+        if (sensorIdList.length === 0 || sensorIdList.includes(sensorId)) {
+          sensors.add(sensorId.replace('v', ''));
+        }
       });
     });
 
@@ -473,10 +483,84 @@ router.get('/voltage-history/raw', auth, async (req, res) => {
       result.push(sensorData);
     });
 
+    console.log(`Returning data for ${result.length} sensors`);
     res.json(result);
   } catch (error) {
     console.error('Error fetching raw voltage data:', error);
-    res.status(500).json({ message: 'Error fetching raw voltage data' });
+    res.status(500).json({ message: 'Error fetching raw voltage data', error: error.message });
+  }
+});
+
+router.get('/voltage-history/dashboard-chart', auth, async (req, res) => {
+  try {
+    const { sensorIds, side, timeRange = '24h' } = req.query;
+
+    if (!side && (!sensorIds || sensorIds === 'all')) {
+      return res.status(400).json({ message: 'Either side or specific sensorIds must be provided' });
+    }
+
+    let fromDate = new Date();
+    const toDate = new Date();
+
+    switch (timeRange) {
+      case "1h":
+        fromDate.setHours(toDate.getHours() - 1);
+        break;
+      case "6h":
+        fromDate.setHours(toDate.getHours() - 6);
+        break;
+      case "12h":
+        fromDate.setHours(toDate.getHours() - 12);
+        break;
+      case "24h":
+      default:
+        fromDate.setDate(toDate.getDate() - 1);
+        break;
+    }
+
+    const query = {
+      timestamp: {
+        $gte: fromDate,
+        $lte: toDate,
+      },
+    };
+
+    // Determine which sensor group to query if 'all' sensors for a side are requested
+    if (sensorIds === 'all' && side) {
+      if (side === 'A') query.sensorGroup = '1-20';
+      else if (side === 'B') query.sensorGroup = '21-40';
+    }
+
+    const rawData = await VoltageData.find(query).sort({ timestamp: 1 }).lean();
+
+    let processedSensorIds = [];
+    if (sensorIds && sensorIds !== 'all') {
+      processedSensorIds = sensorIds.split(',').map(id => id.trim());
+    } else if (side === 'A') {
+      processedSensorIds = Array.from({ length: 20 }, (_, i) => (i + 1).toString());
+    } else if (side === 'B') {
+      processedSensorIds = Array.from({ length: 20 }, (_, i) => (i + 21).toString());
+    }
+
+    const result = processedSensorIds.map(id => {
+      const sensorKey = `v${id}`;
+      const sensorDataEntries = rawData.map(entry => ({
+        timestamp: entry.timestamp,
+        value: entry.voltages[sensorKey],
+      })).filter(entry => entry.value !== undefined);
+      
+      return {
+        sensorId: parseInt(id),
+        data: sensorDataEntries,
+      };
+    }).filter(sensor => sensor.data.length > 0);
+
+    console.log(`Dashboard chart: Returning data for ${result.length} sensors, timeRange: ${timeRange}, side: ${side}, sensorIds: ${sensorIds}`);
+    res.json(result);
+
+  } catch (error) {
+    console.error('Error fetching dashboard chart data:', error);
+    res.status(500).json({ message: 'Error fetching dashboard chart data', error: error.message });
   }
 });
 

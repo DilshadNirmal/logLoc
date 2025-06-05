@@ -9,41 +9,31 @@ import axiosInstance from "../lib/axios";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { user, login, error } = useAuth();
+  const { user, login } = useAuth();
   const [credentials, setCredentials] = useState({
     UserName: "",
     Password: "",
   });
-  const [locationError, setLocationError] = useState("");
-
-  useEffect(() => {
-    // Check if geolocation is available
-    if (!navigator.geolocation) {
-      setLocationError(
-        "Geolocation is not supported by your browser. Using IP-based location."
-      );
-    }
-  }, []);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
     try {
-      const response = await login(credentials);
-      console.log(response);
-
-      if (!response.user.cookieConsent) {
-        navigate("/cookie-consent");
-      } else if (!response.user.phoneVerified) {
-        navigate("/verify-otp");
-      } else {
-        // Only get location if cookie consent is given
-        if (response.user.cookieConsent) {
-          await handleLocationAccess();
+      const result = await login(credentials);
+      console.log(result);
+      if (result.success) {
+        if (result.redirect) {
+          navigate(result.redirect);
+        } else {
+          navigate('/dashboard');
         }
-        navigate("/");
+      } else {
+        setError(result.error || 'Login failed');
       }
-    } catch (err) {
-      console.error("Login error:", err);
+    } catch (error) {
+      setError('An error occurred during login');
     }
   };
 
@@ -110,11 +100,11 @@ const Login = () => {
             </p>
           </div>
           {error && <p className="text-primary text-center mb-4">{error}</p>}
-          {locationError && (
+          {/* {locationError && (
             <p className="text-primary text-center text-sm mb-4">
               {locationError}
             </p>
-          )}
+          )} */}
           <form className="flex flex-col gap-6 w-full" onSubmit={handleSubmit}>
             <div>
               <label

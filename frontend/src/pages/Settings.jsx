@@ -27,13 +27,29 @@ const Settings = () => {
   const { user } = useAuth();
   const isSuperAdmin = user?.Role === "super_admin";
 
-  const tabOptions = [
+  const allTabOptions = [
     { id: "info", label: "Info", icon: BsInfoCircle },
     { id: "report", label: "Set Report Options", icon: IoDocumentTextOutline },
     { id: "alert", label: "Set Alert", icon: HiOutlineBellAlert },
     { id: "threshold", label: "Set threshold", icon: VscGraphLine },
     { id: "user", label: "Set User Options", icon: FaRegUser },
   ];
+
+  // Determine tab options based on user role
+  let tabOptions;
+  if (user) {
+    if (isSuperAdmin || user.Role === "admin") {
+      // Changed condition to include admin
+      tabOptions = allTabOptions;
+    } else {
+      // Regular users only see 'Info'
+      const infoTab = allTabOptions.find((tab) => tab.id === "info");
+      tabOptions = infoTab ? [infoTab] : [];
+    }
+  } else {
+    // No user loaded yet, or user is null
+    tabOptions = [];
+  }
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -144,8 +160,8 @@ const Settings = () => {
                   className="w-full p-2 border border-secondary rounded bg-background text-text"
                 >
                   <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
+                  {/* <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option> */}
                 </select>
               </div>
               <div>

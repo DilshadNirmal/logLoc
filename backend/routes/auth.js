@@ -16,8 +16,104 @@ const {
 } = require("../utils/redis.js");
 const activityLogger = require("../middleware/activityLogger.js");
 const UserActivity = require("../models/UserActivity.js");
+const { clearAccessToken, clearRefreshToken } = require("../utils/tokenUtils");
 
 const router = express.Router();
+
+// --- Geolocation Helper Functions ---
+const isValidIP = (ip) => {
+  if (!ip) return false;
+  // Regex for IPv4 and IPv6
+  const ipv4Regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+  return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+};
+
+async function fetchGeolocationData(ipAddress) {
+  if (!isValidIP(ipAddress)) {
+    console.warn("Invalid IP address for geolocation:", ipAddress);
+    return null;
+  }
+
+  // Ensure IPINFO_TOKEN is set in your .env file
+  const ipinfoToken = process.env.IPINFO_TOKEN;
+
+  // 1. Try ip-api.com
+  try {
+    const ipApiResponse = await fetch(`http://ip-api.com/json/${ipAddress}`);
+    if (ipApiResponse.ok) {
+      const ipData = await ipApiResponse.json();
+      if (ipData.status === "success") {
+        return {
+          source: "ip-api.com",
+          city: ipData.city,
+          region: ipData.regionName,
+          country: ipData.country,
+          org: ipData.org,
+          latitude: ipData.lat,
+          longitude: ipData.lon,
+          timezone: ipData.timezone,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("ip-api.com error:", error.message);
+  }
+
+  // 2. Fallback to ipapi.co
+  try {
+    const ipapiResponse = await fetch(`https://ipapi.co/${ipAddress}/json/`);
+    if (ipapiResponse.ok) {
+      const ipData = await ipapiResponse.json();
+      if (!ipData.error) {
+        return {
+          source: "ipapi.co",
+          city: ipData.city,
+          region: ipData.region,
+          country: ipData.country_name,
+          org: ipData.org,
+          latitude: ipData.latitude,
+          longitude: ipData.longitude,
+          timezone: ipData.timezone,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("ipapi.co error:", error.message);
+  }
+
+  // 3. Final fallback to ipinfo.io
+  if (ipinfoToken) {
+    try {
+      const ipinfoResponse = await fetch(
+        `https://ipinfo.io/${ipAddress}?token=${ipinfoToken}`
+      );
+      if (ipinfoResponse.ok) {
+        const ipData = await ipinfoResponse.json();
+        const [latitude, longitude] = ipData.loc
+          ? ipData.loc.split(",").map(Number)
+          : [null, null];
+        return {
+          source: "ipinfo.io",
+          city: ipData.city,
+          region: ipData.region,
+          country: ipData.country,
+          org: ipData.org,
+          latitude,
+          longitude,
+          timezone: ipData.timezone,
+        };
+      }
+    } catch (error) {
+      console.error("ipinfo.io error:", error.message);
+    }
+  } else {
+    console.warn("IPINFO_TOKEN not set. Skipping ipinfo.io service.");
+  }
+
+  console.warn("All geolocation services failed for IP:", ipAddress);
+  return null; // Return null if all services fail
+}
 
 router.get("/signup", async (req, res) => {
   try {
@@ -67,17 +163,42 @@ router.post("/login", async (req, res) => {
     await storeAccessToken(user._id, accessToken);
     await storeRefreshToken(user._id, refreshToken);
 
+    // Fetch geolocation data
+    let locationData = null;
+    const clientIP = req.ip; // Make sure 'trust proxy' is set in Express if behind a proxy
+    if (clientIP) {
+      locationData = await fetchGeolocationData(clientIP);
+    }
+
+    user.lastLogin = new Date();
+    if (user.lastLoginStreakStart) {
+      const diffTime = Math.abs(new Date() - user.lastLoginStreakStart);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      user.loginStreak = diffDays;
+    } else {
+      user.lastLoginStreakStart = new Date();
+      user.loginStreak = 1;
+    }
+    if (locationData) {
+      user.locationHistory = user.locationHistory || [];
+      user.locationHistory.push({
+        timestamp: new Date(),
+        ipAddress: clientIP,
+        details: locationData, // Save the whole location object from the service
+      });
+    }
+
     await user.save();
 
     const activity = new UserActivity({
       user: user._id,
-      type: 'login',
+      type: "login",
       ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers["user-agent"],
       // We'll update the location in the update-location endpoint
-      location: {}
+      location: locationData || { message: "Location data unavailable" },
     });
-    
+
     // Store the activity ID in the user's session or token for later update
     const loginActivity = await activity.save();
 
@@ -93,7 +214,7 @@ router.post("/login", async (req, res) => {
       },
       accessToken,
       refreshToken,
-      loginActivityId: loginActivity._id
+      loginActivityId: loginActivity._id,
     });
   } catch (error) {
     res.status(400).send({ error: error.message });
@@ -109,8 +230,10 @@ router.post("/update-location", auth, async (req, res) => {
 
     const loginActivity = await UserActivity.findOne({
       user: user._id,
-      type: 'login'
+      type: "login",
     }).sort({ createdAt: -1 });
+
+    console.log(req.body);
 
     if (loginActivity) {
       // Update the login activity with location
@@ -119,7 +242,7 @@ router.post("/update-location", auth, async (req, res) => {
         region: req.body.region,
         country: req.body.country,
         latitude: req.body.latitude,
-        longitude: req.body.longitude
+        longitude: req.body.longitude,
       };
       await loginActivity.save();
     }
@@ -129,16 +252,16 @@ router.post("/update-location", auth, async (req, res) => {
     user.locationHistory.push(req.body);
     await user.save();
 
-    res.json({ 
+    res.json({
       success: true,
-      message: "Location updated successfully" 
+      message: "Location updated successfully",
     });
   } catch (error) {
     console.error("Error updating location:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Error updating location",
-      error: error.message 
+      error: error.message,
     });
   }
 });
@@ -153,9 +276,9 @@ router.post("/logout", auth, async (req, res) => {
     // Log the logout activity
     await new UserActivity({
       user: user._id,
-      type: 'logout',
+      type: "logout",
       ipAddress: req.ip,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers["user-agent"],
     }).save();
 
     // Clear tokens
@@ -164,14 +287,14 @@ router.post("/logout", auth, async (req, res) => {
 
     res.json({
       success: true,
-      message: "User logged out successfully"
+      message: "User logged out successfully",
     });
   } catch (error) {
     console.error("Error in logout:", error);
     res.status(500).json({
       success: false,
       message: "Error during logout",
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -196,6 +319,12 @@ router.post("/reverse-geocode", async (req, res) => {
 router.post("/update-cookie-consent", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
     user.cookieConsent = true;
     await user.save();
 
@@ -206,9 +335,21 @@ router.post("/update-cookie-consent", auth, async (req, res) => {
       sameSite: "strict",
     });
 
-    res.status(200).json({ message: "Cookie consent saved" });
+    res.json({
+      success: true,
+      message: "Cookie consent updated successfully",
+      user: {
+        _id: user._id,
+        cookieConsent: true,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error updating cookie consent:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update cookie consent",
+      error: error.message,
+    });
   }
 });
 
@@ -263,19 +404,26 @@ router.get("/admin/activities", auth, async (req, res) => {
     if (req.user.Role !== "super_admin") {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Only super admins can view activities."
+        message: "Access denied. Only super admins can view activities.",
       });
     }
 
-    const { userId, type, startDate, endDate, page = 1, limit = 20 } = req.query;
-    
-    const query = { 
-      type: { $in: ['login', 'logout'] } // Only include login/logout events
+    const {
+      userId,
+      type,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const query = {
+      type: { $in: ["login", "logout"] }, // Only include login/logout events
     };
-    
+
     if (userId) query.user = userId;
-    if (type && ['login', 'logout'].includes(type)) query.type = type;
-    
+    if (type && ["login", "logout"].includes(type)) query.type = type;
+
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
@@ -284,12 +432,12 @@ router.get("/admin/activities", auth, async (req, res) => {
 
     const [activities, count] = await Promise.all([
       UserActivity.find(query)
-        .populate('user', 'UserName Email')
+        .populate("user", "UserName Email")
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit)
         .lean(),
-      UserActivity.countDocuments(query)
+      UserActivity.countDocuments(query),
     ]);
 
     res.json({
@@ -297,7 +445,7 @@ router.get("/admin/activities", auth, async (req, res) => {
       activities,
       totalItems: count,
       totalPages: Math.ceil(count / limit),
-      currentPage: parseInt(page)
+      currentPage: parseInt(page),
     });
   } catch (error) {
     console.error("Error in /admin/activities:", error);
