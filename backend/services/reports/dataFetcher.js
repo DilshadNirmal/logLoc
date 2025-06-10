@@ -31,6 +31,7 @@ function generateCacheKey(params) {
     averageBy,
     interval,
     selectedSensors,
+    sensorIds,
   } = params;
 
   // Create a deterministic string from the parameters
@@ -41,6 +42,7 @@ function generateCacheKey(params) {
     averageBy,
     interval,
     selectedSensors: selectedSensors ? [...selectedSensors].sort() : [],
+    sensorIds,
   });
 }
 
@@ -251,6 +253,7 @@ function createUnwindPipeline(
         value: "$voltageEntries.v",
       },
     },
+    { $sort: { timestamp: 1, sensorId: 1 } },
   ];
 
   // Add filter for selected sensors if needed
@@ -829,7 +832,7 @@ async function getCountData({
 
     // Generate cache key
     const cacheKey = generateCacheKey({
-      reportType: "count",
+      reportType: "count_data",
       selectedCounts,
       customCount,
       sensorIds,

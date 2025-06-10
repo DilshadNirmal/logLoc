@@ -30,6 +30,8 @@ const Analytics = () => {
   const [fetchError, setFetchError] = useState(null); // Local error state for fetch operations
   const [isFetching, setIsFetching] = useState(false);
 
+  console.log(countOptions);
+
   useEffect(() => {
     const updateDimensions = () => {
       const header = document.querySelector("header");

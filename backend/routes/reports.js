@@ -134,8 +134,11 @@ router.post("/fetch-data", auth, async (req, res) => {
       averageBy,
       interval,
       "sensorIds: ",
-      sensorIds
+      sensorIds,
+      req.body.customCount
     );
+
+    const selectedSensors = sensorIds.map((sensorId) => sensorId);
 
     // Validate required parameters
     if (!reportType) {
@@ -163,7 +166,7 @@ router.post("/fetch-data", auth, async (req, res) => {
       dateRange: req.body.dateRange,
       averageBy: req.body.averageBy,
       interval: req.body.interval,
-      selectedSensors: req.body.sensorIds, // Map sensorIds to selectedSensors
+      selectedSensors: selectedSensors, // Map sensorIds to selectedSensors
     };
     const cacheKey = `data_${generateCacheKey(cacheParams)}`;
 
@@ -236,8 +239,6 @@ router.post("/fetch-data", auth, async (req, res) => {
         const customCount = req.body.customCount
           ? parseInt(req.body.customCount, 10)
           : 0;
-
-        const selectedSensors = sensorIds.map((sensorId) => sensorId);
 
         data = await getCountData({
           selectedCounts,

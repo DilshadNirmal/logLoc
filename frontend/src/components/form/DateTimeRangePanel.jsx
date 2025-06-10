@@ -137,10 +137,12 @@ const DateTimeRangePanel = ({
                 {countOptions.value === "custom" && (
                   <InputBox
                     labelName={"count"}
-                    type={"number"}
+                    type={"string"}
                     name={"customCount"}
                     value={customCount.value}
-                    onChange={(e) => (customCount.value = e.target.value)}
+                    onChange={(e) => {
+                      customCount.value = e.target.value;
+                    }}
                     className={`grid place-content-center gap-3 mx-12`}
                     labelClassName={`text-text md:text-xs font-medium tracking-wide capitalize w-14 md:w-10 2xl:w-14`}
                     inputClassName={`bg-background/65 w-9/12 p-2 md:p-1 2xl:p-2 md:text-xs 2xl:text-sm text-text/85 outline-none border border-secondary rounded`}
