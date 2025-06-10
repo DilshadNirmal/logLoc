@@ -13,7 +13,7 @@ module.exports = {
         MONGODB_URI: "mongodb://localhost:27017",
       },
       watch: false,
-      instances: "3",
+      instances: "2",
       exec_mode: "cluster",
     },
   ],
