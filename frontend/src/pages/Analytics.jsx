@@ -1,19 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
 
 import {
   averageBy,
-  chartData,
   countOptions,
   currentPage,
   customCount,
   dateRange,
   fetchChart,
-  fetchVoltages,
+  isLoading as globalIsLoading, // Use global loading signal
+  chartData as globalChartData,
   selectedSensors,
-  selectedSide,
   selectedTabSignal,
 } from "../signals/voltage";
 import ChartContainer from "../components/Chart";
@@ -21,37 +20,15 @@ import DateTimeRangePanel from "../components/form/DateTimeRangePanel";
 import TabGroup from "../components/TabGroup";
 import SensorSelector from "../components/SensorSelector";
 import SensorCheckboxGrid from "../components/SensorCheckBoxGrid.";
+import { useSignals } from "@preact/signals-react/runtime";
 
 const Analytics = () => {
+  useSignals();
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const handleSensorClick = (sensor) => {
-    if (selectedSensors.value.includes(sensor)) {
-      selectedSensors.value = selectedSensors.value.filter((s) => s !== sensor);
-    } else {
-      selectedSensors.value = [...selectedSensors.value, sensor];
-    }
-  };
-
-  useEffect(() => {
-    fetchVoltages();
-  }, []);
-
-  // useEffect(() => {
-  //   const debounceTimeout = setTimeout(() => {
-  //     fetchChart();
-  //   }, 500);
-
-  //   return () => clearTimeout(debounceTimeout);
-  // }, [
-  //   selectedSensors.value,
-  //   timeRange.value,
-  //   averageBy.value,
-  //   dateRange,
-  //   selectedTab,
-  // ]);
+  const [fetchError, setFetchError] = useState(null); // Local error state for fetch operations
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -67,6 +44,35 @@ const Analytics = () => {
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
+  const fetchData = useCallback(async () => {
+    console.log(
+      "[Analytics] fetchData called. selectedSensors.value:",
+      JSON.stringify(selectedSensors.value)
+    );
+    if (selectedSensors.value.length === 0) {
+      console.log("No sensors selected, clearing chart data");
+      globalChartData.value = []; // Clear global chart data if no sensors
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchError(null);
+    currentPage.value = "analytics"; // Ensure fetchChart knows the context
+    try {
+      await fetchChart(); // This updates globalChartData & globalIsLoading from voltage.js
+    } catch (error) {
+      console.error("Error in fetchData (Analytics):", error);
+      setFetchError(error);
+      globalChartData.value = []; // Clear data on error
+    } finally {
+      setIsFetching(false);
+    }
+  }, [selectedSensors.value]);
+
+  useEffect(() => {
+    fetchData();
+  }, [selectedSensors.value]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".dropdown-container")) {
@@ -79,11 +85,27 @@ const Analytics = () => {
   }, []);
 
   const tabOptions = [
+    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "average", label: "Average Data", icon: LuSigma },
     { id: "interval", label: "Interval Data", icon: TbClockCode },
-    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "count", label: "Count-wise Data", icon: CiHashtag },
   ];
+
+  // const isLoading = isLoadingSignal.value;
+
+  // // Show loading overlay when data is being fetched
+  if (globalIsLoading.value || isFetching) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900/50 z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+          <p className="text-lg font-medium text-gray-800">
+            Loading chart data...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section
@@ -96,12 +118,12 @@ const Analytics = () => {
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
-        <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
+        <fieldset className="border border-primary/75 rounded-lg p-3 md:p-2 py-4 md:py-1 h-full">
           <TabGroup tabOptions={tabOptions} />
           {/* main content */}
-          <div className="grid grid-cols-4 gap-4 text-text m-4 2xl:m-6 2xl:mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-2 xl:gap-3 text-text m-1 md:m-1.5 md:mt-2 xl:mx-4 2xl:mt-4">
             {/* Left Panel */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:gap-2">
               {/* Sensor Selection */}
               <SensorSelector />
 
@@ -114,18 +136,24 @@ const Analytics = () => {
                 customCount={customCount}
                 onPlotGraph={() => {
                   currentPage.value = "analytics";
-                  fetchChart("analytics");
+                  fetchChart();
                 }}
               />
             </div>
 
             {/* Right Panel - Chart */}
             <div
-              className="col-span-3 flex flex-col bg-secondary rounded-lg p-4"
-              style={{ height: `${contentHeight - 200}px` }}
+              className="md:col-span-3 flex flex-col bg-secondary rounded-lg p-4 md:p-2 2xl:p-4"
+              style={{
+                height: `${
+                  window.innerWidth > 1024
+                    ? contentHeight - 200
+                    : contentHeight - 110
+                }px`,
+              }}
             >
-              <div className="h-full flex-1 border border-primary/30 rounded-lg p-4">
-                <ChartContainer data={chartData} />
+              <div className="!h-[250px] md:h-full flex-1 border border-primary/30 rounded-lg p-4 md:p-2 2xl:p-4">
+                <ChartContainer source="analytics" />
               </div>
 
               {/* Sensor Checkbox Grid */}

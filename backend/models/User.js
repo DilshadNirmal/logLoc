@@ -61,4 +61,7 @@ const UserSchema = new mongoose.Schema({
   },
 });
 
+UserSchema.index({ 'locationHistory.timestamp': -1 });
+UserSchema.index({ 'activities.timestamp': -1 });
+
 module.exports = mongoose.model("User", UserSchema);

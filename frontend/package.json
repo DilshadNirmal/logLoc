@@ -34,6 +34,7 @@
     "react-dom": "^19.0.0",
     "react-error-boundary": "^5.0.0",
     "react-gauge-component": "^1.2.64",
+    "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.4.0",
     "tailwindcss": "^4.0.15",

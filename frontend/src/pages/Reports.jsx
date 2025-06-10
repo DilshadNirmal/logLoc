@@ -2,49 +2,33 @@ import { useState, useEffect } from "react";
 import { CiCalendar, CiHashtag } from "react-icons/ci";
 import { TbClockCode } from "react-icons/tb";
 import { LuSigma } from "react-icons/lu";
-import AverageDataForm from "../components/form/AverageDataForm";
-import IntervalDataForm from "../components/form/IntervalDataForm";
-import DatePickerForm from "../components/form/DatePickerForm";
-import CountWiseForm from "../components/form/countWiseForm";
 import axiosInstance from "../lib/axios";
+import TabGroup from "../components/TabGroup";
+import { selectedTabSignal } from "../signals/commonSignals";
+import {
+  averageBy,
+  countOptions,
+  customCount,
+  dateRange,
+  selectedSensors,
+  selectedSidesSignal,
+} from "../signals/voltage";
+import { signal } from "@preact/signals-react";
+import ReportForm from "../components/form/ReportForm";
 
-const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
-  <button
-    className={`flex items-center justify-center gap-3 p-3 md:p-2 lg:p-3 rounded-lg transition-all ${
-      isSelected
-        ? "bg-primary text-white"
-        : "bg-secondary text-text hover:bg-secondary/70"
-    }`}
-    onClick={onClick}
-  >
-    <Icon className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-8 2xl:h-8" />
-    <span className="text-base 2xl:text-lg font-medium tracking-wide">
-      {label}
-    </span>
-  </button>
-);
+// Create a signal for interval since it doesn't exist in voltage.js
+const interval = signal("hour");
 
 const Reports = () => {
   const [navHeight, setNavHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
-  const [selectedTab, setSelectedTab] = useState("average");
-  const [configuration, setConfiguration] = useState("");
-  const [dateRange, setDateRange] = useState({ from: "", to: "" });
-  const [averageBy, setAverageBy] = useState("hour");
-  const [interval, setInterval] = useState("hour");
-  const [selectedCounts, setSelectedCounts] = useState({
-    last100: true,
-    last500: false,
-    last1000: false,
-    custom: false,
-  });
-  const [customCount, setCustomCount] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
 
   const tabOptions = [
+    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "average", label: "Average Data", icon: LuSigma },
     { id: "interval", label: "Interval Data", icon: TbClockCode },
-    { id: "date", label: "Date Picker", icon: CiCalendar },
     { id: "count", label: "Count-wise Data", icon: CiHashtag },
   ];
 
@@ -68,19 +52,29 @@ const Reports = () => {
       setIsLoading(true);
 
       const payload = {
-        reportType: selectedTab,
-        configuration,
-        dateRange,
+        reportType: selectedTabSignal.value,
+        configuration: selectedSidesSignal.value.A
+          ? "A"
+          : selectedSidesSignal.value.B
+          ? "B"
+          : "ALL",
+        dateRange: dateRange.value,
+        selectedSensors: selectedSensors.value,
       };
 
-      if (selectedTab === "average") {
-        payload.averageBy = averageBy;
-      } else if (selectedTab === "interval") {
-        payload.interval = interval;
-      } else if (selectedTab === "count") {
-        payload.selectedCounts = selectedCounts;
-        if (selectedCounts.custom) {
-          payload.customCount = customCount;
+      if (selectedTabSignal.value === "average") {
+        payload.averageBy = averageBy.value;
+      } else if (selectedTabSignal.value === "interval") {
+        payload.interval = interval.value;
+      } else if (selectedTabSignal.value === "count") {
+        payload.selectedCounts = {
+          last100: countOptions.value === "last100",
+          last500: countOptions.value === "last500",
+          last1000: countOptions.value === "last1000",
+          custom: countOptions.value === "custom",
+        };
+        if (countOptions.value === "custom") {
+          payload.customCount = customCount.value;
         }
       }
 
@@ -107,15 +101,15 @@ const Reports = () => {
 
       let filename = "";
 
-      switch (selectedTab) {
+      switch (selectedTabSignal.value) {
         case "average":
-          filename = `Average_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          filename = `Average_Data_${dateRange.value.from}_to_${dateRange.value.to}.xlsx`;
           break;
         case "interval":
-          filename = `Interval_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          filename = `Interval_Data_${dateRange.value.from}_to_${dateRange.value.to}.xlsx`;
           break;
         case "date":
-          filename = `Date_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
+          filename = `Date_Data_${dateRange.value.from}_to_${dateRange.value.to}.xlsx`;
           break;
         case "count":
           filename = `Count_Data_${
@@ -142,54 +136,7 @@ const Reports = () => {
   };
 
   const renderForm = () => {
-    switch (selectedTab) {
-      case "average":
-        return (
-          <AverageDataForm
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            averageBy={averageBy}
-            setAverageBy={setAverageBy}
-            onDownload={handleDownload}
-          />
-        );
-      case "interval":
-        return (
-          <IntervalDataForm
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            interval={interval}
-            setInterval={setInterval}
-            onDownload={handleDownload}
-          />
-        );
-      case "date":
-        return (
-          <DatePickerForm
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            onDownload={handleDownload}
-          />
-        );
-      case "count":
-        return (
-          <CountWiseForm
-            selectedCounts={selectedCounts}
-            setSelectedCounts={setSelectedCounts}
-            customCount={customCount}
-            setCustomCount={setCustomCount}
-            onDownload={handleDownload}
-          />
-        );
-      default:
-        return null;
-    }
+    return <ReportForm type={selectedTabSignal} onDownload={handleDownload} />;
   };
 
   return (
@@ -203,26 +150,26 @@ const Reports = () => {
           height: window.innerWidth >= 1024 ? `${contentHeight}px` : "auto",
         }}
       >
-        <fieldset className="border border-primary/75 rounded-lg p-2 py-1 h-full">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 m-4 2xl:m-8">
-            {tabOptions.map((tab) => (
-              <TabButton
-                key={tab.id}
-                isSelected={selectedTab === tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                icon={tab.icon}
-                label={tab.label}
-              />
-            ))}
-          </div>
+        <fieldset className="border border-primary/75 rounded-lg p-3 md:p-2 py-4 md:py-1 h-full">
+          <TabGroup tabOptions={tabOptions} />
           <div
-            className="bg-primary/25 rounded-lg p-4 2xl:p-4 m-4 2xl:m-8"
+            className="bg-primary/25 rounded-lg md:mx-2 xl:mx-4"
             style={{ height: `${contentHeight - navHeight - 132}px` }}
           >
             {renderForm()}
           </div>
         </fieldset>
       </div>
+
+      {/* Loading Modal */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="p-6 rounded-lg shadow-xl text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-text/75">Generating Excel file...</p>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

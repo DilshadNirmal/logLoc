@@ -19,31 +19,16 @@ import Settings from "./pages/Settings";
 import EmailConfig from "./pages/EmailConfig";
 import UserList from "./pages/UserList";
 import ChangePassword from "./pages/ChangePassword";
+import ActivitiesLog from "./pages/ActivitiesLog";
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary"></div>
-      </div>
-    );
-  }
-  if (!user) {
-    return <Navigate to="/login" />;
+    return <div>Loading...</div>;
   }
 
-  if (!user.cookieConsent && location.pathname !== "/cookie-consent") {
-    return <Navigate to="/cookie-consent" />;
-  }
-
-  if (!user.phoneVerified && location.pathname !== "/verify-otp") {
-    return <Navigate to="/verify-otp" />;
-  }
-
-  return children;
+  return user ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
@@ -76,8 +61,23 @@ const AppContent = () => {
             </PublicRoute>
           }
         />
-        <Route path="/verify-otp" element={<VerifyOtp />} />
-        <Route path="/cookie-consent" element={<CookieConsent />} />
+        <Route
+          path="/cookie-consent"
+          element={
+            <PublicRoute>
+              <CookieConsent />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verify-otp"
+          element={
+            <PublicRoute>
+              <VerifyOtp />
+            </PublicRoute>
+          }
+        />
+
         {/* Protected Routes */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route
@@ -141,6 +141,11 @@ const AppContent = () => {
             </PrivateRoute>
           }
         />
+        <Route path="/activities" element={
+          <PrivateRoute>
+            <ActivitiesLog />
+          </PrivateRoute>
+        } />
       </Routes>
     </Router>
   );

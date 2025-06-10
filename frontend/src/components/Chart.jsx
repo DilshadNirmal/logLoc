@@ -1,69 +1,178 @@
-import { useRef, useEffect, forwardRef, useState, memo } from "react";
+import { useRef, useEffect, useState, memo, useMemo } from "react";
 import * as d3 from "d3";
 import { useSignals } from "@preact/signals-react/runtime";
-import { effect } from "@preact/signals-react";
-import { chartData } from "../signals/voltage";
+import {
+  dashboardChartData,
+  isDashboardChartLoading,
+  dashboardChartError,
+  dashboardSelectedSide,
+  dashboardSelectedSensors,
+  dashboardTimeRange,
+  fetchDashboardChartData,
+} from "../signals/dashboardSignals";
 
-const ChartContainer = ({ data }) => {
+import {
+  chartData as analyticsGlobalChartData,
+  isLoading as isAnalyticsGlobalLoading,
+} from "../signals/voltage";
+
+const ChartContainer = ({ source = "dashboard" }) => {
   useSignals();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshIntervalRef = useRef(null);
 
-  if (data.value.length === 0) {
+  // Determine data source based on 'source' prop
+  const isDashboardSource = source === "dashboard";
+
+  const side = isDashboardSource ? dashboardSelectedSide.value : null;
+  const sensorsArray = isDashboardSource
+    ? dashboardSelectedSensors.value
+    : null;
+  const timeRange = isDashboardSource ? dashboardTimeRange.value : null;
+
+  // Select the correct signals based on the source
+  const currentChartData = isDashboardSource
+    ? dashboardChartData.value
+    : analyticsGlobalChartData.value;
+  const isLoading = isDashboardSource
+    ? isDashboardChartLoading.value
+    : isAnalyticsGlobalLoading.value;
+  const error = isDashboardSource ? dashboardChartError.value : null;
+
+  // Fetch data immediately and set up interval
+  useEffect(() => {
+    if (!isDashboardSource) return;
+
+    const fetchData = async () => {
+      if (isRefreshing) return; // Don't overlap requests
+
+      setIsRefreshing(true);
+      try {
+        await fetchDashboardChartData();
+      } catch (err) {
+        console.error("Error refreshing chart data:", err);
+      } finally {
+        setIsRefreshing(false);
+      }
+    };
+
+    // Initial fetch
+    fetchData();
+
+    // Set up interval for auto-refresh (every 2 seconds)
+    refreshIntervalRef.current = setInterval(fetchData, 5000);
+
+    // Cleanup
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [side, JSON.stringify(sensorsArray), timeRange]);
+
+  // Combine loading states
+  const showLoading = isLoading || (isDashboardSource && isRefreshing);
+
+  // UI for loading, error, and no data states
+  if (showLoading && currentChartData.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-text">
-        no voltage data to display chart...
+        Loading chart data...
       </div>
     );
   }
 
-  return <Chart data={data} />;
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center text-red-500">
+        Error:{" "}
+        {typeof error === "string"
+          ? error
+          : error.message || "Unknown chart error"}
+      </div>
+    );
+  }
+
+  if (!showLoading && currentChartData.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-text">
+        No voltage data to display for the selected criteria.
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full">
+      {/* Loading overlay that appears on top of the chart during refreshes */}
+      {showLoading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
+          <div className="text-text">
+            {isDashboardSource ? "Refreshing data..." : "Loading chart..."}
+          </div>
+        </div>
+      )}
+
+      <Chart chartDataArray={currentChartData} />
+    </div>
+  );
 };
 
-const Chart = forwardRef(({ data }, ref) => {
+const Chart = memo(({ chartDataArray }) => {
+  useSignals();
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
-  const brushGroupRef = useRef(null);
-  const brushRef = useRef(null);
   const [isZoomActive, setIsZoomActive] = useState(false);
   const [zoomState, setZoomState] = useState(null);
+  const d3Refs = useRef({
+    xScale: null,
+    yScale: null,
+    xAxis: null,
+    yAxis: null,
+    lines: [],
+    brushGroup: null,
+    tooltipLine: null,
+    tooltipPoints: [],
+  });
 
-  // adding key to force re-renders
-  const dataKey = JSON.stringify(data.value.map((item) => item.sensorId));
+  const dataKey = useMemo(
+    () =>
+      chartDataArray.map((item) => ({
+        id: item.sensorId,
+        length: item.data?.length || 0,
+        first: item.data?.[0]?.timestamp,
+        last: item.data?.[item.data?.length - 1]?.timestamp,
+        zoom: isZoomActive ? `${zoomState?.x0}-${zoomState?.x1}` : "full",
+      })),
+    [chartDataArray, isZoomActive, zoomState]
+  );
 
   useEffect(() => {
-    if (!data.value || data.value.length === 0) return;
+    if (!chartDataArray || chartDataArray.length === 0) return;
 
-    // Implement data decimation for large datasets
-    const decimateData = (sensorData, threshold = 1000) => {
-      if (sensorData.length <= threshold) return sensorData;
-
-      const factor = Math.floor(sensorData.length / threshold);
-      return sensorData.filter((_, index) => index % factor === 0);
+    const decimateData = (data, threshold = 1000) => {
+      if (data.length <= threshold) return data;
+      const factor = Math.floor(data.length / threshold);
+      return data.filter((_, i) => i % factor === 0);
     };
 
-    // Process data with decimation
-    const processedData = data.value.map((sensor) => ({
+    const processedData = chartDataArray.map((sensor) => ({
       ...sensor,
       data: decimateData(sensor.data),
     }));
 
-    // Get the container dimensions from the SVG element itself
-    const svgElement = svgRef.current;
-    const width = svgElement.clientWidth;
-    const height = svgElement.clientHeight;
-
     const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-
+    const width = svgRef.current.clientWidth;
+    const height = svgRef.current.clientHeight;
     const margin = { top: 20, right: 30, bottom: 30, left: 50 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    // Background
+    svg.selectAll("*").remove();
+
     svg
       .attr("width", "100%")
       .attr("height", "100%")
       .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("preserveAspectRatio", "xMidYMid meet")
       .append("rect")
       .attr("width", width)
       .attr("height", height)
@@ -74,28 +183,23 @@ const Chart = forwardRef(({ data }, ref) => {
       .append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    // Adding clipPath to ensure lines don't extend beyond the chart area
     svg
       .append("defs")
       .append("clipPath")
-      .attr("id", "chart-area-clip")
+      .attr("id", "chart-clip")
       .append("rect")
       .attr("width", innerWidth)
-      .attr("height", innerHeight)
-      .attr("x", 0)
-      .attr("y", 0);
+      .attr("height", innerHeight);
 
-    // Process data
-    const allTimestamps = processedData.flatMap((sensor) =>
-      sensor.data.map((d) => new Date(d.timestamp))
+    const allTimestamps = processedData.flatMap((s) =>
+      s.data.map((d) => new Date(d.timestamp))
     );
     const allValues = processedData
-      .flatMap((sensor) => sensor.data.map((d) => d.value))
-      .filter((v) => v !== null && !isNaN(v));
+      .flatMap((s) => s.data.map((d) => d.value))
+      .filter((v) => v != null);
 
     if (allValues.length === 0) return;
 
-    // Create scales
     const xScale = d3
       .scaleTime()
       .domain(d3.extent(allTimestamps))
@@ -104,73 +208,56 @@ const Chart = forwardRef(({ data }, ref) => {
     const yMin = d3.min(allValues);
     const yMax = d3.max(allValues);
     const yPadding = Math.abs((yMax - yMin) * 0.1);
-
     const yScale = d3
       .scaleLinear()
       .domain([yMin - yPadding, yMax + yPadding])
       .range([innerHeight, 0]);
 
-    // If we have a saved zoom state, apply it
     if (isZoomActive && zoomState) {
       xScale.domain([zoomState.x0, zoomState.x1]);
     }
 
-    const xValue = (d) => {
-      // Use timestamp if available, otherwise try to parse the label
-      if (d.timestamp) {
-        return new Date(d.timestamp);
-      } else if (d.label) {
-        // Try to parse the label as a date if it's in a standard format
-        return new Date(d.label);
-      }
-      return null;
-    };
+    d3Refs.current.xScale = xScale;
+    d3Refs.current.yScale = yScale;
 
-    // Line generator
     const line = d3
       .line()
-      .x((d) => xScale(xValue(d)))
+      .x((d) => xScale(new Date(d.timestamp)))
       .y((d) => yScale(d.value))
-      .defined((d) => d.value !== null && !isNaN(d.value))
+      .defined((d) => d.value !== null)
       .curve(d3.curveMonotoneX);
 
-    // Add grid
     g.append("g")
-      .attr("class", "x-grid")
+      .attr("class", "grid x-grid")
       .attr("transform", `translate(0,${innerHeight})`)
       .call(d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(""))
-      .attr("color", "#2a3444")
-      .attr("stroke-opacity", 0.5);
+      .attr("color", "#2a3444");
 
     g.append("g")
-      .attr("class", "y-grid")
+      .attr("class", "grid y-grid")
       .call(d3.axisLeft(yScale).tickSize(-innerWidth).tickFormat(""))
-      .attr("color", "#2a3444")
-      .attr("stroke-opacity", 0.5);
+      .attr("color", "#2a3444");
 
-    // Add axes
     const xAxis = g
       .append("g")
-      .attr("class", "x-axis")
+      .attr("class", "axis x-axis")
       .attr("transform", `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%H:%M")))
-      .attr("color", "#e9ebed");
+      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d %b %H:%M")))
+      .attr("color", "#fff");
+    d3Refs.current.xAxis = xAxis;
 
     const yAxis = g
       .append("g")
-      .attr("class", "y-axis")
+      .attr("class", "axis y-axis")
       .call(d3.axisLeft(yScale).tickFormat((d) => `${d}mV`))
-      .attr("color", "#e9ebed");
+      .attr("color", "#fff");
+    d3Refs.current.yAxis = yAxis;
 
-    // Create a group for the lines with clipping applied
-    const linesGroup = g.append("g").attr("clip-path", "url(#chart-area-clip)");
-
-    // Draw lines
+    const linesGroup = g.append("g").attr("clip-path", "url(#chart-clip)");
     const colors = ["#0ea5e9", "#f43f5e", "#22c55e", "#f59e0b", "#8b5cf6"];
+
     const lines = processedData.map((sensor, i) => {
-      const validData = sensor.data.filter(
-        (d) => d.value !== null && !isNaN(d.value)
-      );
+      const validData = sensor.data.filter((d) => d.value !== null);
       return linesGroup
         .append("path")
         .datum(validData)
@@ -179,199 +266,32 @@ const Chart = forwardRef(({ data }, ref) => {
         .attr("stroke-width", 2)
         .attr("d", line);
     });
+    d3Refs.current.lines = lines;
 
-    // Brush/zoom functionality
     const brush = d3
       .brushX()
       .extent([
         [0, 0],
         [innerWidth, innerHeight],
       ])
-      .on("end", function (event) {
-        if (!event.sourceEvent) return;
-        brushed(event);
-      });
+      .on("end", handleBrushEnd);
 
     const brushGroup = g
       .append("g")
       .attr("class", "brush")
-      .style("display", isZoomActive ? "block" : "none") // Initially hidden
-      .style("pointer-events", "all")
+      .style("display", isZoomActive ? "block" : "none")
       .call(brush);
-
-    brushGroupRef.current = brushGroup;
-
-    // Properly style brush components
-    brushGroup
-      .select(".overlay")
-      .attr("fill", "none")
-      .attr("pointer-events", "all");
+    d3Refs.current.brushGroup = brushGroup;
 
     brushGroup
       .select(".selection")
       .attr("fill", "#3b82f6")
-      .attr("fill-opacity", 0.3)
-      .attr("stroke", "#2563eb")
-      .attr("stroke-width", 1)
-      .attr("stroke-dasharray", "3,3");
+      .attr("fill-opacity", 0.3);
+    brushGroup.selectAll(".handle").attr("fill", "#3b82f6");
 
-    brushGroup
-      .selectAll(".handle")
-      .attr("fill", "#3b82f6")
-      .attr("fill-opacity", 0.8);
+    addZoomControls(svg, width, isZoomActive, setIsZoomActive, handleResetZoom);
 
-    function brushed(event) {
-      if (!event.selection) {
-        // Only reset if this was an explicit clear (like hitting Esc)
-        if (event.sourceEvent && event.sourceEvent.type === "keydown") {
-          setIsZoomActive(false);
-          setZoomRange(null);
-          resetZoom();
-          return;
-        }
-
-        return;
-      }
-
-      const [x0, x1] = event.selection.map(xScale.invert);
-      setIsZoomActive(true);
-      setZoomState({ x0, x1 });
-      zoomToRange(x0, x1);
-    }
-
-    function zoomToRange(start, end) {
-      xScale.domain([start, end]);
-
-      // Update chart elements
-      xAxis
-        .transition()
-        .duration(750)
-        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%H:%M")));
-
-      g.select(".x-grid")
-        .transition()
-        .duration(750)
-        .call(d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(""));
-
-      lines.forEach((linePath, i) => {
-        const validData = processedData[i].data.filter(
-          (d) => d.value !== null && !isNaN(d.value)
-        );
-        linePath.transition().duration(750).attr("d", line(validData));
-      });
-
-      // Hide brush after successful zoom
-      // brushGroup.style("display", "none");
-    }
-
-    function resetZoom() {
-      // setZoomState(null); // Clear zoom state
-      xScale.domain(d3.extent(allTimestamps));
-
-      xAxis
-        .transition()
-        .duration(750)
-        .call(
-          d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d-%B-%y %H:%M"))
-        );
-
-      g.select(".x-grid")
-        .transition()
-        .duration(750)
-        .call(d3.axisBottom(xScale).tickSize(-innerHeight).tickFormat(""));
-
-      lines.forEach((linePath, i) => {
-        // Fix: Use processedData instead of data
-        const validData = processedData[i].data.filter(
-          (d) => d.value !== null && !isNaN(d.value)
-        );
-        linePath.transition().duration(750).attr("d", line(validData));
-      });
-    }
-
-    // Store brush reference
-    brushRef.current = brush;
-
-    // Add zoom controls
-    const zoomButtons = svg
-      .append("g")
-      .attr("transform", `translate(${width - 90}, 5)`);
-
-    // Zoom button
-    const zoomBtn = zoomButtons
-      .append("g")
-      .attr("cursor", "pointer")
-      .on("click", () => {
-        const newZoomState = !isZoomActive;
-        setIsZoomActive(newZoomState);
-
-        if (newZoomState) {
-          // Show brush
-          brushGroup.style("display", "block");
-        } else {
-          // Hide brush and reset zoom if active
-          brushGroup.style("display", "none");
-          if (zoomState) {
-            setZoomState(null);
-            resetZoom();
-          }
-        }
-      });
-
-    zoomBtn
-      .append("rect")
-      .attr("x", 0)
-      .attr("y", 0)
-      .attr("width", 30)
-      .attr("height", 24)
-      .attr("rx", 6)
-      .attr("fill", isZoomActive ? "#3b82f6" : "#2a3444")
-      .attr("stroke", "#3b4559")
-      .attr("stroke-width", 1);
-
-    zoomBtn
-      .append("text")
-      .attr("x", 15)
-      .attr("y", 17)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#e9ebed")
-      .attr("font-size", "14px")
-      .text("🔍");
-
-    // Reset button
-    if (isZoomActive) {
-      const resetBtn = zoomButtons
-        .append("g")
-        .attr("transform", "translate(35, 0)")
-        .attr("cursor", "pointer")
-        .on("click", () => {
-          setIsZoomActive(false);
-          setZoomState(null);
-          resetZoom();
-          brushGroup.style("display", "none");
-        });
-
-      resetBtn
-        .append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", 50)
-        .attr("height", 24)
-        .attr("rx", 6)
-        .attr("fill", "#2a3444")
-        .attr("stroke", "#3b4559")
-        .attr("stroke-width", 1);
-
-      resetBtn
-        .append("text")
-        .attr("x", 25)
-        .attr("y", 17)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#e9ebed")
-        .attr("font-size", "12px")
-        .text("Reset");
-    }
-    // Tooltip setup
+    // TOOLTIP IMPLEMENTATION
     if (!isZoomActive) {
       const tooltip = d3.select(tooltipRef.current);
       const tooltipLine = g
@@ -381,16 +301,17 @@ const Chart = forwardRef(({ data }, ref) => {
         .attr("y1", 0)
         .attr("y2", innerHeight)
         .style("opacity", 0);
+      d3Refs.current.tooltipLine = tooltipLine;
 
-      const tooltipPoints = data.value.map((_, i) =>
+      const tooltipPoints = processedData.map((_, i) =>
         g
           .append("circle")
           .attr("r", 4)
           .attr("fill", colors[i % colors.length])
           .style("opacity", 0)
       );
+      d3Refs.current.tooltipPoints = tooltipPoints;
 
-      // Hover interaction for tooltips
       const hoverArea = g
         .append("rect")
         .attr("width", innerWidth)
@@ -401,101 +322,167 @@ const Chart = forwardRef(({ data }, ref) => {
           const mouseX = d3.pointer(event)[0];
           const x0 = xScale.invert(mouseX);
 
-          // Find closest data points
           const points = [];
-          data.value.forEach((sensor, sensorIndex) => {
+          processedData.forEach((sensor, sensorIndex) => {
             const bisect = d3.bisector((d) => new Date(d.timestamp)).left;
             const index = bisect(sensor.data, x0);
 
-            // Get the points on either side of the cursor
             const d0 = sensor.data[index - 1];
             const d1 = sensor.data[index];
 
-            // If we have points on both sides, find the closest one
+            let point;
             if (d0 && d1) {
-              const point =
+              point =
                 x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0
                   ? d1
                   : d0;
-              points.push({ point, index: sensorIndex });
             } else if (d0) {
-              points.push({ point: d0, index: sensorIndex });
+              point = d0;
             } else if (d1) {
-              points.push({ point: d1, index: sensorIndex });
-            } else {
-              points.push(null);
+              point = d1;
             }
+
+            if (point) points.push({ point, index: sensorIndex });
           });
 
-          if (points.some((p) => !p)) return;
+          if (points.length === 0) return;
 
-          // Update tooltip line
           tooltipLine.attr("x1", mouseX).attr("x2", mouseX).style("opacity", 1);
 
-          // Update tooltip points
           points.forEach(({ point, index }) => {
-            const timestamp = new Date(point.timestamp);
-            const value = point.value;
-
             tooltipPoints[index]
-              .attr("cx", xScale(timestamp))
-              .attr("cy", yScale(value))
+              .attr("cx", xScale(new Date(point.timestamp)))
+              .attr("cy", yScale(point.value))
               .style("opacity", 1);
           });
 
-          // Update tooltip content
+          const svgRect = svgRef.current.getBoundingClientRect();
+
           tooltip
             .style("opacity", 1)
-            .style("left", `${event.pageX - 994}px`)
-            .style("top", `${event.pageY - 750}px`).html(`
-            <div style="background: rgba(26,34,52,0.9); padding: 6px; border-radius: 4px;">
-              <div style="color: #e9ebed; font-size: 10px; opacity: 0.7;">
-                ${new Date(points[0].point.timestamp).toLocaleString()}
-              </div>
-              ${points
-                .map(
-                  ({ point, index }) => `
-                <div style="color: ${
-                  colors[index % colors.length]
-                }; font-weight: bold;">
-                  S${data.value[index].sensorId}: ${point.value.toFixed(2)}mV
-                </div>
-              `
-                )
-                .join("")}
-            </div>
-          `);
+            .style("left", `${event.pageX - svgRect.left + 10}px`)
+            .style("top", `${event.pageY - svgRect.top + 10}px`).html(`
+                                   <div class="bg-gray-900/90 p-2 rounded border border-gray-700">
+                                     <div class="text-xs text-gray-300">
+                                       ${new Date(
+                                         points[0].point.timestamp
+                                       ).toLocaleString()}
+                                     </div>
+                                     ${points
+                                       .map(
+                                         ({ point, index }) => `
+                                       <div class="text-sm" style="color: ${
+                                         colors[index % colors.length]
+                                       }">
+                                         S${
+                                           processedData[index].sensorId
+                                         }: ${point.value.toFixed(2)}mV
+                                       </div>
+                                     `
+                                       )
+                                       .join("")}
+                                   </div>
+                                 `);
         })
         .on("mouseleave", () => {
           tooltipLine.style("opacity", 0);
-          tooltipPoints.forEach((point) => point.style("opacity", 0));
+          tooltipPoints.forEach((p) => p.style("opacity", 0));
           tooltip.style("opacity", 0);
         });
-
-      // Bring tooltip elements to front
-      tooltipLine.raise();
-      tooltipPoints.forEach((point) => point.raise());
-      hoverArea.raise();
     }
 
-    lines.forEach((line) => line.raise());
-    if (brushGroup) brushGroup.raise();
+    d3.select(document).on("keydown", handleKeyDown);
 
-    // Keyboard support
-    d3.select(document).on("keydown", function (event) {
-      if (event.key === "Escape" && isZoomActive) {
-        setIsZoomActive(false);
-        setZoomRange(null);
-        resetZoom();
-        brushGroup.style("display", "none");
-      }
-    });
-
-    // Clean up
     return () => {
       d3.select(document).on("keydown", null);
     };
-  }, [data.value, dataKey, zoomState, isZoomActive]);
+  }, [dataKey]);
+
+  // Brush handler
+  const handleBrushEnd = (event) => {
+    if (!event.selection) {
+      if (event.sourceEvent?.type === "keydown") {
+        handleResetZoom();
+      }
+      return;
+    }
+
+    const [x0, x1] = event.selection.map(d3Refs.current.xScale.invert);
+    setIsZoomActive(true);
+    setZoomState({ x0, x1 });
+    updateZoom(x0, x1);
+  };
+
+  // Update zoom state
+  const updateZoom = (x0, x1) => {
+    const { xScale, xAxis, lines, brushGroup } = d3Refs.current;
+    if (!xScale || !xAxis) return;
+
+    xScale.domain([x0, x1]);
+
+    xAxis
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d %b %H:%M")));
+
+    lines.forEach((line) => {
+      line
+        .transition()
+        .duration(750)
+        .attr(
+          "d",
+          d3
+            .line()
+            .x((d) => xScale(new Date(d.timestamp)))
+            .y((d) => d3Refs.current.yScale(d.value))
+            .defined((d) => d.value !== null)
+            .curve(d3.curveMonotoneX)
+        );
+    });
+
+    brushGroup?.style("display", "none");
+  };
+
+  // Reset zoom
+  const handleResetZoom = () => {
+    setIsZoomActive(false);
+    setZoomState(null);
+
+    const { xScale, xAxis, lines } = d3Refs.current;
+    if (!xScale || !xAxis) return;
+
+    const allTimestamps = chartDataArray.flatMap((s) =>
+      s.data.map((d) => new Date(d.timestamp))
+    );
+    xScale.domain(d3.extent(allTimestamps));
+
+    xAxis
+      .transition()
+      .duration(750)
+      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%d %b %H:%M")));
+
+    lines.forEach((line) => {
+      line
+        .transition()
+        .duration(750)
+        .attr(
+          "d",
+          d3
+            .line()
+            .x((d) => xScale(new Date(d.timestamp)))
+            .y((d) => d3Refs.current.yScale(d.value))
+            .defined((d) => d.value !== null)
+            .curve(d3.curveMonotoneX)
+        );
+    });
+  };
+
+  // Keyboard handler
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape" && isZoomActive) {
+      handleResetZoom();
+    }
+  };
 
   return (
     <>
@@ -506,11 +493,76 @@ const Chart = forwardRef(({ data }, ref) => {
       />
       <div
         ref={tooltipRef}
-        className="absolute bg-background/90 border border-primary/30 rounded-md p-2 text-xs pointer-events-none"
+        className="absolute bg-gray-900/90 border border-gray-700 rounded p-2 pointer-events-none"
+        style={{
+          opacity: 0,
+          transition: "opacity 0.2s",
+          fontSize: "12px",
+          zIndex: 10,
+        }}
       />
     </>
   );
 });
+
+const addZoomControls = (
+  svg,
+  width,
+  isZoomActive,
+  setIsZoomActive,
+  handleResetZoom
+) => {
+  const controls = svg
+    .append("g")
+    .attr("transform", `translate(${width - 90}, 5)`);
+
+  // Zoom button
+  const zoomBtn = controls
+    .append("g")
+    .attr("cursor", "pointer")
+    .on("click", () => setIsZoomActive(!isZoomActive));
+
+  zoomBtn
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 30)
+    .attr("height", 24)
+    .attr("rx", 6)
+    .attr("fill", isZoomActive ? "#3b82f6" : "#2a3444");
+
+  zoomBtn
+    .append("text")
+    .attr("x", 15)
+    .attr("y", 17)
+    .attr("text-anchor", "middle")
+    .text("🔍");
+
+  // Reset button (only when zoomed)
+  if (isZoomActive) {
+    const resetBtn = controls
+      .append("g")
+      .attr("transform", "translate(35, 0)")
+      .attr("cursor", "pointer")
+      .on("click", handleResetZoom);
+
+    resetBtn
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 50)
+      .attr("height", 24)
+      .attr("rx", 6)
+      .attr("fill", "#2a3444");
+
+    resetBtn
+      .append("text")
+      .attr("x", 25)
+      .attr("y", 17)
+      .attr("text-anchor", "middle")
+      .text("Reset");
+  }
+};
 
 Chart.displayName = "Chart";
 

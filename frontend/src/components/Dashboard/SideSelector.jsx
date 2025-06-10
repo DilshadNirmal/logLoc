@@ -1,5 +1,8 @@
 import { useSignals } from "@preact/signals-react/runtime";
-import { selectedSide, selectedSensors } from "../../signals/voltage";
+import {
+  dashboardSelectedSensors,
+  dashboardSelectedSide,
+} from "../../signals/dashboardSignals";
 
 const SideSelector = () => {
   useSignals();
@@ -11,37 +14,34 @@ const SideSelector = () => {
           value: "A",
           label: "A Side",
           action: () => {
-            selectedSide.value = "A";
-            selectedSensors.value = [];
+            dashboardSelectedSide.value = "A";
+            dashboardSelectedSensors.value = [];
           },
         },
         {
           value: "B",
           label: "B Side",
           action: () => {
-            selectedSide.value = "B";
-            selectedSensors.value = [];
+            dashboardSelectedSide.value = "B";
+            dashboardSelectedSensors.value = [];
           },
         },
         {
           value: "clear",
           label: "Clear",
           action: () => {
-            selectedSide.value = "";
-            selectedSensors.value = [];
+            dashboardSelectedSide.value = "A"; // Default to A or handle as 'no specific side'
+            dashboardSelectedSensors.value = [];
           },
         },
       ].map((button) => (
         <button
           key={button.value}
           onClick={button.action}
-          className={`px-4 md:px-2 py-2 rounded-lg text-sm md:text-[10px] 2xl:text-sm outline-none ${
-            (button.value === "A" && selectedSide.value === "A") ||
-            (button.value === "A" &&
-              selectedSensors.value.some((id) => id <= 20)) ||
-            (button.value === "B" && selectedSide.value === "B") ||
-            (button.value === "B" &&
-              selectedSensors.value.some((id) => id > 20))
+          className={`px-4 md:px-2 py-2 md:py-1 rounded-lg text-sm md:text-[8px] 2xl:text-sm outline-none ${
+            // Update active state logic based on new signals
+            (button.value === "A" && dashboardSelectedSide.value === "A") ||
+            (button.value === "B" && dashboardSelectedSide.value === "B")
               ? "bg-primary text-white"
               : "bg-background/20 hover:bg-background/30 text-text"
           }`}

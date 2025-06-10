@@ -1,19 +1,53 @@
-const TabButton = ({ isSelected, onClick, icon: Icon, label }) => (
-  <button
-    className={`flex items-center justify-center gap-3 p-3 md:p-2 lg:p-3 lg:py-5 rounded-lg transition-all ${
-      isSelected
-        ? "bg-primary text-white"
-        : "bg-secondary text-text hover:bg-secondary/70"
-    }`}
-    onClick={onClick}
-    data-selected={isSelected}
-    id={label.toLowerCase().replace(/\s+/g, "-")}
-  >
-    <Icon className="w-5 h-5 lg:w-6 lg:h-6 2xl:w-8 2xl:h-8" />
-    <span className="text-base 2xl:text-lg font-medium tracking-wide">
-      {label}
-    </span>
-  </button>
-);
+import { useSignals } from "@preact/signals-react/runtime";
+
+const TabButton = ({
+  isSelected,
+  onClick,
+  icon: Icon,
+  label,
+  variant = "horizontal",
+}) => {
+  useSignals();
+  const selected = Boolean(isSelected);
+  return (
+    <button
+      className={`flex text-sm md:text-base ${
+        variant === "vertical"
+          ? "flex-col items-center justify-center py-3 2xl:py-5 gap-6 md:gap-3 2xl:gap-4 w-[180px]"
+          : "items-center justify-center gap-3 md:gap-2 2xl:gap-3"
+      } ${
+        variant === "horizontal"
+          ? "py-2.5 lg:py-3 xl:py-5"
+          : "md:px-2 md:py-4 2xl:p-2.5"
+      } rounded-lg transition-all ${
+        selected
+          ? "bg-primary text-white"
+          : variant === "vertical"
+          ? "bg-secondary text-primary hover:bg-secondary/70"
+          : "bg-secondary text-text hover:bg-secondary/70"
+      }`}
+      onClick={onClick}
+      data-selected={selected}
+      id={label.toLowerCase().replace(/\s+/g, "-")}
+    >
+      <Icon
+        className={` ${
+          variant === "vertical"
+            ? "w-6 h-6 md:w-6 md:h-6  2xl:w-10 2xl:h-10"
+            : "2xl:w-8 2xl:h-8"
+        }`}
+      />
+      <span
+        className={` ${
+          variant === "vertical"
+            ? "md:text-[10px] 2xl:text-base text-text"
+            : "2xl:text-lg"
+        } font-medium tracking-wide`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+};
 
 export default TabButton;

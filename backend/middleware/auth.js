@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { getToken } = require("../utils/redis.js");
+const User = require("../models/User.js");
 
 const auth = async (req, res, next) => {
   try {
@@ -11,19 +12,22 @@ const auth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const storedToken = await getToken(`access_${decoded._id}`);
+    const user = await User.findOne({ _id: decoded._id });
 
     if (!storedToken || token !== storedToken) {
       throw new Error("Invalid or expired token! Please authenticate.");
     }
 
-    req.user = decoded;
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    req.user = user;
     req.token = token;
     next();
   } catch (error) {
-    res.status(401).send({
-      error: "Please Authenticate",
-      details: error.message,
-    });
+    console.error('Auth middleware error:', error.message);
+    res.status(401).send({ error: 'Please authenticate.' });
   }
 };
 

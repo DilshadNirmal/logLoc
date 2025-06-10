@@ -1,6 +1,5 @@
 import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useState } from "react";
-import ReactSpeedometer from "react-d3-speedometer";
+import { useCallback, useEffect, useState } from "react";
 
 import ThreedModel from "../canvas/ThreedModel";
 import BatteryRender from "../components/BatteryRender";
@@ -11,25 +10,26 @@ import SensorCheckbox from "../components/Dashboard/SensorCheckbox";
 import TimeRangeSelector from "../components/Dashboard/TimeRangeSelector";
 import debounce from "lodash/debounce";
 import {
-  chartData,
-  currentPage,
-  fetchChart,
   fetchSignalHistory,
   fetchVoltages,
-  selectedSensors,
-  selectedSide,
   signalHistory,
-  timeRange,
   voltageDataA,
   voltageDataB,
 } from "../signals/voltage";
+import {
+  dashboardSelectedSide,
+  dashboardSelectedSensors,
+  dashboardTimeRange,
+  dashboardChartData,
+  isDashboardChartLoading, // Optional: for loading UI
+  dashboardChartError, // Optional: for error UI
+  fetchDashboardChartData,
+} from "../signals/dashboardSignals";
 import ChartContainer from "../components/Chart";
-import { useSignals } from "@preact/signals-react/runtime";
 import SignalStrength from "../components/Dashboard/SignalStrength";
 import GaugeDisplay from "../components/Dashboard/GaugeDisplay";
 
 const Dashboard = () => {
-  console.log(`re-rendering Dashboard`);
   const { user } = useAuth();
 
   const [navHeight, setNavHeight] = useState(0);
@@ -62,15 +62,6 @@ const Dashboard = () => {
       clearInterval(historyInterval);
     };
   }, []);
-
-  useEffect(() => {
-    if (selectedSensors.value.length > 0) {
-      currentPage.value = "dashboard";
-      fetchChart("dashboard");
-    } else {
-      chartData.value = [];
-    }
-  }, [selectedSensors.value]);
 
   useEffect(() => {
     const updateNavHeight = () => {
@@ -109,15 +100,13 @@ const Dashboard = () => {
     };
   }, [navHeight]);
 
-  // useSignals();
-
   return (
     <section
       className="cont bg-background md:!py-2 2xl:!py-4 md:!px-3 2xl:!px-4"
       style={{ marginTop: `${navHeight}px` }}
     >
       <div className="left">
-        <div className="bg-secondary rounded flex flex-col md:flex-row xl:flex-row justify-around gap-2 md:gap-1 2xl:gap-2 text-text md:p-[4px_!important] lg:!p-[5px] 2xl:p-[5px]">
+        <div className="bg-secondary rounded flex flex-col md:flex-row xl:flex-row justify-around gap-2 md:gap-1 2xl:gap-2 text-text md:p-[3px_!important] lg:!p-[5px] 2xl:p-[5px]">
           <fieldset className="border border-primary/75 rounded">
             <legend className="text-xs md:text-[8px] 2xl:text-xs px-2 md:px-1 2xl:px-2 text-primary">
               A Side
@@ -139,10 +128,10 @@ const Dashboard = () => {
         </div>
 
         {/* gauge for min and max */}
-        <div className="bg-secondary rounded-lg flex flex-col md:flex-row xl:flex-row gap-1.5">
+        <div className="bg-secondary rounded-lg flex flex-col items-center md:flex-row xl:flex-row gap-1.5 md:gap-1 xl:gap-1.5">
           {/* A side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[95%] md:w-[90%] h-[95%]">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               A side
             </legend>
 
@@ -150,8 +139,8 @@ const Dashboard = () => {
           </fieldset>
 
           {/* B side */}
-          <fieldset className="border border-primary/75 rounded-lg p-1 w-full h-full">
-            <legend className="px-2 text-primary text-sm md:text-[11px] 2xl:text-sm">
+          <fieldset className="border border-primary/75 rounded-lg p-1.5 w-[95%] md:w-[90%] h-[95%]">
+            <legend className="px-2 md:px-1.5 xl:px-2 text-primary text-sm md:text-xs 2xl:text-sm">
               B side
             </legend>
 
@@ -162,24 +151,26 @@ const Dashboard = () => {
         {/* battery and Signal */}
         <div className="flex flex-col md:flex-row lg:flex-row gap-2">
           <div className="w-full h-[400px] sm:w-4/12 sm:h-full bg-secondary text-text rounded-lg p-1">
-            <h4 className="mt-4 md:mt-2 mb-5 sm:mb-2 ml-4 text-lg md:text-sm">
+            <h4 className="mt-4 md:mt-2 mb-5 sm:mb-2 ml-4 text-lg md:text-xs 2xl:text-lg">
               battery Status
             </h4>
 
             {/* battery will be down here */}
             <div className="w-full h-10/12 sm:h-9/12 flex sm:flex-col mt-10 md:mt-0 justify-around">
               <BatteryRender
+                side={`(A)`}
                 orient={windowWidth >= 1024 ? "height" : "width"}
                 value={voltageDataA}
               />
               <BatteryRender
+                side={`(B)`}
                 orient={windowWidth >= 1024 ? "height" : "width"}
                 value={voltageDataB}
               />
             </div>
           </div>
-          <div className="bg-secondary text-text rounded-lg p-1 md:p-0.5 flex-1">
-            <h4 className=" mt-2 mb-15 md:mt-1.5 md:mb-2.5 2xl:mt-2 2xl:mb-3 ml-4 text-sm md:text-xs 2xl:text-sm">
+          <div className="bg-secondary text-text rounded-lg p-4 md:p-3 2xl:p-4 flex-1">
+            <h4 className="text-sm md:text-xs 2xl:text-sm mb-4 md:mb-3 2xl:mb-4">
               Signal Strength
             </h4>
             <SignalStrength
@@ -191,12 +182,12 @@ const Dashboard = () => {
       </div>
       <div className="right">
         {/* voltage grid */}
-        <div className="bg-secondary/50 text-text rounded-lg p-2 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-2 gap-4">
-          <fieldset className="border border-primary/75 rounded-lg p-2 h-fit">
+        <div className="bg-secondary/50 text-text rounded-lg p-2 md:p-1 xl:p-2 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-2 gap-4 md:gap-1 2xl:gap-4">
+          <fieldset className="border border-primary/75 rounded-lg p-2 md:p-1 xl:p-2 h-fit">
             <legend className="px-2 text-primary text-base md:text-xs font-medium tracking-wider">
               A Side
             </legend>
-            <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4 2xl:grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 md:grid-cols-5 2xl:grid-cols-4 gap-1.5 md:gap-1 xl:gap-1.5">
               {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 1;
                 // const voltage = voltageDataA.value.voltages[`v${sensorId}`];
@@ -210,11 +201,11 @@ const Dashboard = () => {
               })}
             </div>
           </fieldset>
-          <fieldset className="border border-primary rounded-lg p-2 h-fit">
+          <fieldset className="border border-primary rounded-lg p-2 md:p-1 xl:p-2 h-fit">
             <legend className="px-2 text-primary text-base md:text-xs font-medium tracking-wider">
               B Side
             </legend>
-            <div className="grid grid-cols-5 md:grid-cols-5 lg:grid-cols-4  2xl:grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-5 md:grid-cols-5 2xl:grid-cols-4 gap-1.5 md:gap-1 xl:gap-1.5">
               {Array.from({ length: 20 }, (_, index) => {
                 const sensorId = index + 21;
                 // const voltage = voltageDataB.value.voltages[`v${sensorId}`];
@@ -231,16 +222,16 @@ const Dashboard = () => {
         </div>
 
         {/* chart */}
-        <div className="bg-secondary p-2 rounded-lg">
-          <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 mb-2">
+        <div className="bg-secondary p-2 md:p-1.5 xl:p-2 rounded-lg">
+          <div className="flex flex-col md:flex-row md:justify-around items-center gap-3 md:gap-1 xl:gap-3 mb-2 md:mb-1 xl:mb-2">
             <SideSelector />
 
-            {selectedSide.value && <SensorCheckbox />}
+            <SensorCheckbox />
 
-            <TimeRangeSelector timeRange={timeRange} />
+            <TimeRangeSelector />
           </div>
           <div className="chart-container">
-            <ChartContainer data={chartData} />
+            <ChartContainer />
           </div>
         </div>
       </div>

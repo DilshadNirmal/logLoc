@@ -60,8 +60,8 @@ const ChangePassword = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-28">
-      <div className="max-w-md mx-auto px-4">
+    <div className="min-h-screen bg-background pt-28 grid place-content-center">
+      <div className="max-w-md mx-auto p-4 bg-secondary rounded-lg w-92">
         <h1 className="text-3xl font-bold text-text mb-8">Change Password</h1>
 
         {error && (

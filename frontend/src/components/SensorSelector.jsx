@@ -13,17 +13,21 @@ const SensorSelector = () => {
     if (selectedSide.value === side) {
       isDropdownOpen.value = !isDropdownOpen.value;
     } else {
+      selectedSensors.value = [];
       selectedSide.value = side;
       isDropdownOpen.value = true;
     }
   };
 
   const handleSensorClick = (sensor) => {
-    if (selectedSensors.value.includes(sensor)) {
-      selectedSensors.value = selectedSensors.value.filter((s) => s !== sensor);
+    const currentSensors = selectedSensors.value;
+    if (currentSensors.includes(sensor)) {
+      selectedSensors.value = currentSensors.filter((s) => s !== sensor);
     } else {
-      selectedSensors.value = [...selectedSensors.value, sensor];
+      selectedSensors.value = [...currentSensors, sensor];
     }
+    // Force a re-render by updating the signal
+    selectedSensors.value = [...selectedSensors.value];
   };
 
   //   TODO:
@@ -39,20 +43,22 @@ const SensorSelector = () => {
   });
 
   return (
-    <div className="bg-secondary text-white p-4 px-6 rounded-lg flex items-center justify-between">
-      <p className="text-sm font-semibold tracking-widest leading-5">
+    <div className="bg-secondary text-white p-4 md:p-2.5 xl:p-4 px-6 md:px-3 xl:px-6 rounded-lg flex items-center justify-between gap-1">
+      <p className="text-sm md:text-[10px] xl:text-xs 2xl:text-sm font-semibold md:font-medium xl:font-semibold tracking-widest md:tracking-wider xl:tracking-wider leading-5 md:leading-3 xl:leading-4">
         Select <br /> Sensor
       </p>
 
-      <div className="flex gap-2">
+      <div className="flex gap-1.5 md:gap-1.5 xl:gap-2">
         <div
-          className={`dropdown-container relative bg-background rounded-lg px-4 py-2 cursor-pointer ${
+          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4 md:px-2 2xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
             selectedSide.value === "A" ? "bg-primary" : "bg-background"
           }`}
           onClick={() => handleSideChange("A")}
         >
-          <div className="flex items-center justify-between gap-2 w-24">
-            <span>Side A</span>
+          <div className="flex items-center justify-between gap-1.5 w-24 md:w-13 xl:w-16 2xl:w-24">
+            <span className="text-sm md:text-[10px] xl:text-xs 2xl:text-sm">
+              Side A
+            </span>
             <span
               className={`transform transition-transform duration-200 ${
                 selectedSide.value === "A" && isDropdownOpen.value
@@ -60,7 +66,7 @@ const SensorSelector = () => {
                   : ""
               }`}
             >
-              <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
+              <IoIosArrowUp className="w-4 h-4 lg:w-3 lg:h-3 xl:w-5 xl:h-5" />
             </span>
           </div>
           {selectedSide.value === "A" && isDropdownOpen.value && (
@@ -68,7 +74,7 @@ const SensorSelector = () => {
               {Array.from({ length: 20 }, (_, i) => i + 1).map((sensor) => (
                 <div
                   key={sensor}
-                  className={`px-4 py-2 cursor-pointer text-sm border-b border-primary/10 last:border-b-0 ${
+                  className={`px-4 md:px-2 xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer text-[9px] border-b border-primary/10 last:border-b-0 ${
                     selectedSensors.value.includes(sensor)
                       ? "bg-primary/40 text-white"
                       : "hover:bg-primary/25 text-white"
@@ -86,13 +92,15 @@ const SensorSelector = () => {
         </div>
 
         <div
-          className={`dropdown-container relative bg-background rounded-lg px-4 py-2 cursor-pointer ${
+          className={`dropdown-container relative bg-background rounded-lg md:rounded-md xl:rounded-lg px-4  md:px-2 2xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer ${
             selectedSide.value === "B" ? "bg-primary" : "bg-background"
           }`}
           onClick={() => handleSideChange("B")}
         >
-          <div className="flex items-center justify-between gap-2 w-24">
-            <span>Side B</span>
+          <div className="flex items-center justify-between gap-1.5 w-24 md:w-13 xl:w-18 2xl:w-24">
+            <span className="text-sm md:text-[10px] xl:text-xs 2xl:text-sm">
+              Side B
+            </span>
             <span
               className={`transform transition-transform duration-200 ${
                 selectedSide.value === "B" && isDropdownOpen.value
@@ -100,7 +108,7 @@ const SensorSelector = () => {
                   : ""
               }`}
             >
-              <IoIosArrowUp className="w-4 h-4 lg:w-4 lg:h-4 2xl:w-5 2xl:h-5" />
+              <IoIosArrowUp className="w-4 h-4 lg:w-3 lg:h-3 xl:w-5 xl:h-5" />
             </span>
           </div>
           {selectedSide.value === "B" && isDropdownOpen.value && (
@@ -108,7 +116,7 @@ const SensorSelector = () => {
               {Array.from({ length: 20 }, (_, i) => i + 21).map((sensor) => (
                 <div
                   key={sensor}
-                  className={`px-4 py-2 cursor-pointer text-sm border-b border-primary/10 last:border-b-0 ${
+                  className={`px-4 md:px-2 xl:px-4 py-2 md:py-1 xl:py-2 cursor-pointer text-[9px] border-b border-primary/10 last:border-b-0 ${
                     selectedSensors.value.includes(sensor)
                       ? "bg-primary/40 text-white"
                       : "hover:bg-primary/25 text-white"

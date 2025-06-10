@@ -12,7 +12,7 @@ const storeRefreshToken = async (userId, token) => {
 
 const storeAccessToken = async (userId, token) => {
   await redisClient.set(`access_${userId}`, token, {
-    EX: 1 * 60 * 60,
+    EX: 24 * 60 * 60,
   });
 };
 

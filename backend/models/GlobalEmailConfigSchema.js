@@ -1,12 +1,19 @@
 const { default: mongoose } = require("mongoose");
 
 const GlobalEmailConfigSchema = new mongoose.Schema({
-  emails: [
+ 
+  users: [
     {
-      type: String,
-      required: true,
-    },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }
   ],
+  alertDelay: {
+    type: Number,
+    default: 5,
+    min: 1,
+    max: 10,
+  },
   _id: {
     type: String,
     default: "global",

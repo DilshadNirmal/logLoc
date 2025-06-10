@@ -24,7 +24,7 @@
   margin: auto;
 
   display: grid;
-  grid-template-rows: auto 1fr 1fr 1fr;
+  grid-template-rows: auto auto 1fr 1fr;
   gap: 0.5rem;
 }
 
@@ -52,7 +52,7 @@ div.left > div:nth-child(2) {
 }
 
 div.left > div:nth-child(3) {
-  padding: 0.35rem;
+  padding: 0.55rem;
 }
 
 div.right > div:nth-child(1) {
@@ -116,7 +116,33 @@ div.right > div:nth-child(2) {
   }
 }
 
-@media screen and (max-width: 900px) {
+/* Tablet and up */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .cont .left {
+    grid-template-rows: auto 1fr 1fr 1fr;
+    gap: 0.2rem;
+  }
+}
+
+/* Desktop */
+@media screen and (min-width: 1025px) {
+  .cont .left {
+    grid-template-rows: auto 1fr 1fr 1fr;
+    gap: 0.2rem;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  body {
+    overflow: auto;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .chart-container {
+    height: 200px;
+  }
+
   section.cont {
     display: flex;
     flex-direction: column;
@@ -130,9 +156,34 @@ div.right > div:nth-child(2) {
   }
 
   .cont .left {
-    display: grid;
     grid-template-rows: auto auto 1fr 1fr;
     gap: 0.5rem;
+  }
+
+  div.left,
+  div.right {
+    width: 100%;
+    height: auto;
+    border: none;
+    margin: auto;
+  }
+
+  div.left > div:nth-child(2) {
+    height: 300px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  section.cont {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+  }
+
+  section.cont > * {
+    width: 100%;
+    height: auto;
   }
 
   div.left,
@@ -151,5 +202,51 @@ div.right > div:nth-child(2) {
 @media screen and (max-width: 1024px) {
   .chart-container {
     height: 300px;
+  }
+
+  .cont {
+    padding: 1rem 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .cont .left {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+  }
+
+  .cont .right {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 0.2rem;
+  }
+
+  div.left > div:nth-child(1) {
+    /* display: flex;
+    justify-content: center;
+    align-items: center; */
+    padding: 0.15rem;
+
+    height: fit-content;
+  }
+
+  div.left > div:nth-child(2) {
+    padding: 0.25rem;
+  }
+
+  div.left > div:nth-child(3) {
+    padding: 0.25rem;
+  }
+
+  div.right > div:nth-child(1) {
+    height: fit-content;
+  }
+
+  div.right > div:nth-child(2) {
+    height: 100%;
   }
 }

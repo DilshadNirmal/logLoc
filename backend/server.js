@@ -10,15 +10,21 @@ const alertRoutes = require("./routes/alerts");
 const otpRoutes = require("./routes/otp");
 const dataRoutes = require("./routes/data");
 const reportsRoutes = require("./routes/reports");
+const reportConfigRoutes = require("./routes/reportConfig");
+const notificationRoutes = require("./routes/notification");
+const { initReportScheduler } = require("./services/reportScheduler");
 
 const app = express();
 
-console.log(process.env.CLIENT_URL);
 // Middleware
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL, process.env.CLIENT_URL_2],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: [
+      process.env.CLIENT_URL,
+      process.env.CLIENT_URL_2,
+      "http://localhost:5173",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: [
@@ -47,6 +53,8 @@ app.use("/api", alertRoutes);
 app.use("/api", otpRoutes);
 app.use("/api", dataRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api", reportConfigRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Connect to MongoDB
 connectDB(process.env.MONGODB_URI)
@@ -62,4 +70,6 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);
+  // Initialize the report scheduler
+  initReportScheduler();
 });

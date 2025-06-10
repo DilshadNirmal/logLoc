@@ -62,79 +62,139 @@ export function AuthProvider({ children }) {
     initializeAuth();
   }, []);
 
-  const getUserLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
+  const updateUser = async (updatedUserData) => {
+    try {
+      // First verify the token
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        throw new Error("No access token found");
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          resolve({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.warn("Geolocation error:", error);
-          resolve(null);
-        },
-        { timeout: 5000 }
+      // Update the user state immediately
+      const updatedUser = { ...user, ...updatedUserData };
+      setUser(updatedUser);
+
+      // Also update the user in the server
+      if (updatedUserData.cookieConsent !== undefined) {
+        await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}auth/update-cookie-consent`,
+          {
+            consent: updatedUserData.cookieConsent,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  };
+
+  const changePassword = async (userId, currentPassword, newPassword) => {
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      return {
+        success: false,
+        error: "No access token found. Please log in again.",
+      };
+    }
+    console.log("change password", userId, currentPassword, newPassword);
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_BACKEND_URL}/users/${userId}/change-password`,
+        { currentPassword, newPassword },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
-    });
+      return { success: true, message: response.data.message };
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to change password.";
+      console.error(
+        "Change password error:",
+        err.response?.data || err.message
+      );
+      return { success: false, error: errorMessage };
+    }
   };
 
   const login = async (credentials) => {
     try {
-      setLoading(true);
-      setError(null);
-
-      // Get user's location
-      const locationData = await getUserLocation();
-
-      const loginData = {
-        ...credentials,
-        ...(locationData && {
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-        }),
-      };
-
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}auth/login`,
-        loginData
+        credentials
       );
 
-      setUser(response.data.user);
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-      return response.data;
-    } catch (err) {
-      setError(err.response?.data?.error || "Login failed");
-      throw err;
-    } finally {
-      setLoading(false);
+      const { user, accessToken, refreshToken, loginActivityId } =
+        response.data;
+
+      // First check verification status before setting user
+      if (!user.phoneVerified) {
+        // Store tokens but don't set user state yet
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", refreshToken);
+        return {
+          success: true,
+          redirect: "/verify-otp",
+          user,
+        };
+      }
+
+      if (!user.cookieConsent) {
+        // Store tokens but don't set user state yet
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", refreshToken);
+        return {
+          success: true,
+          redirect: "/cookie-consent",
+          user,
+        };
+      }
+
+      // Only set user state if fully verified
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      setUser(user);
+
+      return { success: true, user };
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Login failed";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   };
 
   const logout = async () => {
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}auth/logout`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-        }
-      );
-    } catch (err) {
-      console.error("Logout error:", err);
+      const accessToken = localStorage.getItem("accessToken");
+      if (accessToken) {
+        await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}auth/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
     } finally {
-      setUser(null);
+      // Clear all auth data
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      setUser(null);
+      setError(null);
     }
   };
 
@@ -200,7 +260,16 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, login, logout, verifyOTP }}
+      value={{
+        user,
+        updateUser,
+        loading,
+        error,
+        login,
+        logout,
+        verifyOTP,
+        changePassword,
+      }}
     >
       {children}
     </AuthContext.Provider>
