@@ -30,8 +30,6 @@ const Analytics = () => {
   const [fetchError, setFetchError] = useState(null); // Local error state for fetch operations
   const [isFetching, setIsFetching] = useState(false);
 
-  console.log(countOptions);
-
   useEffect(() => {
     const updateDimensions = () => {
       const header = document.querySelector("header");
@@ -47,12 +45,7 @@ const Analytics = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
-    console.log(
-      "[Analytics] fetchData called. selectedSensors.value:",
-      JSON.stringify(selectedSensors.value)
-    );
     if (selectedSensors.value.length === 0) {
-      console.log("No sensors selected, clearing chart data");
       globalChartData.value = []; // Clear global chart data if no sensors
       return;
     }

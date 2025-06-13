@@ -53,7 +53,6 @@ const generateAndSendReports = async () => {
     );
 
     if (!config || !config.users || config.users.length === 0) {
-      console.log("No report configuration or users found");
       return;
     }
 
@@ -94,13 +93,8 @@ const generateAndSendReports = async () => {
     }
 
     if (!shouldSendReport) {
-      console.log(`Not time to send ${config.frequency} report yet`);
       return;
     }
-
-    console.log(
-      `Generating ${config.frequency} report for ${config.users.length} users`
-    );
 
     // Generate report data
     // For this example, we'll use the last 24 hours of data for daily reports
@@ -136,7 +130,6 @@ const generateAndSendReports = async () => {
     const data = await getAverageData(configuration, dateRange, "day");
 
     if (!data || data.length === 0) {
-      console.log("No data available for report");
       return;
     }
 
@@ -151,7 +144,6 @@ const generateAndSendReports = async () => {
     // Send email to each user
     const emailPromises = config.users.map(async (user) => {
       if (!user.Email) {
-        console.log(`User ${user._id} has no email address`);
         return;
       }
 
@@ -184,7 +176,6 @@ const generateAndSendReports = async () => {
 
       try {
         await sendEmail(emailOptions);
-        console.log(`Report sent to ${user.Email}`);
       } catch (error) {
         console.error(`Failed to send report to ${user.Email}:`, error);
       }
@@ -202,8 +193,6 @@ const generateAndSendReports = async () => {
     } catch (unlinkErr) {
       console.error("Error cleaning up temporary file:", unlinkErr);
     }
-
-    console.log(`${config.frequency} report sent successfully`);
   } catch (error) {
     console.error("Error generating and sending reports:", error);
   }
@@ -221,8 +210,6 @@ const initReportScheduler = () => {
     // Then check every hour
     setInterval(generateAndSendReports, ONE_HOUR);
   }, 60 * 1000);
-
-  console.log("Report scheduler initialized");
 };
 
 module.exports = {

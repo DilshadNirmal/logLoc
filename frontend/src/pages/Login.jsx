@@ -5,68 +5,33 @@ import { useAuth } from "../contexts/AuthContext";
 import bg_image from "../assets/images/RusticHome.jpg";
 import bgImage from "../assets/images/power_line.png";
 import logo from "../assets/images/xyma.png";
-import axiosInstance from "../lib/axios";
-
 const Login = () => {
   const navigate = useNavigate();
   const { user, login } = useAuth();
   const [credentials, setCredentials] = useState({
-    UserName: "",
+    Email: "",
     Password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    
+    setError("");
+
     try {
       const result = await login(credentials);
-      console.log(result);
+
       if (result.success) {
         if (result.redirect) {
           navigate(result.redirect);
         } else {
-          navigate('/dashboard');
+          navigate("/dashboard");
         }
       } else {
-        setError(result.error || 'Login failed');
+        setError(result.error || "Login failed");
       }
     } catch (error) {
-      setError('An error occurred during login');
-    }
-  };
-
-  const handleLocationAccess = async () => {
-    try {
-      let locationData = {};
-
-      // Get IP-based location first
-      const ipResponse = await fetch("https://ipapi.co/json/");
-      const ipData = await ipResponse.json();
-
-      locationData = {
-        ip: ipData.ip,
-        city: ipData.city,
-        region: ipData.region,
-        country: ipData.country_name,
-        timestamp: new Date().toISOString(),
-      };
-
-      // If geolocation is available and permitted, get precise location
-      if (navigator.geolocation) {
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
-        });
-
-        locationData.latitude = position.coords.latitude;
-        locationData.longitude = position.coords.longitude;
-      }
-
-      // Send location data to backend
-      await axiosInstance.post("auth/update-location", locationData);
-    } catch (error) {
-      console.error("Error getting location:", error);
+      setError("An error occurred during login");
     }
   };
 
@@ -108,20 +73,20 @@ const Login = () => {
           <form className="flex flex-col gap-6 w-full" onSubmit={handleSubmit}>
             <div>
               <label
-                htmlFor="name"
+                htmlFor="email"
                 className="block mb-2 font-medium text-text"
               >
-                Name
+                Email
               </label>
               <input
-                id="name"
-                type="text"
+                id="email"
+                type="email"
                 required
                 className="w-full p-2 rounded-xl border border-secondary bg-background text-text focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all duration-200"
-                placeholder="Username"
-                value={credentials.UserName}
+                placeholder="Email"
+                value={credentials.Email}
                 onChange={(e) =>
-                  setCredentials({ ...credentials, UserName: e.target.value })
+                  setCredentials({ ...credentials, Email: e.target.value })
                 }
               />
             </div>

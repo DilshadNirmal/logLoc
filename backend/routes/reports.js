@@ -3,8 +3,6 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { promisify } = require("util");
-const { Worker } = require("worker_threads");
-const mongoose = require("mongoose");
 const compression = require("compression");
 const NodeCache = require("node-cache");
 
@@ -14,11 +12,12 @@ const {
   getIntervalData,
   getDateData,
   getCountData,
-  getSampleData,
+  fetchReportData,
+  fetchExcelReportData,
 } = require("../services/reports/dataFetcher.js");
 const {
   generateExcelFile,
-  createExcelWriter,
+  generateExcelReport,
 } = require("../services/reports/excelGenerator.js");
 
 // Promisify fs functions for cleaner async/await usage
@@ -126,18 +125,6 @@ router.post("/fetch-data", auth, async (req, res) => {
       sensorIds,
     } = req.body;
 
-    console.log(
-      "reportType:",
-      reportType,
-      configuration,
-      dateRange,
-      averageBy,
-      interval,
-      "sensorIds: ",
-      sensorIds,
-      req.body.customCount
-    );
-
     const selectedSensors = sensorIds.map((sensorId) => sensorId);
 
     // Validate required parameters
@@ -181,6 +168,14 @@ router.post("/fetch-data", auth, async (req, res) => {
       });
     }
 
+    // Adjust date range for single-day queries
+    let fromDate = new Date(dateRange.from);
+    let toDate = new Date(dateRange.to);
+
+    if (fromDate.toDateString() === toDate.toDateString()) {
+      toDate.setHours(23, 59, 59, 999); // Set to the end of the day
+    }
+
     // Fetch data based on report type
     let data;
     switch (reportType) {
@@ -191,12 +186,14 @@ router.post("/fetch-data", auth, async (req, res) => {
             message: "Average by parameter is required",
           });
         }
-        data = await getAverageData(
+        data = await fetchReportData({
+          mode: "average",
+          timeUnit: averageBy,
           configuration,
-          dateRange,
-          averageBy,
-          sensorIds
-        );
+          sensorIds,
+          fromDate: fromDate,
+          toDate: toDate,
+        });
         break;
 
       case "interval":
@@ -206,16 +203,24 @@ router.post("/fetch-data", auth, async (req, res) => {
             message: "Interval parameter is required",
           });
         }
-        data = await getIntervalData(
+        data = await fetchReportData({
+          mode: "interval",
+          timeUnit: interval,
           configuration,
-          dateRange,
-          interval,
-          sensorIds
-        );
+          sensorIds,
+          fromDate: fromDate,
+          toDate: toDate,
+        });
         break;
 
       case "date":
-        data = await getDateData(configuration, dateRange, sensorIds);
+        data = await fetchReportData({
+          mode: "raw",
+          configuration,
+          sensorIds,
+          fromDate: fromDate,
+          toDate: toDate,
+        });
         break;
 
       case "count":
@@ -280,186 +285,33 @@ router.post("/fetch-data", auth, async (req, res) => {
  * Handles Excel export requests
  */
 router.post("/export-excel", auth, async (req, res) => {
-  let tempFilePath = null;
-
   try {
-    const {
-      reportType,
-      configuration,
-      dateRange,
-      averageBy,
-      interval,
-      selectedCounts,
-      customCount,
-      selectedSensors,
-    } = req.body;
-
-    // Validate required parameters
-    if (!reportType) {
-      return res.status(400).json({
-        success: false,
-        message: "Report type is required",
-      });
-    }
-
-    // For reports that need date range, validate it
+    // Validate request body
     if (
-      ["average", "interval", "date"].includes(reportType) &&
-      (!dateRange || !dateRange.from || !dateRange.to)
+      !req.body.reportType ||
+      !req.body.configuration ||
+      !req.body.dateRange
     ) {
       return res.status(400).json({
         success: false,
-        message: "Date range is required for this report type",
+        message: "Missing required parameters",
       });
     }
 
-    // Generate cache key for Excel file
-    const cacheKey = `excel_${generateCacheKey(req.body)}`;
-    const cachedFilePath = cache.get(cacheKey);
-
-    // If we have a cached file path and the file exists, use it
-    if (cachedFilePath && fs.existsSync(cachedFilePath)) {
-      tempFilePath = cachedFilePath;
-    } else {
-      // Create a temporary file path for the Excel file
-      const tempFileName = `report_${Date.now()}.xlsx`;
-      tempFilePath = await getTempFilePath(tempFileName);
-
-      let data = [];
-      let filename = "";
-
-      // Fetch data based on report type
-      switch (reportType) {
-        case "average":
-          if (!averageBy) {
-            return res.status(400).json({
-              success: false,
-              message: "Average by parameter is required",
-            });
-          }
-
-          data = await getAverageData(
-            configuration,
-            dateRange,
-            averageBy,
-            selectedSensors
-          );
-          filename = `Average_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-          await generateExcelFile(data, reportType, tempFilePath, {
-            averageBy,
-          });
-          break;
-
-        case "interval":
-          if (!interval) {
-            return res.status(400).json({
-              success: false,
-              message: "Interval parameter is required",
-            });
-          }
-
-          data = await getIntervalData(
-            configuration,
-            dateRange,
-            interval,
-            selectedSensors
-          );
-          filename = `Interval_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-          await generateExcelFile(data, reportType, tempFilePath, { interval });
-          break;
-
-        case "date":
-          data = await getDateData(configuration, dateRange, selectedSensors); // Fetch date data
-          filename = `Date_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-          await generateExcelFile(data, reportType, tempFilePath);
-          break;
-
-        case "count":
-          data = await getCountData({
-            selectedCounts,
-            customCount,
-            configuration,
-            selectedSensors,
-          });
-          filename = `Count_Data_${
-            new Date().toISOString().split("T")[0]
-          }.xlsx`;
-          await generateExcelFile(data, reportType, tempFilePath);
-          break;
-
-        default:
-          return res.status(400).json({
-            success: false,
-            message: "Invalid report type",
-          });
-      }
-
-      // Cache the file path for future requests (5 minute TTL)
-      cache.set(cacheKey, tempFilePath, 300);
-    }
-
-    // Verify the file exists before sending
-    if (!fs.existsSync(tempFilePath)) {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to generate Excel file: File not found",
-      });
-    }
-
-    // Determine filename based on report type
-    let filename;
-    switch (reportType) {
-      case "average":
-        filename = `Average_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-        break;
-      case "interval":
-        filename = `Interval_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-        break;
-      case "date":
-        filename = `Date_Data_${dateRange.from}_to_${dateRange.to}.xlsx`;
-        break;
-      case "count":
-        filename = `Count_Data_${new Date().toISOString().split("T")[0]}.xlsx`;
-        break;
-      default:
-        filename = "report.xlsx";
-    }
-
-    // Send the file to the client
-    res.download(tempFilePath, filename, (err) => {
-      if (err) {
-        console.error("Error sending file:", err);
-      }
-
-      // For cached files, don't delete them
-      if (!cache.has(`excel_${generateCacheKey(req.body)}`)) {
-        // Delete the temporary file after sending
-        // Use setTimeout to ensure file is fully sent before deletion
-        setTimeout(() => {
-          fs.unlink(tempFilePath, (unlinkErr) => {
-            if (unlinkErr && unlinkErr.code !== "ENOENT") {
-              console.error("Error deleting temporary file:", unlinkErr);
-            }
-          });
-        }, 1000);
-      }
+    // Get data in Excel format
+    const { data, headers } = await fetchExcelReportData({
+      reportType: req.body.reportType,
+      configuration: req.body.configuration,
+      sensorIds: req.body.selectedSensors || [],
+      dateRange: req.body.dateRange,
+      averageBy: req.body.averageBy,
+      interval: req.body.interval,
     });
+
+    // Generate and send Excel file directly to response
+    await generateExcelReport(data, headers, res);
   } catch (error) {
     console.error("Excel export error:", error);
-
-    // Clean up temp file if it exists and there was an error
-    if (
-      tempFilePath &&
-      fs.existsSync(tempFilePath) &&
-      !cache.has(`excel_${generateCacheKey(req.body)}`)
-    ) {
-      try {
-        await unlinkAsync(tempFilePath);
-      } catch (unlinkErr) {
-        console.error("Error cleaning up temporary file:", unlinkErr);
-      }
-    }
-
     res.status(500).json({
       success: false,
       message: "Failed to generate Excel file",

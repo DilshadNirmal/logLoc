@@ -30,8 +30,6 @@ export const fetchDashboardChartData = async () => {
       params.sensorIds = dashboardSelectedSensors.value.join(",");
     }
 
-    console.log("[DashboardChart] Fetching data with params:", params);
-
     const response = await axiosInstance.get(
       "/voltage-history/dashboard-chart",
       { params }
@@ -49,10 +47,6 @@ export const fetchDashboardChartData = async () => {
         })),
       }));
       dashboardChartData.value = transformedData;
-      console.log(
-        "[DashboardChart] Data fetched and transformed:",
-        transformedData
-      );
     } else {
       console.warn(
         "[DashboardChart] No data or unexpected format received:",

@@ -104,7 +104,7 @@ export function AuthProvider({ children }) {
         error: "No access token found. Please log in again.",
       };
     }
-    console.log("change password", userId, currentPassword, newPassword);
+
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_BACKEND_URL}/users/${userId}/change-password`,

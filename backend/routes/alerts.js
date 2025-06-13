@@ -2,7 +2,6 @@ const express = require("express");
 
 const auth = require("../middleware/auth.js");
 const AlertConfig = require("../models/AlertConfig.js");
-const VoltageThreshold = require("../models/VoltageThreshold.js");
 const GlobalEmailConfig = require("../models/GlobalEmailConfigSchema.js");
 
 const router = express.Router();
@@ -10,7 +9,6 @@ const router = express.Router();
 router.post("/alert-config", auth, async (req, res) => {
   try {
     const { sensorId, high, low, alertDelay, users } = req.body;
-    console.log(`sensorId: ${sensorId}`);
 
     const config = await AlertConfig.findOneAndUpdate(
       { sensorId },
@@ -24,11 +22,9 @@ router.post("/alert-config", auth, async (req, res) => {
     }
 
     // Save global email configuration
-    await GlobalEmailConfig.findOneAndUpdate(
-      { _id: "global" },
-      updateData,
-      { upsert: true }
-    );
+    await GlobalEmailConfig.findOneAndUpdate({ _id: "global" }, updateData, {
+      upsert: true,
+    });
 
     res.json({
       success: true,
@@ -47,9 +43,9 @@ router.post("/alert-config", auth, async (req, res) => {
 router.get("/alert-config", auth, async (req, res) => {
   try {
     const configs = await AlertConfig.find({});
-    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" })
-      .populate('users', 'UserName Email Role phoneNumber');
-    console.log(`configs: ${JSON.stringify(configs)}`);
+    const globalConfig = await GlobalEmailConfig.findOne({
+      _id: "global",
+    }).populate("users", "UserName Email Role phoneNumber");
 
     const response = configs.map((config) => ({
       ...config.toObject(),
@@ -64,13 +60,14 @@ router.get("/alert-config", auth, async (req, res) => {
 
 router.get("/global-email-config", auth, async (req, res) => {
   try {
-    const globalConfig = await GlobalEmailConfig.findOne({ _id: "global" })
-      .populate('users', 'UserName Email Role phoneNumber');
-      
+    const globalConfig = await GlobalEmailConfig.findOne({
+      _id: "global",
+    }).populate("users", "UserName Email Role phoneNumber");
+
     res.json({
       emails: globalConfig?.emails || [],
       users: globalConfig?.users || [],
-      alertDelay: globalConfig?.alertDelay || 5
+      alertDelay: globalConfig?.alertDelay || 5,
     });
   } catch (error) {
     res.status(500).json({
@@ -86,17 +83,17 @@ router.post("/global-email-config", auth, async (req, res) => {
     const { emails, users, alertDelay } = req.body;
 
     const updateData = {};
-    
+
     // Add emails array if provided
     if (Array.isArray(emails)) {
       updateData.emails = emails;
     }
-    
+
     // Add users array if provided
     if (Array.isArray(users)) {
       updateData.users = users;
     }
-    
+
     // Add alertDelay if provided
     if (alertDelay !== undefined) {
       updateData.alertDelay = alertDelay;
@@ -106,7 +103,7 @@ router.post("/global-email-config", auth, async (req, res) => {
       { _id: "global" },
       updateData,
       { upsert: true, new: true }
-    ).populate('users', 'UserName Email Role phoneNumber');
+    ).populate("users", "UserName Email Role phoneNumber");
 
     res.json({
       success: true,

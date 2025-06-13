@@ -74,7 +74,6 @@ const locationFind = async (ipAddress) => {
 
     // Check cache first
     if (locationCache.has(ipAddress)) {
-      console.log("Returning cached location data");
       return locationCache.get(ipAddress);
     }
 
@@ -95,7 +94,6 @@ const locationFind = async (ipAddress) => {
     let lastError = null;
     for (const service of geoServices) {
       try {
-        console.log(`Trying geolocation service: ${service.name}`);
         const locationData = await service.fetch(ipAddress);
 
         // Cache successful lookup

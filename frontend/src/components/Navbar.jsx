@@ -66,7 +66,6 @@ const Navbar = () => {
   const fetchNotifications = async () => {
     try {
       const response = await axiosInstance.get("/notifications");
-      console.log("fetch notifications:", response);
       setNotifications(response.data);
       setUnreadCount(response.data.filter((n) => !n.read).length);
     } catch (error) {
@@ -78,7 +77,6 @@ const Navbar = () => {
   const markAsRead = async (id) => {
     try {
       await axiosInstance.patch(`/notifications/${id}/read`);
-      console.log("mard id", id);
       setNotifications(
         notifications.map((n) => (n._id === id ? { ...n, read: true } : n))
       );

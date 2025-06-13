@@ -18,7 +18,7 @@ const getDurationMs = (duration) => {
 
 const sendData = async (userEmail, duration) => {
   const durationMs = getDurationMs(duration);
-  console.log(durationMs);
+
   const endTime = new Date();
   const startTime = new Date(endTime - durationMs);
 
@@ -36,10 +36,6 @@ const sendData = async (userEmail, duration) => {
     })
     .sort({ timestamp: -1 })
     .toArray();
-
-  console.log(
-    `Found ${data.length} records between ${startTime} and ${endTime}`
-  );
 
   if (data.length > 0) {
     try {
@@ -63,7 +59,6 @@ const sendData = async (userEmail, duration) => {
       const emailText = `Please find attached the sensor data report for the last ${duration}.\n\nTime period: ${startTime.toLocaleString()} to ${endTime.toLocaleString()}\nTotal records: ${
         data.length
       }`;
-      // console.log(pdfBuffer);
 
       if (process.env.USE_SENDGRID === "true") {
         const msg = {

@@ -146,7 +146,6 @@ export const fetchChart = async (options = {}) => {
       return;
     }
 
-    console.log(selectedSensors.value);
     isLoading.value = true;
 
     if (isDashboard) {
@@ -158,8 +157,6 @@ export const fetchChart = async (options = {}) => {
           sensorIds: selectedSensors.value.join(","),
         },
       });
-
-      console.log("Dashboard response:", response.data);
 
       if (response.data && Array.isArray(response.data)) {
         const transformedData = response.data.map((sensor) => ({
@@ -177,7 +174,6 @@ export const fetchChart = async (options = {}) => {
         }));
         chartData.value = transformedData;
       } else {
-        console.log("No data found");
         chartData.value = [];
       }
       return;
@@ -217,12 +213,7 @@ export const fetchChart = async (options = {}) => {
         break;
     }
 
-    console.log({ params });
-
     const response = await axiosInstance.post("/reports/fetch-data", params);
-
-    console.log("Raw API Response:", response.data);
-    console.log("Response type:", typeof response.data);
 
     let dataToProcess = [];
 
@@ -242,20 +233,12 @@ export const fetchChart = async (options = {}) => {
       }
     }
 
-    console.log("Data to process:", dataToProcess);
-
     if (Array.isArray(dataToProcess) && dataToProcess.length > 0) {
-      console.log("Starting data processing...");
-
       const processedData = dataToProcess
         .map((sensor, index) => {
           if (!sensor) return null;
 
           const sensorId = sensor.sensorId || sensor.id || index;
-          console.log(
-            `Processing sensor ${index + 1}/${dataToProcess.length}:`,
-            sensorId
-          );
 
           let sensorData =
             sensor.data || sensor.values || sensor.readings || [];
@@ -263,10 +246,6 @@ export const fetchChart = async (options = {}) => {
             console.warn(`Sensor ${sensorId} has invalid data:`, sensor);
             return null;
           }
-
-          console.log(
-            `Sensor ${sensorId} has ${sensorData.length} data points`
-          );
 
           const processedSensor = {
             sensorId,
@@ -316,7 +295,6 @@ export const fetchChart = async (options = {}) => {
         })
         .filter((sensor) => sensor !== null);
 
-      console.log("Final processed data:", processedData);
       chartData.value = processedData;
     } else {
       chartData.value = [];

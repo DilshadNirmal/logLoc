@@ -6,22 +6,21 @@ import { useState } from "react";
 const CookieConsent = () => {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleConsent = async () => {
     try {
-      setError('');
-      setSuccess('');
-      console.log(user);
+      setError("");
+      setSuccess("");
 
       // Update user state with cookie consent
       const updatedUser = await updateUser({
-        cookieConsent: true
+        cookieConsent: true,
       });
 
       if (updatedUser) {
-        setSuccess('Cookie consent updated successfully');
+        setSuccess("Cookie consent updated successfully");
         // Navigate to dashboard since both verifications are complete
         setTimeout(() => navigate("/dashboard", { replace: true }), 1500);
       }

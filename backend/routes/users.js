@@ -9,7 +9,7 @@ const router = express.Router();
 router.get("/users", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    console.log(user);
+
     if (user.Role !== "admin" && user.Role !== "super_admin") {
       return res
         .status(403)

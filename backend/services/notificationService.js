@@ -1,44 +1,42 @@
 // backend/services/notificationService.js
-const Notification = require('../models/Notification');
-const AlertConfig = require('../models/AlertConfig');
-const User = require('../models/User'); // Add this line to get all users
+const Notification = require("../models/Notification");
+const AlertConfig = require("../models/AlertConfig");
+const User = require("../models/User"); // Add this line to get all users
 
 const checkVoltageThresholds = async (voltageData) => {
   try {
     const { deviceId, sensorGroup, voltages } = voltageData;
     const sensorIds = Object.keys(voltages);
-    
+
     // Get all alert configurations for the sensors in this voltage data
     const alertConfigs = await AlertConfig.find({
-      sensorId: { $in: sensorIds.map(id => parseInt(id.replace('v', ''))) }
+      sensorId: { $in: sensorIds.map((id) => parseInt(id.replace("v", ""))) },
     });
-
-    console.log("Alert Configs:", alertConfigs);
 
     const notifications = [];
 
     for (const sensorKey of sensorIds) {
-      const sensorNumber = parseInt(sensorKey.replace('v', ''));
-      const alertConfig = alertConfigs.find(ac => ac.sensorId === sensorNumber);
-      
+      const sensorNumber = parseInt(sensorKey.replace("v", ""));
+      const alertConfig = alertConfigs.find(
+        (ac) => ac.sensorId === sensorNumber
+      );
+
       if (!alertConfig) {
-        console.log(`No alert config found for sensor ${sensorNumber}`);
         continue;
       }
 
       const { low, high } = alertConfig;
       const voltage = voltages[sensorKey];
-      let message = '';
-      let severity = 'medium';
+      let message = "";
+      let severity = "medium";
 
       if (voltage > high) {
         message = `High voltage (${voltage}V) detected on sensor ${sensorNumber} (${deviceId})`;
-        severity = 'high';
+        severity = "high";
       } else if (voltage < low) {
         message = `Low voltage (${voltage}V) detected on sensor ${sensorNumber} (${deviceId})`;
-        severity = 'high';
+        severity = "high";
       } else {
-        console.log(`Sensor ${sensorNumber} value ${voltage}V is within thresholds (${low}-${high}V)`);
         continue; // Within threshold
       }
 
@@ -52,19 +50,18 @@ const checkVoltageThresholds = async (voltageData) => {
         value: voltage,
         threshold: {
           min: low,
-          max: high
-        }
+          max: high,
+        },
       });
     }
 
     if (notifications.length > 0) {
-      console.log(`Creating ${notifications.length} global notifications`);
       await Notification.insertMany(notifications);
     } else {
-      console.log('No threshold violations detected');
+      console.log("No threshold violations detected");
     }
   } catch (error) {
-    console.error('Error in checkVoltageThresholds:', error);
+    console.error("Error in checkVoltageThresholds:", error);
     throw error;
   }
 };
@@ -73,26 +70,24 @@ const checkVoltageThresholds = async (voltageData) => {
 const getUserNotifications = async (userId) => {
   try {
     const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-    
+
     // Get both user-specific and global notifications
     const query = {
       $or: [
         { user: userId },
-        { user: { $exists: false } } // Global notifications
+        { user: { $exists: false } }, // Global notifications
       ],
-      timestamp: { $gte: twelveHoursAgo }
+      timestamp: { $gte: twelveHoursAgo },
     };
 
-    return await Notification.find(query)
-      .sort({ timestamp: -1 })
-      .lean();
+    return await Notification.find(query).sort({ timestamp: -1 }).lean();
   } catch (error) {
-    console.error('Error getting user notifications:', error);
+    console.error("Error getting user notifications:", error);
     throw error;
   }
 };
 
-module.exports = { 
+module.exports = {
   checkVoltageThresholds,
-  getUserNotifications
+  getUserNotifications,
 };

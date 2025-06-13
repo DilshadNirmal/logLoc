@@ -4,17 +4,12 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../models/User.js");
 const auth = require("../middleware/auth.js");
-const axios = require("../utils/axiosConfig.js");
-const {
-  locationFind,
-  reverseGeocode,
-} = require("../services/locationService.js");
+const { reverseGeocode } = require("../services/locationService.js");
 const {
   storeRefreshToken,
   storeAccessToken,
   clearPreviousUserSessions,
 } = require("../utils/redis.js");
-const activityLogger = require("../middleware/activityLogger.js");
 const UserActivity = require("../models/UserActivity.js");
 const { clearAccessToken, clearRefreshToken } = require("../utils/tokenUtils");
 
@@ -137,8 +132,8 @@ router.get("/signup", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { UserName, Password } = req.body;
-    const user = await User.findOne({ UserName });
+    const { Email, Password } = req.body;
+    const user = await User.findOne({ Email });
 
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -232,8 +227,6 @@ router.post("/update-location", auth, async (req, res) => {
       user: user._id,
       type: "login",
     }).sort({ createdAt: -1 });
-
-    console.log(req.body);
 
     if (loginActivity) {
       // Update the login activity with location

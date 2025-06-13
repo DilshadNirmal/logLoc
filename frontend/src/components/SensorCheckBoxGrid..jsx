@@ -6,11 +6,6 @@ const SensorCheckboxGrid = () => {
   useSignals();
 
   const handleSensorClick = (sensorId) => {
-    console.log("[SensorCheckboxGrid] Clicked sensor:", sensorId);
-    console.log(
-      "[SensorCheckboxGrid] selectedSensors.value BEFORE:",
-      JSON.stringify(selectedSensors.value)
-    );
     if (selectedSensors.value.includes(sensorId)) {
       selectedSensors.value = selectedSensors.value.filter(
         (id) => id !== sensorId
@@ -18,10 +13,6 @@ const SensorCheckboxGrid = () => {
     } else {
       selectedSensors.value = [...selectedSensors.value, sensorId];
     }
-    console.log(
-      "[SensorCheckboxGrid] selectedSensors.value AFTER:",
-      JSON.stringify(selectedSensors.value)
-    );
   };
 
   // Determine which set of sensors to display based on selectedSide

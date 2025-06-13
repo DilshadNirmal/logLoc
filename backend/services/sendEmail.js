@@ -26,12 +26,6 @@ const sendEmail = async (options) => {
       throw new Error("Failed to send email - no message ID received");
     }
 
-    console.log("Email sent successfully:", {
-      messageId: info.messageId,
-      to,
-      subject,
-    });
-
     return info;
   } catch (error) {
     console.error("Error sending email:", {
